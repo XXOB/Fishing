@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhein-Check · Mainz / Wiesbaden</title>
+<style>
+  :root{
+    --bg:#0a0e14; --bg2:#111823; --card:#151e2b; --card2:#1b2635;
+    --line:#243146; --text:#e8eef7; --muted:#8ea2be; --muted2:#5f748f;
+    --water:#38bdf8; --teal:#2dd4bf; --amber:#fbbf24; --red:#f87171; --green:#4ade80;
+    --shadow:0 6px 22px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 600px at 20% -10%,#12233a 0%,var(--bg) 55%) fixed;
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.4;
+    padding:16px; max-width:1080px; margin:0 auto;
+  }
+  a{color:var(--water);text-decoration:none}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--water),var(--teal));
+    display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--shadow)}
+  h1{font-size:20px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .updated{font-size:12px;color:var(--muted2);text-align:right}
+  .refresh{margin-top:6px;background:var(--card2);border:1px solid var(--line);color:var(--text);
+    padding:7px 12px;border-radius:9px;font-size:13px;cursor:pointer;transition:.15s}
+  .refresh:hover{background:#25344a;border-color:#37496a}
+  .refresh:active{transform:scale(.97)}
+
+  .cond{margin:14px 0 18px;border-radius:16px;padding:16px 18px;display:flex;gap:16px;align-items:center;
+    background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow)}
+  .cond .dot{width:52px;height:52px;min-width:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:26px;font-weight:700}
+  .cond .lvl{font-size:17px;font-weight:700;margin-bottom:3px}
+  .cond .why{font-size:13px;color:var(--muted)}
+  .lg-green{background:rgba(74,222,128,.16);color:var(--green);border:1px solid rgba(74,222,128,.35)}
+  .lg-amber{background:rgba(251,191,36,.16);color:var(--amber);border:1px solid rgba(251,191,36,.35)}
+  .lg-red{background:rgba(248,113,113,.16);color:var(--red);border:1px solid rgba(248,113,113,.35)}
+
+  .sect{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);
+    margin:22px 4px 10px;font-weight:700}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:6px;min-height:118px;position:relative;overflow:hidden}
+  .tile .lbl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;font-weight:600}
+  .tile .val{font-size:30px;font-weight:750;line-height:1;letter-spacing:.5px}
+  .tile .val small{font-size:15px;font-weight:600;color:var(--muted);margin-left:3px}
+  .tile .meta{font-size:11px;color:var(--muted2);margin-top:auto}
+  .tile .ico{font-size:15px}
+  .trend{font-size:12px;font-weight:700;padding:1px 7px;border-radius:20px;display:inline-flex;gap:3px;align-items:center}
+  .t-up{background:rgba(56,189,248,.14);color:var(--water)}
+  .t-dn{background:rgba(251,191,36,.14);color:var(--amber)}
+  .t-fl{background:rgba(142,162,190,.14);color:var(--muted)}
+  .spark{position:absolute;left:0;right:0;bottom:0;height:34px;opacity:.5}
+  .accent-water{border-top:2px solid var(--water)}
+  .accent-teal{border-top:2px solid var(--teal)}
+  .accent-amber{border-top:2px solid var(--amber)}
+
+  /* Wasserqualität – amtliche Live-Werte (kein offener Zahlen-Feed) */
+  .qtile{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:8px;min-height:112px}
+  .qtile .lbl{font-size:13px;font-weight:650;display:flex;align-items:center;gap:7px}
+  .qtile .hint{font-size:11.5px;color:var(--muted2);line-height:1.45}
+  .qtile .go{margin-top:auto;align-self:flex-start;background:var(--card2);border:1px solid var(--line);
+    color:var(--water);font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px}
+  .qtile .go:hover{background:#25344a}
+
+  footer{margin:26px 4px 10px;font-size:12px;color:var(--muted2);line-height:1.6}
+  footer a{color:var(--muted)}
+  .err{color:var(--red);font-size:13px}
+
+  /* Karte */
+  .mapcard{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:var(--shadow)}
+  .mapmeta{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+  .mapmeta .co{font-size:15px;font-weight:700;letter-spacing:.4px}
+  .mapmeta .pos{font-size:12px;color:var(--muted)}
+  .mapmeta .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .mapmeta button,.mapmeta a.b{background:var(--card2);border:1px solid var(--line);color:var(--text);
+    font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer}
+  .mapmeta button:hover,.mapmeta a.b:hover{background:#25344a}
+  .mapcard iframe{width:100%;height:340px;border:0;display:block;filter:saturate(.9)}
+
+  @media(max-width:520px){
+    .tile .val{font-size:26px}
+    h1{font-size:18px}
+    body{padding:12px}
+    .mapcard iframe{height:280px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">🎣</div>
+    <div>
+      <h1>Rhein-Check · Mainz / Wiesbaden</h1>
+      <div class="sub">Live-Bedingungen für Angler · Pegel km 498,3</div>
+    </div>
+  </div>
+  <div>
+    <div class="updated" id="updated">lädt …</div>
+    <button class="refresh" onclick="loadAll()">↻ Aktualisieren</button>
+  </div>
+</header>
+
+<div class="cond" id="cond">
+  <div class="dot lg-amber" id="condDot">…</div>
+  <div>
+    <div class="lvl" id="condLvl">Bedingungen werden ausgewertet …</div>
+    <div class="why" id="condWhy">Pegel, Luftdruck-Tendenz, Wind &amp; Niederschlag werden geladen.</div>
+  </div>
+</div>
+
+<div class="sect">Fluss · Pegel Mainz (PEGELONLINE)</div>
+<div class="grid">
+  <div class="tile accent-water">
+    <div class="lbl"><span class="ico">📏</span> Pegelstand</div>
+    <div class="val" id="pegelVal">–</div>
+    <svg class="spark" id="pegelSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
+    <div class="meta" id="pegelMeta">–</div>
+  </div>
+  <div class="tile accent-teal">
+    <div class="lbl"><span class="ico">🌊</span> Durchfluss</div>
+    <div class="val" id="qVal">–</div>
+    <svg class="spark" id="qSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
+    <div class="meta" id="qMeta">–</div>
+  </div>
+</div>
+
+<div class="sect">Wetter (Open-Meteo / DWD)</div>
+<div class="grid">
+  <div class="tile accent-amber">
+    <div class="lbl"><span class="ico">🌡️</span> Lufttemperatur</div>
+    <div class="val" id="airVal">–</div>
+    <div class="meta" id="airMeta">gefühlt –</div>
+  </div>
+  <div class="tile accent-teal">
+    <div class="lbl"><span class="ico">💨</span> Wind</div>
+    <div class="val" id="windVal">–</div>
+    <div class="meta" id="windMeta">Böen –</div>
+  </div>
+  <div class="tile accent-water">
+    <div class="lbl"><span class="ico">🌧️</span> Niederschlag</div>
+    <div class="val" id="rainVal">–</div>
+    <div class="meta" id="rainMeta">heute –</div>
+  </div>
+  <div class="tile accent-amber">
+    <div class="lbl"><span class="ico">📊</span> Luftdruck</div>
+    <div class="val" id="pressVal">–</div>
+    <div class="meta" id="pressMeta">Tendenz –</div>
+  </div>
+  <div class="tile">
+    <div class="lbl"><span class="ico">🌥️</span> Himmel</div>
+    <div class="val" id="skyVal" style="font-size:22px">–</div>
+    <div class="meta" id="skyMeta">Bewölkung – · Feuchte –</div>
+  </div>
+  <div class="tile">
+    <div class="lbl"><span class="ico">🌅</span> Sonne</div>
+    <div class="val" id="sunVal" style="font-size:20px">–</div>
+    <div class="meta" id="sunMeta">Auf – · Unter –</div>
+  </div>
+</div>
+
+<div class="sect">Wasserqualität · Messstation Mainz-Wiesbaden</div>
+<div class="grid" id="quality"></div>
+<div id="qStamp" style="font-size:11.5px;color:var(--muted2);margin:9px 4px 0">
+  Werte werden per Update-Skript aus dem RLP-Portal importiert. ·
+  <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>
+</div>
+
+<div class="sect">Standort der Messstation</div>
+<div class="mapcard">
+  <div class="mapmeta">
+    <div>
+      <div class="co">📍 50.0068° N, 8.2795° O</div>
+      <div class="pos">Rheinwasser-Untersuchungsstation Mainz-Wiesbaden · Theodor-Heuss-Brücke · Rhein-km 498,5</div>
+    </div>
+    <div class="btns">
+      <button onclick="copyCoords()" id="copyBtn">Koordinaten kopieren</button>
+      <a class="b" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=50.0068&mlon=8.2795#map=15/50.0068/8.2795">OpenStreetMap ↗</a>
+      <a class="b" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=50.0068,8.2795">Google Maps ↗</a>
+    </div>
+  </div>
+  <iframe title="Karte Messstation Mainz-Wiesbaden" loading="lazy"
+    src="https://www.openstreetmap.org/export/embed.html?bbox=8.2595%2C49.9998%2C8.2995%2C50.0138&layer=mapnik&marker=50.0068%2C8.2795"></iframe>
+</div>
+
+<footer>
+  <div><strong>Datenquellen:</strong>
+    Pegel &amp; Durchfluss: <a href="https://pegelonline.wsv.de" target="_blank" rel="noopener">PEGELONLINE (WSV)</a> ·
+    Wetter: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo (DWD)</a> ·
+    Wasserqualität: <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Messstation Mainz-Wiesbaden (LfU RLP / HLNUG)</a>.
+  </div>
+  <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil! 🐟</div>
+</footer>
+
+<script>
+/* Wasserqualitäts-Werte werden beim Laden aus wasserwerte.json geholt.
+   Die GitHub-Action aktualisiert diese Datei alle 6 Stunden. Nur Startwert: */
+window.WQ_DATA = { "updated": "", "items": [] };
+</script>
+<script>
+"use strict";
+const RHEIN_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af"; // Pegel MAINZ, Rhein
+const LAT = 50.004, LON = 8.271;
+const STATION = {lat:50.0068, lon:8.2795};
+const PO = "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/" + RHEIN_UUID;
+
+const $ = id => document.getElementById(id);
+const fmt = (n,d=0) => (n==null||isNaN(n)) ? "–" : Number(n).toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+
+function trendBadge(series){
+  if(!series || series.length<8) return "";
+  const last = series[series.length-1].value;
+  const ref  = series[Math.max(0,series.length-13)].value; // ~3 h zurück (15-min-Werte)
+  const diff = last-ref;
+  const th = Math.max(1, Math.abs(ref)*0.004);
+  if(diff> th) return '<span class="trend t-up">▲ steigt</span>';
+  if(diff<-th) return '<span class="trend t-dn">▼ fällt</span>';
+  return '<span class="trend t-fl">▬ stabil</span>';
+}
+function sparkline(svgEl,series,color){
+  if(!svgEl) return;
+  if(!series || series.length<2){ svgEl.innerHTML=""; return; }
+  const vals = series.map(p=>p.value);
+  const min=Math.min(...vals), max=Math.max(...vals), rng=(max-min)||1, n=vals.length;
+  const pts = vals.map((v,i)=>{
+    const x=(i/(n-1))*100, y=32-((v-min)/rng)*28-2;
+    return x.toFixed(1)+","+y.toFixed(1);
+  }).join(" ");
+  svgEl.innerHTML =
+    '<polyline fill="none" stroke="'+color+'" stroke-width="1.6" points="'+pts+'"/>'+
+    '<polygon fill="'+color+'" opacity="0.18" points="0,34 '+pts+' 100,34"/>';
+}
+function relTime(iso){
+  const t=new Date(iso), m=Math.round((new Date()-t)/60000);
+  if(m<1) return "gerade eben";
+  if(m<60) return "vor "+m+" Min";
+  return "vor "+Math.floor(m/60)+" Std "+(m%60)+" Min";
+}
+function hhmm(iso){ return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}); }
+
+const WMO = {
+  0:["Klar","☀️"],1:["Überwiegend klar","🌤️"],2:["Teils bewölkt","⛅"],3:["Bedeckt","☁️"],
+  45:["Nebel","🌫️"],48:["Reifnebel","🌫️"],
+  51:["Leichter Niesel","🌦️"],53:["Niesel","🌦️"],55:["Starker Niesel","🌧️"],
+  61:["Leichter Regen","🌦️"],63:["Regen","🌧️"],65:["Starker Regen","🌧️"],
+  66:["Gefr. Regen","🌧️"],67:["Gefr. Regen","🌧️"],
+  71:["Leichter Schnee","🌨️"],73:["Schnee","🌨️"],75:["Starker Schnee","❄️"],77:["Schneegriesel","🌨️"],
+  80:["Schauer","🌦️"],81:["Schauer","🌧️"],82:["Heftige Schauer","⛈️"],
+  85:["Schneeschauer","🌨️"],86:["Schneeschauer","🌨️"],
+  95:["Gewitter","⛈️"],96:["Gewitter + Hagel","⛈️"],99:["Gewitter + Hagel","⛈️"]
+};
+function windDir(deg){
+  const d=["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return d[Math.round(deg/22.5)%16];
+}
+async function getJSON(url){
+  const r = await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error(url+" → "+r.status);
+  return r.json();
+}
+const state = {pegelTrend:null, gust:null, rainNow:null, wcode:null, pressTrend:null};
+
+async function loadPegel(){
+  try{
+    const w = await getJSON(PO+"/W/measurements.json?start=P2D");
+    const last = w[w.length-1];
+    $("pegelVal").innerHTML = fmt(last.value)+' <small>cm</small>';
+    $("pegelMeta").innerHTML = trendBadge(w)+' · '+relTime(last.timestamp);
+    sparkline($("pegelSpark"), w.slice(-96), "#38bdf8");
+    state.pegelTrend = w;
+  }catch(e){ $("pegelVal").innerHTML='<span class="err">n/v</span>'; $("pegelMeta").textContent="Pegel nicht erreichbar"; }
+  try{
+    const q = await getJSON(PO+"/Q/measurements.json?start=P2D");
+    const last = q[q.length-1];
+    $("qVal").innerHTML = fmt(last.value)+' <small>m³/s</small>';
+    $("qMeta").innerHTML = trendBadge(q)+' · '+relTime(last.timestamp);
+    sparkline($("qSpark"), q.slice(-96), "#2dd4bf");
+  }catch(e){ $("qVal").innerHTML='<span class="err">n/v</span>'; $("qMeta").textContent="Durchfluss nicht erreichbar"; }
+}
+
+async function loadWeather(){
+  const url = "https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+
+    "&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"+
+    "&hourly=pressure_msl&daily=sunrise,sunset,precipitation_sum"+
+    "&timezone=Europe%2FBerlin&forecast_days=1&wind_speed_unit=kmh";
+  try{
+    const d = await getJSON(url), c = d.current;
+    $("airVal").innerHTML = fmt(c.temperature_2m,1)+' <small>°C</small>';
+    $("airMeta").textContent = "gefühlt "+fmt(c.apparent_temperature,1)+" °C";
+    $("windVal").innerHTML = fmt(c.wind_speed_10m)+' <small>km/h '+windDir(c.wind_direction_10m)+'</small>';
+    $("windMeta").textContent = "Böen "+fmt(c.wind_gusts_10m)+" km/h";
+    $("rainVal").innerHTML = fmt(c.precipitation,1)+' <small>mm/h</small>';
+    $("rainMeta").textContent = "heute "+fmt(d.daily.precipitation_sum[0],1)+" mm";
+    const wc = WMO[c.weather_code] || ["–","•"];
+    $("skyVal").textContent = wc[1]+" "+wc[0];
+    $("skyMeta").textContent = "Bewölkung "+fmt(c.cloud_cover)+" % · Feuchte "+fmt(c.relative_humidity_2m)+" %";
+    $("sunVal").textContent = "☀️ "+hhmm(d.daily.sunrise[0])+" – "+hhmm(d.daily.sunset[0]);
+    $("sunMeta").textContent = "Sonnenauf- / -untergang";
+
+    let pt=null;
+    try{
+      const now=new Date(c.time), times=d.hourly.time.map(t=>new Date(t));
+      let i=times.findIndex(t=>t>=now); if(i<1) i=times.length-1;
+      pt = d.hourly.pressure_msl[i] - d.hourly.pressure_msl[Math.max(0,i-3)];
+    }catch(_){}
+    let arrow="▬", ptxt="stabil";
+    if(pt!=null){ if(pt>0.8){arrow="▲";ptxt="steigend";} else if(pt<-0.8){arrow="▼";ptxt="fallend";} }
+    $("pressVal").innerHTML = fmt(c.pressure_msl)+' <small>hPa</small> '+arrow;
+    $("pressMeta").textContent = "Tendenz "+ptxt+" (3 h)";
+    state.pressTrend=pt; state.gust=c.wind_gusts_10m; state.rainNow=c.precipitation; state.wcode=c.weather_code;
+  }catch(e){ $("skyVal").innerHTML='<span class="err">Wetter n/v</span>'; }
+}
+
+function updateAmpel(){
+  let score=0; const reasons=[];
+  if(state.pressTrend!=null){
+    if(state.pressTrend<-3){ score-=1; reasons.push("Luftdruck fällt stark (Wetterumschwung)"); }
+    else if(state.pressTrend<=0.8){ score+=1; reasons.push("Luftdruck stabil/leicht fallend – oft gute Beißzeit"); }
+    else if(state.pressTrend>3){ score-=1; reasons.push("Luftdruck steigt stark – Fische oft träge"); }
+  }
+  if(state.gust!=null){
+    if(state.gust>=45){ score-=1; reasons.push("kräftige Böen ("+fmt(state.gust)+" km/h)"); }
+    else if(state.gust>=12 && state.gust<35){ score+=1; reasons.push("leichte Kräuselung durch Wind"); }
+  }
+  if(state.rainNow>=2 || [82,95,96,99].includes(state.wcode)){ score-=1; reasons.push("Starkregen/Gewitter"); }
+  if(state.pegelTrend && state.pegelTrend.length>13){
+    const s=state.pegelTrend, diff=s[s.length-1].value-s[s.length-13].value;
+    if(diff>6){ score-=1; reasons.push("Pegel steigt schnell (+"+fmt(diff)+" cm/3h) – Wasser wird trüb"); }
+    else if(Math.abs(diff)<=4){ reasons.push("Pegel stabil"); }
+  }
+  let cls,txt,ico;
+  if(score>=2){ cls="lg-green"; txt="Gute Bedingungen"; ico="👍"; }
+  else if(score<=-1){ cls="lg-red"; txt="Schwierige Bedingungen"; ico="⚠️"; }
+  else { cls="lg-amber"; txt="Mittelmäßige Bedingungen"; ico="≈"; }
+  $("condDot").className="dot "+cls; $("condDot").textContent=ico;
+  $("condLvl").textContent=txt;
+  $("condWhy").textContent = reasons.length ? reasons.join(" · ") : "Keine auffälligen Faktoren.";
+}
+
+function copyCoords(){
+  const t = STATION.lat+", "+STATION.lon;
+  navigator.clipboard?.writeText(t).then(()=>{
+    const b=$("copyBtn"), o=b.textContent; b.textContent="✓ kopiert"; setTimeout(()=>b.textContent=o,1500);
+  }).catch(()=>{});
+}
+
+function renderQuality(){
+  const box=$("quality"); if(!box) return;
+  const d=window.WQ_DATA||{items:[]};
+  if(!d.items || !d.items.length){
+    box.innerHTML='<div class="qtile"><div class="lbl">🌡️ Wasserqualität</div>'+
+      '<div class="hint">Noch keine Werte importiert. Starte einmal das Skript <b>wasserwerte_update.py</b> – oder öffne die amtliche Live-Ansicht.</div>'+
+      '<a class="go" target="_blank" rel="noopener" href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte">Live-Wert öffnen ↗</a></div>';
+    return;
+  }
+  box.innerHTML = d.items.map(it=>
+    '<div class="tile accent-teal"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
+    '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
+    '<div class="meta">Stand: '+(it.time||"–")+'</div></div>'
+  ).join("");
+  const st=$("qStamp");
+  if(st && d.updated){ st.innerHTML='Importiert am '+d.updated+' aus dem RLP-Portal · '+
+    '<a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>'; }
+}
+
+async function loadQuality(){
+  try{
+    const r = await fetch("wasserwerte.json?t="+Math.floor(Date.now()/300000), {cache:"no-store"});
+    if(r.ok){ const j = await r.json(); if(j && Array.isArray(j.items)){ window.WQ_DATA = j; } }
+  }catch(e){ /* z.B. lokal ohne Server geöffnet – dann Startwert/Hinweis */ }
+  renderQuality();
+}
+
+async function loadAll(){
+  $("updated").textContent = "aktualisiere …";
+  await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
+  updateAmpel();
+  $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
+}
+loadAll();
+setInterval(loadAll, 10*60*1000);
+</script>
+</body>
+</html>
