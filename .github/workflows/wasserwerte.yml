@@ -1,0 +1,48 @@
+name: Wasserwerte aktualisieren
+
+# Laeuft alle 6 Stunden (UTC) + manuell ausloesbar ueber den Actions-Tab.
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wasserwerte
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Playwright + Chromium installieren
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Wasserwerte abrufen
+        run: python fetch_wasserwerte.py
+
+      - name: wasserwerte.json committen (nur bei Aenderung)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain wasserwerte.json)" ]; then
+            git add wasserwerte.json
+            git commit -m "Wasserwerte aktualisiert ($(date -u +'%Y-%m-%d %H:%MZ'))"
+            git push
+          else
+            echo "Keine Aenderung an wasserwerte.json."
+          fi
+
