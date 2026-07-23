@@ -1,5 +1,5 @@
 {
-  "updated": "23.07.2026 17:04",
+  "updated": "23.07.2026 18:01",
   "station": "Rhein Mainz-Wiesbaden",
   "items": [
     {
@@ -7,42 +7,42 @@
       "value": "24,0",
       "unit": "°C",
       "icon": "🌡️",
-      "time": "23.07.2026 18:50"
+      "time": "23.07.2026 19:10"
     },
     {
       "label": "Sauerstoff",
       "value": "8,5",
       "unit": "mg/l",
       "icon": "🫧",
-      "time": "23.07.2026 18:50"
+      "time": "23.07.2026 19:10"
     },
     {
       "label": "O₂-Sättigung",
-      "value": "96",
+      "value": "97",
       "unit": "%",
       "icon": "🫧",
-      "time": "23.07.2026 18:50"
+      "time": "23.07.2026 19:10"
     },
     {
       "label": "Trübung",
-      "value": "3,3",
+      "value": "3,4",
       "unit": "TE",
       "icon": "🌫️",
-      "time": "23.07.2026 18:50"
+      "time": "23.07.2026 19:10"
     },
     {
       "label": "pH-Wert",
       "value": "7,90",
       "unit": "",
       "icon": "⚗️",
-      "time": "23.07.2026 18:50"
+      "time": "23.07.2026 19:10"
     },
     {
       "label": "Leitfähigkeit",
-      "value": "473",
+      "value": "472",
       "unit": "µS/cm",
       "icon": "⚡",
-      "time": "23.07.2026 18:50"
+      "time": "23.07.2026 19:10"
     }
   ]
 }
