@@ -261,3 +261,6 @@ def main():
     print("[4/4] Schreibe wasserwerte.json ...")
     write_json(items)
     print("Fertig.")
+
+if __name__ == "__main__":
+    main()
