@@ -123,6 +123,11 @@
   .fbitem .cond{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
   .fbitem .del{background:none;border:0;color:var(--muted2);cursor:pointer;font-size:12px;white-space:nowrap}
   .fbitem .del:hover{color:var(--red)}
+  .fbwrap{overflow-x:auto;margin-top:8px}
+  .fbtable{width:100%;border-collapse:collapse;font-size:12.5px}
+  .fbtable th,.fbtable td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .fbtable th{color:var(--muted2);text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;font-weight:700}
+  .fbtable tbody tr:hover td{background:#0e1622}
 
   @media(max-width:520px){
     .tile .val{font-size:26px}
@@ -228,12 +233,20 @@
   <div class="fbrow">
     <div class="fbfield"><label>Datum</label><input id="f_datum" type="date"></div>
     <div class="fbfield"><label>Uhrzeit</label><input id="f_zeit" type="time"></div>
-    <div class="fbfield"><label>Standort</label><button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Handy-Standort erfassen</button></div>
+    <div class="fbfield"><label>Standort</label>
+      <button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Handy-Standort erfassen</button>
+      <button type="button" class="fbbtn" style="margin-top:6px" onclick="toggleCoordEntry()">⌨️ Koordinaten eingeben</button>
+    </div>
   </div>
   <div class="fbrow">
     <div class="fbfield fbwide"><label>Notiz</label><input id="f_notiz" placeholder="Beobachtungen, Stelle, Uhrzeit des Bisses …"></div>
   </div>
-  <div id="gpsInfo" class="fbnote">Kein Standort gewählt – nutze die Handy-Ortung oder tippe unten auf die Karte.</div>
+  <div id="gpsInfo" class="fbnote">Kein Standort gewählt – Handy-Ortung, „Koordinaten eingeben" oder auf die Karte unten tippen.</div>
+  <div id="coordEntry" class="fbrow" style="display:none;margin-top:8px">
+    <div class="fbfield"><label>Breite (Lat)</label><input id="c_lat" inputmode="decimal" placeholder="50.0068"></div>
+    <div class="fbfield"><label>Länge (Lon)</label><input id="c_lon" inputmode="decimal" placeholder="8.2795"></div>
+    <div class="fbfield"><label>&nbsp;</label><button type="button" class="fbbtn" onclick="applyManualCoords()">Setzen</button></div>
+  </div>
   <div class="fbactions">
     <button type="button" class="fbsave" onclick="saveCatch()">🎣 Fang speichern</button>
     <span class="fbnote">Wetter, Wasserwerte &amp; Mondphase werden automatisch mitgespeichert.</span>
@@ -254,12 +267,14 @@
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
   <div class="fbtools">
+    <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()">📋 Tabelle anzeigen</button>
     <button type="button" class="fbtool" onclick="exportJSON()">⬇ JSON</button>
     <button type="button" class="fbtool" onclick="exportCSV()">⬇ CSV</button>
     <button type="button" class="fbtool" onclick="document.getElementById('importFile').click()">⬆ Import</button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importJSON(event)">
   </div>
 </div>
+<div id="fbTable" style="display:none"></div>
 <div id="fbList"></div>
 
 <div class="sect">Karte · Station &amp; deine Fänge</div>
@@ -564,13 +579,13 @@ function saveCatch(){
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
-  renderCatches(); renderMarkers();
+  refreshFangbuch();
 }
 
 function deleteCatch(id){
   if(!confirm("Diesen Fang löschen?")) return;
   saveCatches(loadCatches().filter(c=>c.id!==id));
-  renderCatches(); renderMarkers();
+  refreshFangbuch();
 }
 
 function renderCatches(){
@@ -634,7 +649,7 @@ function importJSON(ev){
       const data=JSON.parse(rd.result); if(!Array.isArray(data)) throw 0;
       const cur=loadCatches(), ids=new Set(cur.map(x=>x.id)); let added=0;
       data.forEach(r=>{ if(r&&r.id!=null&&!ids.has(r.id)){ cur.push(r); ids.add(r.id); added++; } });
-      saveCatches(cur); renderCatches(); renderMarkers(); alert(added+" Fänge importiert.");
+      saveCatches(cur); refreshFangbuch(); alert(added+" Fänge importiert.");
     }catch(e){ alert("Import fehlgeschlagen: keine gültige Fangbuch-JSON."); }
     ev.target.value="";
   };
@@ -689,11 +704,48 @@ function renderMarkers(){
   if(cs.length){ try{ MAP.fitBounds(L.featureGroup(CATCH_LAYER.getLayers()).getBounds().pad(0.3)); }catch(e){} }
 }
 
+function toggleCoordEntry(){
+  const el=$("coordEntry"); if(!el) return;
+  const show=(el.style.display==="none" || !el.style.display);
+  el.style.display = show ? "grid" : "none";
+  if(show) $("c_lat").focus();
+}
+function applyManualCoords(){
+  const la=parseFloat(($("c_lat").value||"").replace(",",".")), lo=parseFloat(($("c_lon").value||"").replace(",","."));
+  if(isNaN(la)||isNaN(lo)||la<-90||la>90||lo<-180||lo>180){ alert("Bitte gültige Koordinaten eingeben, z. B. 50.0068 und 8.2795."); return; }
+  setSelectedLocation(la, lo, null, true);
+  $("coordEntry").style.display="none";
+}
+function renderTable(){
+  const box=$("fbTable"); if(!box) return;
+  const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge.</div>'; return; }
+  const rows=arr.map(c=>{
+    const ort = c.gps ? (c.gps.lat+', '+c.gps.lon) : esc(c.gewaesser||"");
+    return '<tr><td>'+esc(c.datum||"")+'</td><td>'+esc(c.uhrzeit||"")+'</td><td>'+esc(c.fischart||"")+'</td>'+
+      '<td>'+(c.groesse_cm!=null?c.groesse_cm:"")+'</td><td>'+(c.gewicht_g!=null?c.gewicht_g:"")+'</td>'+
+      '<td>'+esc(c.koeder||"")+'</td><td>'+ort+'</td></tr>';
+  }).join("");
+  box.innerHTML='<div class="fbwrap"><table class="fbtable"><thead><tr>'+
+    '<th>Datum</th><th>Zeit</th><th>Fischart</th><th>cm</th><th>g</th><th>Köder</th><th>Ort</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>';
+}
+function toggleTable(){
+  const box=$("fbTable"), b=$("tblBtn"); if(!box) return;
+  const show=(box.style.display==="none" || !box.style.display);
+  if(show){ renderTable(); box.style.display="block"; if(b) b.textContent="📋 Tabelle ausblenden"; }
+  else { box.style.display="none"; if(b) b.textContent="📋 Tabelle anzeigen"; }
+}
+function refreshFangbuch(){
+  renderCatches(); renderMarkers();
+  if($("fbTable") && $("fbTable").style.display==="block") renderTable();
+}
+
 function initFangbuch(){
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   if($("f_datum")) $("f_datum").value = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
   if($("f_zeit")) $("f_zeit").value = pad(now.getHours())+':'+pad(now.getMinutes());
-  renderCatches();
+  refreshFangbuch();
   initMap();
 }
 
