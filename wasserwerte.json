@@ -1,48 +1,48 @@
 {
-  "updated": "23.07.2026 18:01",
+  "updated": "23.07.2026 21:39",
   "station": "Rhein Mainz-Wiesbaden",
   "items": [
     {
       "label": "Wassertemperatur",
-      "value": "24,0",
+      "value": "23,5",
       "unit": "°C",
       "icon": "🌡️",
-      "time": "23.07.2026 19:10"
+      "time": "23.07.2026 23:20"
     },
     {
       "label": "Sauerstoff",
-      "value": "8,5",
+      "value": "8,3",
       "unit": "mg/l",
       "icon": "🫧",
-      "time": "23.07.2026 19:10"
+      "time": "23.07.2026 23:20"
     },
     {
       "label": "O₂-Sättigung",
-      "value": "97",
+      "value": "94",
       "unit": "%",
       "icon": "🫧",
-      "time": "23.07.2026 19:10"
+      "time": "23.07.2026 23:20"
     },
     {
       "label": "Trübung",
-      "value": "3,4",
+      "value": "3,3",
       "unit": "TE",
       "icon": "🌫️",
-      "time": "23.07.2026 19:10"
+      "time": "23.07.2026 23:20"
     },
     {
       "label": "pH-Wert",
-      "value": "7,90",
+      "value": "7,87",
       "unit": "",
       "icon": "⚗️",
-      "time": "23.07.2026 19:10"
+      "time": "23.07.2026 23:20"
     },
     {
       "label": "Leitfähigkeit",
-      "value": "472",
+      "value": "474",
       "unit": "µS/cm",
       "icon": "⚡",
-      "time": "23.07.2026 19:10"
+      "time": "23.07.2026 23:20"
     }
   ]
 }
