@@ -57,6 +57,11 @@
   .t-up{background:rgba(56,189,248,.14);color:var(--water)}
   .t-dn{background:rgba(251,191,36,.14);color:var(--amber)}
   .t-fl{background:rgba(142,162,190,.14);color:var(--muted)}
+  .pgbadge{font-size:12px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:2px}
+  .pg-red{background:rgba(248,113,113,.16);color:var(--red)}
+  .pg-amber{background:rgba(251,191,36,.16);color:var(--amber)}
+  .pg-green{background:rgba(74,222,128,.16);color:var(--green)}
+  .pg-blue{background:rgba(56,189,248,.16);color:var(--water)}
   .spark{position:absolute;left:0;right:0;bottom:0;height:34px;opacity:.5}
   .accent-water{border-top:2px solid var(--water)}
   .accent-teal{border-top:2px solid var(--teal)}
@@ -268,12 +273,25 @@ async function getJSON(url){
 }
 const state = {pegelTrend:null, gust:null, rainNow:null, wcode:null, pressTrend:null};
 
+// Amtliche Hauptwerte Pegel Mainz (Zeitreihe 2010–2020, Quelle: PEGELONLINE), in cm
+const PEGEL_REF = { MNW:159, MW:288, MHW:547 };
+function classifyPegel(w){
+  const {MNW,MW,MHW}=PEGEL_REF;
+  const loMid=(MNW+MW)/2, hiMid=(MW+MHW)/2;
+  if(w<MNW)   return {t:"sehr niedrig", c:"pg-red"};
+  if(w<loMid) return {t:"niedrig",      c:"pg-amber"};
+  if(w<hiMid) return {t:"normal",       c:"pg-green"};
+  if(w<MHW)   return {t:"hoch",         c:"pg-blue"};
+  return              {t:"sehr hoch",   c:"pg-red"};
+}
+
 async function loadPegel(){
   try{
     const w = await getJSON(PO+"/W/measurements.json?start=P2D");
     const last = w[w.length-1];
     $("pegelVal").innerHTML = fmt(last.value)+' <small>cm</small>';
-    $("pegelMeta").innerHTML = trendBadge(w)+' · '+relTime(last.timestamp);
+    const pc = classifyPegel(last.value);
+    $("pegelMeta").innerHTML = '<span class="pgbadge '+pc.c+'" title="Einordnung nach Hauptwerten Pegel Mainz: MNW 159 · MW 288 · MHW 547 cm">'+pc.t+'</span>'+trendBadge(w)+' · '+relTime(last.timestamp);
     sparkline($("pegelSpark"), w.slice(-96), "#38bdf8");
     state.pegelTrend = w;
   }catch(e){ $("pegelVal").innerHTML='<span class="err">n/v</span>'; $("pegelMeta").textContent="Pegel nicht erreichbar"; }
