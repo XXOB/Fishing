@@ -228,12 +228,12 @@
   <div class="fbrow">
     <div class="fbfield"><label>Datum</label><input id="f_datum" type="date"></div>
     <div class="fbfield"><label>Uhrzeit</label><input id="f_zeit" type="time"></div>
-    <div class="fbfield"><label>Standort</label><button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Standort erfassen</button></div>
+    <div class="fbfield"><label>Standort</label><button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Handy-Standort erfassen</button></div>
   </div>
   <div class="fbrow">
     <div class="fbfield fbwide"><label>Notiz</label><input id="f_notiz" placeholder="Beobachtungen, Stelle, Uhrzeit des Bisses …"></div>
   </div>
-  <div id="gpsInfo" class="fbnote">Kein Standort erfasst – tippe „Standort erfassen" (fragt nach Ortungs-Erlaubnis).</div>
+  <div id="gpsInfo" class="fbnote">Kein Standort gewählt – nutze die Handy-Ortung oder tippe unten auf die Karte.</div>
   <div class="fbactions">
     <button type="button" class="fbsave" onclick="saveCatch()">🎣 Fang speichern</button>
     <span class="fbnote">Wetter, Wasserwerte &amp; Mondphase werden automatisch mitgespeichert.</span>
@@ -267,7 +267,7 @@
   <div class="mapmeta">
     <div>
       <div class="co">📍 Messstation 50.0068° N, 8.2795° O</div>
-      <div class="pos">Blaue Markierung: Messstation · Grüne Markierungen: deine Fänge</div>
+      <div class="pos">Tippe auf die Karte, um den Fangort zu setzen · Blau: Messstation · Grün: Fänge · Gelb: gewählter Ort</div>
     </div>
     <div class="btns">
       <button onclick="copyCoords()" id="copyBtn">Koordinaten kopieren</button>
@@ -524,9 +524,8 @@ function captureGps(){
   if(!navigator.geolocation){ $("gpsInfo").textContent="Ortung auf diesem Gerät nicht verfügbar."; return; }
   $("gpsBtn").textContent="… wird geortet";
   navigator.geolocation.getCurrentPosition(p=>{
-    CURRENT_GPS={ lat:+p.coords.latitude.toFixed(6), lon:+p.coords.longitude.toFixed(6), genauigkeit_m:Math.round(p.coords.accuracy) };
-    $("gpsInfo").innerHTML="📍 Erfasst: "+CURRENT_GPS.lat+", "+CURRENT_GPS.lon+" (±"+CURRENT_GPS.genauigkeit_m+" m)";
-    $("gpsBtn").textContent="📍 Standort aktualisieren";
+    setSelectedLocation(p.coords.latitude, p.coords.longitude, p.coords.accuracy, true);
+    $("gpsBtn").textContent="📍 Handy-Standort aktualisieren";
   }, ()=>{
     $("gpsInfo").textContent="Ortung abgelehnt/fehlgeschlagen – Fang wird ohne Standort gespeichert.";
     $("gpsBtn").textContent="📍 Standort erfassen";
@@ -564,6 +563,7 @@ function saveCatch(){
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_koeder").value=""; $("f_notiz").value="";
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
+  clearSelectedLocation();
   renderCatches(); renderMarkers();
 }
 
@@ -642,7 +642,7 @@ function importJSON(ev){
 }
 
 /* ---- Leaflet-Karte ---- */
-let MAP=null, CATCH_LAYER=null;
+let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null;
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
   MAP = L.map("map",{scrollWheelZoom:false}).setView([STATION.lat, STATION.lon], 13);
@@ -650,7 +650,28 @@ function initMap(){
   L.circleMarker([STATION.lat,STATION.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
     .addTo(MAP).bindPopup("Messstation Mainz-Wiesbaden");
   CATCH_LAYER=L.layerGroup().addTo(MAP);
+  MAP.on("click", e=>setSelectedLocation(e.latlng.lat, e.latlng.lng, null, false));
   renderMarkers();
+}
+function setSelectedLocation(lat, lon, acc, pan){
+  CURRENT_GPS={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6), genauigkeit_m: (acc==null? null : Math.round(acc)) };
+  if(MAP && window.L){
+    if(!SELECT_MARKER){
+      SELECT_MARKER=L.circleMarker([lat,lon],{radius:8,color:"#fbbf24",weight:3,fillColor:"#fbbf24",fillOpacity:.55}).addTo(MAP);
+      SELECT_MARKER.bindPopup("Gewählter Fangort");
+    } else SELECT_MARKER.setLatLng([lat,lon]);
+    if(pan){ try{ MAP.setView([lat,lon], Math.max(MAP.getZoom()||13, 15)); }catch(e){} }
+  }
+  const extra = CURRENT_GPS.genauigkeit_m!=null ? " (Handy, ±"+CURRENT_GPS.genauigkeit_m+" m)" : " (auf Karte gewählt)";
+  const gi=$("gpsInfo");
+  if(gi) gi.innerHTML='📍 Fangort: '+CURRENT_GPS.lat+', '+CURRENT_GPS.lon+extra+
+    ' · <a href="#" onclick="clearSelectedLocation();return false;">entfernen</a>';
+}
+function clearSelectedLocation(){
+  CURRENT_GPS=null;
+  if(SELECT_MARKER && MAP){ MAP.removeLayer(SELECT_MARKER); SELECT_MARKER=null; }
+  const gi=$("gpsInfo"); if(gi) gi.textContent="Kein Standort gewählt – nutze die Handy-Ortung oder tippe auf die Karte.";
+  const b=$("gpsBtn"); if(b) b.textContent="📍 Handy-Standort erfassen";
 }
 function renderMarkers(){
   if(!CATCH_LAYER) return;
