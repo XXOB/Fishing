@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root{
     --bg:#0a0e14; --bg2:#111823; --card:#151e2b; --card2:#1b2635;
@@ -90,12 +91,45 @@
     font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer}
   .mapmeta button:hover,.mapmeta a.b:hover{background:#25344a}
   .mapcard iframe{width:100%;height:340px;border:0;display:block;filter:saturate(.9)}
+  #map{height:360px;width:100%;background:#0e1622}
+  .leaflet-popup-content{font-size:13px;line-height:1.5}
+
+  /* Fangbuch */
+  .fbcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow)}
+  .fbrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+  .fbfield{display:flex;flex-direction:column;gap:4px}
+  .fbfield.fbwide{grid-column:1/-1}
+  .fbfield label{font-size:11px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px}
+  .fbfield input{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:8px 10px;font-size:14px;font-family:inherit}
+  .fbfield input:focus{outline:none;border-color:var(--water)}
+  .fbbtn{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:8px 10px;font-size:13px;cursor:pointer;width:100%}
+  .fbbtn:hover{background:#25344a}
+  .fbnote{font-size:11.5px;color:var(--muted2)}
+  .fbactions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .fbsave{background:linear-gradient(135deg,var(--water),var(--teal));color:#04222f;font-weight:700;
+    border:0;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer}
+  .fbsave:active{transform:scale(.98)}
+  .fbtoolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:14px 4px 8px}
+  .fbtools{display:flex;gap:8px;flex-wrap:wrap}
+  .fbtool{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:6px 11px;font-size:12px;cursor:pointer}
+  .fbtool:hover{background:#25344a}
+  .fbitem{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .fbitem .h{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .fbitem .fish{font-size:15px;font-weight:700}
+  .fbitem .when{font-size:12px;color:var(--muted2);margin-top:3px}
+  .fbitem .cond{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+  .fbitem .del{background:none;border:0;color:var(--muted2);cursor:pointer;font-size:12px;white-space:nowrap}
+  .fbitem .del:hover{color:var(--red)}
 
   @media(max-width:520px){
     .tile .val{font-size:26px}
     h1{font-size:18px}
     body{padding:12px}
     .mapcard iframe{height:280px}
+    #map{height:300px}
   }
 </style>
 </head>
@@ -179,12 +213,61 @@
   <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>
 </div>
 
-<div class="sect">Standort der Messstation</div>
+<div class="sect">Fangbuch · neuen Fang eintragen</div>
+<div class="fbcard">
+  <div class="fbrow">
+    <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht"></div>
+    <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
+    <div class="fbfield"><label>Gewicht (g, optional)</label><input id="f_gewicht" type="number" min="0" step="10" inputmode="numeric"></div>
+  </div>
+  <div class="fbrow">
+    <div class="fbfield"><label>Köder</label><input id="f_koeder" placeholder="z. B. Gummifisch 12 cm"></div>
+    <div class="fbfield"><label>Methode</label><input id="f_methode" list="methodeliste" placeholder="z. B. Spinnfischen"></div>
+    <div class="fbfield"><label>Gewässer</label><input id="f_gewaesser" value="Rhein (Mainz/Wiesbaden)"></div>
+  </div>
+  <div class="fbrow">
+    <div class="fbfield"><label>Datum</label><input id="f_datum" type="date"></div>
+    <div class="fbfield"><label>Uhrzeit</label><input id="f_zeit" type="time"></div>
+    <div class="fbfield"><label>Standort</label><button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Standort erfassen</button></div>
+  </div>
+  <div class="fbrow">
+    <div class="fbfield fbwide"><label>Notiz</label><input id="f_notiz" placeholder="Beobachtungen, Stelle, Uhrzeit des Bisses …"></div>
+  </div>
+  <div id="gpsInfo" class="fbnote">Kein Standort erfasst – tippe „Standort erfassen" (fragt nach Ortungs-Erlaubnis).</div>
+  <div class="fbactions">
+    <button type="button" class="fbsave" onclick="saveCatch()">🎣 Fang speichern</button>
+    <span class="fbnote">Wetter, Wasserwerte &amp; Mondphase werden automatisch mitgespeichert.</span>
+  </div>
+</div>
+
+<datalist id="artliste">
+  <option>Hecht</option><option>Zander</option><option>Barsch</option><option>Rapfen</option>
+  <option>Wels</option><option>Aal</option><option>Karpfen</option><option>Brasse</option>
+  <option>Rotauge</option><option>Döbel</option><option>Barbe</option><option>Nase</option>
+  <option>Forelle</option><option>Schleie</option><option>Güster</option><option>Kaulbarsch</option>
+</datalist>
+<datalist id="methodeliste">
+  <option>Spinnfischen</option><option>Grundangeln</option><option>Posenangeln</option>
+  <option>Feedern</option><option>Fliegenfischen</option><option>Ansitz</option>
+</datalist>
+
+<div class="fbtoolbar">
+  <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
+  <div class="fbtools">
+    <button type="button" class="fbtool" onclick="exportJSON()">⬇ JSON</button>
+    <button type="button" class="fbtool" onclick="exportCSV()">⬇ CSV</button>
+    <button type="button" class="fbtool" onclick="document.getElementById('importFile').click()">⬆ Import</button>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importJSON(event)">
+  </div>
+</div>
+<div id="fbList"></div>
+
+<div class="sect">Karte · Station &amp; deine Fänge</div>
 <div class="mapcard">
   <div class="mapmeta">
     <div>
-      <div class="co">📍 50.0068° N, 8.2795° O</div>
-      <div class="pos">Rheinwasser-Untersuchungsstation Mainz-Wiesbaden · Theodor-Heuss-Brücke · Rhein-km 498,5</div>
+      <div class="co">📍 Messstation 50.0068° N, 8.2795° O</div>
+      <div class="pos">Blaue Markierung: Messstation · Grüne Markierungen: deine Fänge</div>
     </div>
     <div class="btns">
       <button onclick="copyCoords()" id="copyBtn">Koordinaten kopieren</button>
@@ -192,8 +275,7 @@
       <a class="b" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=50.0068,8.2795">Google Maps ↗</a>
     </div>
   </div>
-  <iframe title="Karte Messstation Mainz-Wiesbaden" loading="lazy"
-    src="https://www.openstreetmap.org/export/embed.html?bbox=8.2595%2C49.9998%2C8.2995%2C50.0138&layer=mapnik&marker=50.0068%2C8.2795"></iframe>
+  <div id="map"></div>
 </div>
 
 <footer>
@@ -203,6 +285,7 @@
     Wasserqualität: <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Messstation Mainz-Wiesbaden (LfU RLP / HLNUG)</a>.
   </div>
   <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil! 🐟</div>
+  <div style="margin-top:6px">Dein Fangbuch wird nur lokal in diesem Browser gespeichert – nichts wird hochgeladen. Für ein Backup oder eine spätere Auswertung nutze den Export als JSON oder CSV.</div>
 </footer>
 
 <script>
@@ -210,6 +293,7 @@
    Die GitHub-Action aktualisiert diese Datei alle 6 Stunden. Nur Startwert: */
 window.WQ_DATA = { "updated": "", "items": [] };
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 "use strict";
 const RHEIN_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af"; // Pegel MAINZ, Rhein
@@ -272,6 +356,8 @@ async function getJSON(url){
   return r.json();
 }
 const state = {pegelTrend:null, gust:null, rainNow:null, wcode:null, pressTrend:null};
+const snap = { weather:null, pegel:null, q:null };  // Momentaufnahme für Fänge
+let CURRENT_GPS = null;
 
 // Amtliche Hauptwerte Pegel Mainz (Zeitreihe 2010–2020, Quelle: PEGELONLINE), in cm
 const PEGEL_REF = { MNW:159, MW:288, MHW:547 };
@@ -294,6 +380,7 @@ async function loadPegel(){
     $("pegelMeta").innerHTML = '<span class="pgbadge '+pc.c+'" title="Einordnung nach Hauptwerten Pegel Mainz: MNW 159 · MW 288 · MHW 547 cm">'+pc.t+'</span>'+trendBadge(w)+' · '+relTime(last.timestamp);
     sparkline($("pegelSpark"), w.slice(-96), "#38bdf8");
     state.pegelTrend = w;
+    snap.pegel = { pegelstand_cm: last.value, stufe: pc.t };
   }catch(e){ $("pegelVal").innerHTML='<span class="err">n/v</span>'; $("pegelMeta").textContent="Pegel nicht erreichbar"; }
   try{
     const q = await getJSON(PO+"/Q/measurements.json?start=P2D");
@@ -301,6 +388,7 @@ async function loadPegel(){
     $("qVal").innerHTML = fmt(last.value)+' <small>m³/s</small>';
     $("qMeta").innerHTML = trendBadge(q)+' · '+relTime(last.timestamp);
     sparkline($("qSpark"), q.slice(-96), "#2dd4bf");
+    snap.q = last.value;
   }catch(e){ $("qVal").innerHTML='<span class="err">n/v</span>'; $("qMeta").textContent="Durchfluss nicht erreichbar"; }
 }
 
@@ -334,6 +422,15 @@ async function loadWeather(){
     $("pressVal").innerHTML = fmt(c.pressure_msl)+' <small>hPa</small> '+arrow;
     $("pressMeta").textContent = "Tendenz "+ptxt+" (3 h)";
     state.pressTrend=pt; state.gust=c.wind_gusts_10m; state.rainNow=c.precipitation; state.wcode=c.weather_code;
+    snap.weather = {
+      lufttemperatur_c: c.temperature_2m, gefuehlt_c: c.apparent_temperature,
+      luftfeuchte_pct: c.relative_humidity_2m, niederschlag_mm_h: c.precipitation,
+      wettercode: c.weather_code, wetterlage: (WMO[c.weather_code]||["",""])[0],
+      bewoelkung_pct: c.cloud_cover, luftdruck_hpa: c.pressure_msl,
+      luftdruck_tendenz_3h_hpa: (pt==null? null : Math.round(pt*10)/10),
+      wind_kmh: c.wind_speed_10m, windrichtung: windDir(c.wind_direction_10m),
+      windrichtung_grad: c.wind_direction_10m, boen_kmh: c.wind_gusts_10m
+    };
   }catch(e){ $("skyVal").innerHTML='<span class="err">Wetter n/v</span>'; }
 }
 
@@ -397,6 +494,188 @@ async function loadQuality(){
   renderQuality();
 }
 
+/* ===================== Fangbuch ===================== */
+const CATCH_KEY = "rheincheck_faenge_v1";
+function loadCatches(){ try{ return JSON.parse(localStorage.getItem(CATCH_KEY)) || []; }catch(e){ return []; } }
+function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function deNum(s){ if(s==null) return null; const n=parseFloat(String(s).replace(/\./g,'').replace(',','.')); return isNaN(n)? String(s) : n; }
+
+function moonPhase(date){
+  const syn=29.530588853, ref=Date.UTC(2000,0,6,18,14,0);
+  let age=(((date.getTime()-ref)/86400000) % syn + syn) % syn;
+  const illum=Math.round((1-Math.cos(2*Math.PI*age/syn))/2*100);
+  const N=[[1.85,"Neumond"],[5.54,"zunehmende Sichel"],[9.23,"zunehmender Halbmond"],
+    [12.91,"zunehmender Mond"],[16.61,"Vollmond"],[20.30,"abnehmender Mond"],
+    [23.99,"abnehmender Halbmond"],[27.68,"abnehmende Sichel"]];
+  let name="Neumond"; for(const [lim,nm] of N){ if(age<lim){ name=nm; break; } }
+  return { name, age:Math.round(age*10)/10, illum };
+}
+
+function waterQualitySnap(){
+  const M={ "Wassertemperatur":"wassertemperatur_c","Sauerstoff":"sauerstoff_mgl",
+    "O₂-Sättigung":"o2_saettigung_pct","Trübung":"truebung","pH-Wert":"ph","Leitfähigkeit":"leitfaehigkeit_uScm" };
+  const out={ stand: (window.WQ_DATA&&window.WQ_DATA.updated)||"" };
+  ((window.WQ_DATA&&window.WQ_DATA.items)||[]).forEach(it=>{ const k=M[it.label]; if(k) out[k]=deNum(it.value); });
+  return out;
+}
+
+function captureGps(){
+  if(!navigator.geolocation){ $("gpsInfo").textContent="Ortung auf diesem Gerät nicht verfügbar."; return; }
+  $("gpsBtn").textContent="… wird geortet";
+  navigator.geolocation.getCurrentPosition(p=>{
+    CURRENT_GPS={ lat:+p.coords.latitude.toFixed(6), lon:+p.coords.longitude.toFixed(6), genauigkeit_m:Math.round(p.coords.accuracy) };
+    $("gpsInfo").innerHTML="📍 Erfasst: "+CURRENT_GPS.lat+", "+CURRENT_GPS.lon+" (±"+CURRENT_GPS.genauigkeit_m+" m)";
+    $("gpsBtn").textContent="📍 Standort aktualisieren";
+  }, ()=>{
+    $("gpsInfo").textContent="Ortung abgelehnt/fehlgeschlagen – Fang wird ohne Standort gespeichert.";
+    $("gpsBtn").textContent="📍 Standort erfassen";
+  }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+}
+
+function saveCatch(){
+  const art=$("f_art").value.trim();
+  if(!art){ alert("Bitte eine Fischart eintragen."); $("f_art").focus(); return; }
+  const datum=$("f_datum").value, zeit=$("f_zeit").value;
+  const dObj = datum ? new Date(datum+"T"+(zeit||"12:00")) : new Date();
+  const mp=moonPhase(dObj);
+  const rec={
+    id: Date.now(),
+    erfasst_iso: new Date().toISOString(),
+    gewaesser: $("f_gewaesser").value.trim() || "Rhein (Mainz/Wiesbaden)",
+    datum, uhrzeit: zeit,
+    fischart: art,
+    groesse_cm: $("f_groesse").value ? +$("f_groesse").value : null,
+    gewicht_g: $("f_gewicht").value ? +$("f_gewicht").value : null,
+    koeder: $("f_koeder").value.trim(),
+    methode: $("f_methode").value.trim(),
+    notiz: $("f_notiz").value.trim(),
+    gps: CURRENT_GPS,
+    mondphase: { name:mp.name, alter_tage:mp.age, illumination_pct:mp.illum },
+    wetter: snap.weather,
+    wasser: Object.assign({
+      pegelstand_cm: snap.pegel? snap.pegel.pegelstand_cm : null,
+      pegel_stufe: snap.pegel? snap.pegel.stufe : null,
+      durchfluss_m3s: snap.q
+    }, waterQualitySnap()),
+    station: { pegel:"MAINZ", guete:"Mainz-Wiesbaden" }
+  };
+  const arr=loadCatches(); arr.push(rec); saveCatches(arr);
+  $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_koeder").value=""; $("f_notiz").value="";
+  const now=new Date(), pad=n=>String(n).padStart(2,'0');
+  $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
+  renderCatches(); renderMarkers();
+}
+
+function deleteCatch(id){
+  if(!confirm("Diesen Fang löschen?")) return;
+  saveCatches(loadCatches().filter(c=>c.id!==id));
+  renderCatches(); renderMarkers();
+}
+
+function renderCatches(){
+  const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  $("fbCount").textContent = arr.length+" Fang"+(arr.length===1?"":"e")+" gespeichert";
+  const box=$("fbList");
+  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge – trag deinen ersten Fang oben ein.</div>'; return; }
+  box.innerHTML = arr.map(c=>{
+    const w=c.wetter||{}, wa=c.wasser||{}, cond=[];
+    if(wa.wassertemperatur_c!=null) cond.push("Wasser "+wa.wassertemperatur_c+" °C");
+    if(wa.pegelstand_cm!=null) cond.push("Pegel "+wa.pegelstand_cm+" cm"+(wa.pegel_stufe?" ("+wa.pegel_stufe+")":""));
+    if(wa.sauerstoff_mgl!=null) cond.push("O₂ "+wa.sauerstoff_mgl+" mg/l");
+    if(w.lufttemperatur_c!=null) cond.push("Luft "+w.lufttemperatur_c+" °C");
+    if(w.luftdruck_hpa!=null) cond.push(Math.round(w.luftdruck_hpa)+" hPa");
+    if(w.wetterlage) cond.push(w.wetterlage);
+    if(c.mondphase&&c.mondphase.name) cond.push(c.mondphase.name);
+    return '<div class="fbitem"><div class="h"><span class="fish">🐟 '+esc(c.fischart)+
+      (c.groesse_cm?' · '+c.groesse_cm+' cm':'')+(c.gewicht_g?' · '+c.gewicht_g+' g':'')+'</span>'+
+      '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
+      '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+' · '+esc(c.gewaesser||"")+
+      (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
+      (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
+      (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
+  }).join("");
+}
+
+/* ---- Export / Import ---- */
+function download(name,text,type){
+  const b=new Blob([text],{type:type||"text/plain;charset=utf-8"}), u=URL.createObjectURL(b);
+  const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+function exportJSON(){ download("faenge_rheincheck.json", JSON.stringify(loadCatches(),null,2), "application/json"); }
+function W_(c,k){ return c.wetter&&c.wetter[k]!=null? c.wetter[k] : ""; }
+function A_(c,k){ return c.wasser&&c.wasser[k]!=null? c.wasser[k] : ""; }
+function exportCSV(){
+  const arr=loadCatches();
+  const cols=[
+    ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["gewaesser",c=>c.gewaesser],["fischart",c=>c.fischart],
+    ["groesse_cm",c=>c.groesse_cm],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["methode",c=>c.methode],["notiz",c=>c.notiz],
+    ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
+    ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
+    ["lufttemp_c",c=>W_(c,"lufttemperatur_c")],["gefuehlt_c",c=>W_(c,"gefuehlt_c")],["wind_kmh",c=>W_(c,"wind_kmh")],
+    ["windrichtung",c=>W_(c,"windrichtung")],["boen_kmh",c=>W_(c,"boen_kmh")],["luftdruck_hpa",c=>W_(c,"luftdruck_hpa")],
+    ["luftdruck_tendenz_3h_hpa",c=>W_(c,"luftdruck_tendenz_3h_hpa")],["bewoelkung_pct",c=>W_(c,"bewoelkung_pct")],
+    ["luftfeuchte_pct",c=>W_(c,"luftfeuchte_pct")],["niederschlag_mm_h",c=>W_(c,"niederschlag_mm_h")],["wetterlage",c=>W_(c,"wetterlage")],
+    ["pegel_cm",c=>A_(c,"pegelstand_cm")],["pegel_stufe",c=>A_(c,"pegel_stufe")],["durchfluss_m3s",c=>A_(c,"durchfluss_m3s")],
+    ["wassertemp_c",c=>A_(c,"wassertemperatur_c")],["sauerstoff_mgl",c=>A_(c,"sauerstoff_mgl")],["o2_saettigung_pct",c=>A_(c,"o2_saettigung_pct")],
+    ["truebung",c=>A_(c,"truebung")],["ph",c=>A_(c,"ph")],["leitfaehigkeit_uScm",c=>A_(c,"leitfaehigkeit_uScm")]
+  ];
+  const cell=v=>{ if(v==null)v=""; v=String(v).replace(/"/g,'""'); return /[";\n]/.test(v)?'"'+v+'"':v; };
+  const head=cols.map(c=>c[0]).join(";");
+  const body=arr.map(c=>cols.map(col=>cell(col[1](c))).join(";")).join("\n");
+  download("faenge_rheincheck.csv", "﻿"+head+"\n"+body, "text/csv;charset=utf-8");
+}
+function importJSON(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const data=JSON.parse(rd.result); if(!Array.isArray(data)) throw 0;
+      const cur=loadCatches(), ids=new Set(cur.map(x=>x.id)); let added=0;
+      data.forEach(r=>{ if(r&&r.id!=null&&!ids.has(r.id)){ cur.push(r); ids.add(r.id); added++; } });
+      saveCatches(cur); renderCatches(); renderMarkers(); alert(added+" Fänge importiert.");
+    }catch(e){ alert("Import fehlgeschlagen: keine gültige Fangbuch-JSON."); }
+    ev.target.value="";
+  };
+  rd.readAsText(f);
+}
+
+/* ---- Leaflet-Karte ---- */
+let MAP=null, CATCH_LAYER=null;
+function initMap(){
+  if(MAP || !window.L || !document.getElementById("map")) return;
+  MAP = L.map("map",{scrollWheelZoom:false}).setView([STATION.lat, STATION.lon], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
+  L.circleMarker([STATION.lat,STATION.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
+    .addTo(MAP).bindPopup("Messstation Mainz-Wiesbaden");
+  CATCH_LAYER=L.layerGroup().addTo(MAP);
+  renderMarkers();
+}
+function renderMarkers(){
+  if(!CATCH_LAYER) return;
+  CATCH_LAYER.clearLayers();
+  const cs=loadCatches().filter(c=>c.gps&&c.gps.lat!=null);
+  cs.forEach(c=>{
+    const wa=c.wasser||{};
+    const html='<b>🐟 '+esc(c.fischart||"Fang")+'</b>'+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+
+      '<br>'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+(c.koeder?'<br>Köder: '+esc(c.koeder):'')+
+      (wa.pegelstand_cm!=null?'<br>Pegel: '+wa.pegelstand_cm+' cm':'')+
+      (wa.wassertemperatur_c!=null?'<br>Wasser: '+wa.wassertemperatur_c+' °C':'');
+    L.circleMarker([c.gps.lat,c.gps.lon],{radius:6,color:"#4ade80",weight:2,fillColor:"#4ade80",fillOpacity:.85})
+      .bindPopup(html).addTo(CATCH_LAYER);
+  });
+  if(cs.length){ try{ MAP.fitBounds(L.featureGroup(CATCH_LAYER.getLayers()).getBounds().pad(0.3)); }catch(e){} }
+}
+
+function initFangbuch(){
+  const now=new Date(), pad=n=>String(n).padStart(2,'0');
+  if($("f_datum")) $("f_datum").value = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+  if($("f_zeit")) $("f_zeit").value = pad(now.getHours())+':'+pad(now.getMinutes());
+  renderCatches();
+  initMap();
+}
+
 async function loadAll(){
   $("updated").textContent = "aktualisiere …";
   await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
@@ -405,6 +684,7 @@ async function loadAll(){
 }
 loadAll();
 setInterval(loadAll, 10*60*1000);
+initFangbuch();
 </script>
 </body>
 </html>
