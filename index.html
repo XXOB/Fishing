@@ -235,20 +235,15 @@
     <div class="fbfield"><label>Uhrzeit</label><input id="f_zeit" type="time"></div>
     <div class="fbfield"><label>Standort</label>
       <button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Handy-Standort erfassen</button>
-      <button type="button" class="fbbtn" style="margin-top:6px" onclick="toggleCoordEntry()">⌨️ Koordinaten eingeben</button>
+      <button type="button" class="fbbtn" style="margin-top:6px" onclick="markOnMap()">🗺️ Auf Karte markieren</button>
     </div>
   </div>
   <div class="fbrow">
     <div class="fbfield fbwide"><label>Notiz</label><input id="f_notiz" placeholder="Beobachtungen, Stelle, Uhrzeit des Bisses …"></div>
   </div>
-  <div id="gpsInfo" class="fbnote">Kein Standort gewählt – Handy-Ortung, „Koordinaten eingeben" oder auf die Karte unten tippen.</div>
-  <div id="coordEntry" class="fbrow" style="display:none;margin-top:8px">
-    <div class="fbfield"><label>Breite (Lat)</label><input id="c_lat" inputmode="decimal" placeholder="50.0068"></div>
-    <div class="fbfield"><label>Länge (Lon)</label><input id="c_lon" inputmode="decimal" placeholder="8.2795"></div>
-    <div class="fbfield"><label>&nbsp;</label><button type="button" class="fbbtn" onclick="applyManualCoords()">Setzen</button></div>
-  </div>
+  <div id="gpsInfo" class="fbnote">Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren".</div>
   <div class="fbactions">
-    <button type="button" class="fbsave" onclick="saveCatch()">🎣 Fang speichern</button>
+    <button type="button" class="fbsave" id="fbSaveBtn" onclick="saveCatch()">🎣 Fang speichern</button>
     <span class="fbnote">Wetter, Wasserwerte &amp; Mondphase werden automatisch mitgespeichert.</span>
   </div>
 </div>
@@ -290,6 +285,7 @@
       <a class="b" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=50.0068,8.2795">Google Maps ↗</a>
     </div>
   </div>
+  <div id="markHint" style="display:none;padding:10px 14px;font-size:13px;background:rgba(56,189,248,.14);color:var(--water);border-bottom:1px solid var(--line)"></div>
   <div id="map"></div>
 </div>
 
@@ -665,7 +661,12 @@ function initMap(){
   L.circleMarker([STATION.lat,STATION.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
     .addTo(MAP).bindPopup("Messstation Mainz-Wiesbaden");
   CATCH_LAYER=L.layerGroup().addTo(MAP);
-  MAP.on("click", e=>setSelectedLocation(e.latlng.lat, e.latlng.lng, null, false));
+  MAP.on("click", e=>{
+    setSelectedLocation(e.latlng.lat, e.latlng.lng, null, false);
+    MARKING=false;
+    const hb=$("markHint");
+    if(hb){ hb.innerHTML='✓ Fangort markiert. <a href="#" onclick="scrollToSave();return false;">↑ zum Speichern</a>'; hb.style.display="block"; }
+  });
   renderMarkers();
 }
 function setSelectedLocation(lat, lon, acc, pan){
@@ -683,10 +684,11 @@ function setSelectedLocation(lat, lon, acc, pan){
     ' · <a href="#" onclick="clearSelectedLocation();return false;">entfernen</a>';
 }
 function clearSelectedLocation(){
-  CURRENT_GPS=null;
+  CURRENT_GPS=null; MARKING=false;
   if(SELECT_MARKER && MAP){ MAP.removeLayer(SELECT_MARKER); SELECT_MARKER=null; }
-  const gi=$("gpsInfo"); if(gi) gi.textContent="Kein Standort gewählt – nutze die Handy-Ortung oder tippe auf die Karte.";
+  const gi=$("gpsInfo"); if(gi) gi.textContent="Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren\".";
   const b=$("gpsBtn"); if(b) b.textContent="📍 Handy-Standort erfassen";
+  const hb=$("markHint"); if(hb) hb.style.display="none";
 }
 function renderMarkers(){
   if(!CATCH_LAYER) return;
@@ -704,18 +706,14 @@ function renderMarkers(){
   if(cs.length){ try{ MAP.fitBounds(L.featureGroup(CATCH_LAYER.getLayers()).getBounds().pad(0.3)); }catch(e){} }
 }
 
-function toggleCoordEntry(){
-  const el=$("coordEntry"); if(!el) return;
-  const show=(el.style.display==="none" || !el.style.display);
-  el.style.display = show ? "grid" : "none";
-  if(show) $("c_lat").focus();
+let MARKING=false;
+function markOnMap(){
+  MARKING=true;
+  if(!MAP) initMap();
+  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe auf die Karte an die Stelle deines Fangs."; hb.style.display="block"; }
+  const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
 }
-function applyManualCoords(){
-  const la=parseFloat(($("c_lat").value||"").replace(",",".")), lo=parseFloat(($("c_lon").value||"").replace(",","."));
-  if(isNaN(la)||isNaN(lo)||la<-90||la>90||lo<-180||lo>180){ alert("Bitte gültige Koordinaten eingeben, z. B. 50.0068 und 8.2795."); return; }
-  setSelectedLocation(la, lo, null, true);
-  $("coordEntry").style.display="none";
-}
+function scrollToSave(){ const b=document.getElementById("fbSaveBtn"); if(b) b.scrollIntoView({behavior:"smooth", block:"center"}); }
 function renderTable(){
   const box=$("fbTable"); if(!box) return;
   const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
