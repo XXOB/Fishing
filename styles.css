@@ -119,10 +119,10 @@ footer a{color:var(--muted)}
 .fbtable tbody tr:hover td{background:#0e1622}
 
 /* Klappbare Sektionen + Beißwetter */
-.secttoggle{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:12px;
-  padding:12px 16px;font-size:15px;font-weight:700;cursor:pointer;width:100%;text-align:left;
-  margin:22px 0 6px;display:flex;align-items:center;gap:8px}
-.secttoggle:hover{background:#25344a}
+.secttoggle{margin:12px 0;border-radius:16px;padding:16px 18px;font-size:17px;font-weight:700;cursor:pointer;
+  width:100%;text-align:left;display:flex;align-items:center;gap:12px;color:var(--text);
+  background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow)}
+.secttoggle:hover{border-color:#37496a}
 .biteitem{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;background:var(--card)}
 .bitehead{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--text);
   padding:11px 13px;font-size:14px;cursor:pointer;text-align:left}

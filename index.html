@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
 <header>
@@ -29,6 +29,9 @@
     <div class="why" id="condWhy">Pegel, Luftdruck-Tendenz, Wind &amp; Niederschlag werden geladen.</div>
   </div>
 </div>
+
+<button type="button" class="secttoggle" id="biteBtn" onclick="toggleBite()">🎯 Beißwetter anzeigen</button>
+<div id="biteBox" style="display:none"></div>
 
 <div class="sect">Fluss · Pegel Mainz (PEGELONLINE)</div>
 <div class="grid">
@@ -86,9 +89,6 @@
   Werte werden alle 3 Stunden aus dem RLP-Portal importiert. ·
   <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>
 </div>
-
-<button type="button" class="secttoggle" id="biteBtn" onclick="toggleBite()">🎯 Beißwetter anzeigen</button>
-<div id="biteBox" style="display:none"></div>
 
 <button type="button" class="secttoggle" id="fangbuchBtn" onclick="toggleFangbuch()">📒 Fangbuch anzeigen</button>
 <div id="fangbuchBox" style="display:none">
@@ -180,6 +180,6 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
