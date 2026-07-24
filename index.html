@@ -233,9 +233,13 @@
   <div class="fbrow">
     <div class="fbfield"><label>Datum</label><input id="f_datum" type="date"></div>
     <div class="fbfield"><label>Uhrzeit</label><input id="f_zeit" type="time"></div>
-    <div class="fbfield"><label>Standort</label>
-      <button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()">📍 Handy-Standort erfassen</button>
-      <button type="button" class="fbbtn" style="margin-top:6px" onclick="markOnMap()">🗺️ Auf Karte markieren</button>
+  </div>
+  <div class="fbrow">
+    <div class="fbfield fbwide"><label>Standort</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()" style="flex:1;min-width:150px">📍 Handy-Standort</button>
+        <button type="button" class="fbbtn" onclick="markOnMap()" style="flex:1;min-width:150px">🗺️ Auf Karte markieren</button>
+      </div>
     </div>
   </div>
   <div class="fbrow">
@@ -262,6 +266,7 @@
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
   <div class="fbtools">
+    <button type="button" class="fbtool" id="listBtn" onclick="toggleList()">🐟 Fänge anzeigen</button>
     <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()">📋 Tabelle anzeigen</button>
     <button type="button" class="fbtool" onclick="exportJSON()">⬇ JSON</button>
     <button type="button" class="fbtool" onclick="exportCSV()">⬇ CSV</button>
@@ -270,7 +275,7 @@
   </div>
 </div>
 <div id="fbTable" style="display:none"></div>
-<div id="fbList"></div>
+<div id="fbList" style="display:none"></div>
 
 <div class="sect">Karte · Station &amp; deine Fänge</div>
 <div class="mapcard">
@@ -478,20 +483,35 @@ function copyCoords(){
   }).catch(()=>{});
 }
 
+// Einstufung Wasserwerte in 5 Stufen (Faustregel für Angler)
+function classifyWQ(label, num){
+  if(num==null || isNaN(num)) return null;
+  const labels=["sehr niedrig","niedrig","normal","hoch","sehr hoch"];
+  let bands, colors;
+  if(label==="Wassertemperatur"){ bands=[4,10,20,25];  colors=["pg-red","pg-amber","pg-green","pg-amber","pg-red"]; }
+  else if(label==="O₂-Sättigung"){ bands=[60,80,110,130]; colors=["pg-red","pg-amber","pg-green","pg-amber","pg-red"]; }
+  else if(label==="Trübung"){       bands=[2,5,15,40];    colors=["pg-green","pg-green","pg-amber","pg-amber","pg-red"]; }
+  else return null;
+  let i=0; while(i<bands.length && num>=bands[i]) i++;
+  return { t:labels[i], c:colors[i] };
+}
 function renderQuality(){
   const box=$("quality"); if(!box) return;
   const d=window.WQ_DATA||{items:[]};
-  if(!d.items || !d.items.length){
+  const items=(d.items||[]).filter(it=> it.label!=="pH-Wert" && it.label!=="Leitfähigkeit");
+  if(!items.length){
     box.innerHTML='<div class="qtile"><div class="lbl">🌡️ Wasserqualität</div>'+
-      '<div class="hint">Noch keine Werte importiert. Starte einmal das Skript <b>wasserwerte_update.py</b> – oder öffne die amtliche Live-Ansicht.</div>'+
+      '<div class="hint">Noch keine Werte importiert. Der 6-Stunden-Job füllt sie automatisch – oder öffne die amtliche Live-Ansicht.</div>'+
       '<a class="go" target="_blank" rel="noopener" href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte">Live-Wert öffnen ↗</a></div>';
     return;
   }
-  box.innerHTML = d.items.map(it=>
-    '<div class="tile accent-teal"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
-    '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
-    '<div class="meta">Stand: '+(it.time||"–")+'</div></div>'
-  ).join("");
+  box.innerHTML = items.map(it=>{
+    const cls=classifyWQ(it.label, deNum(it.value));
+    const badge = cls ? '<span class="pgbadge '+cls.c+'">'+cls.t+'</span>' : '';
+    return '<div class="tile accent-teal"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
+      '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
+      '<div class="meta">'+badge+'Stand: '+(it.time||"–")+'</div></div>';
+  }).join("");
   const st=$("qStamp");
   if(st && d.updated){ st.innerHTML='Importiert am '+d.updated+' aus dem RLP-Portal · '+
     '<a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>'; }
@@ -536,7 +556,7 @@ function captureGps(){
   $("gpsBtn").textContent="… wird geortet";
   navigator.geolocation.getCurrentPosition(p=>{
     setSelectedLocation(p.coords.latitude, p.coords.longitude, p.coords.accuracy, true);
-    $("gpsBtn").textContent="📍 Handy-Standort aktualisieren";
+    $("gpsBtn").textContent="📍 Standort aktualisieren";
   }, ()=>{
     $("gpsInfo").textContent="Ortung abgelehnt/fehlgeschlagen – Fang wird ohne Standort gespeichert.";
     $("gpsBtn").textContent="📍 Standort erfassen";
@@ -687,7 +707,7 @@ function clearSelectedLocation(){
   CURRENT_GPS=null; MARKING=false;
   if(SELECT_MARKER && MAP){ MAP.removeLayer(SELECT_MARKER); SELECT_MARKER=null; }
   const gi=$("gpsInfo"); if(gi) gi.textContent="Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren\".";
-  const b=$("gpsBtn"); if(b) b.textContent="📍 Handy-Standort erfassen";
+  const b=$("gpsBtn"); if(b) b.textContent="📍 Handy-Standort";
   const hb=$("markHint"); if(hb) hb.style.display="none";
 }
 function renderMarkers(){
@@ -733,6 +753,12 @@ function toggleTable(){
   const show=(box.style.display==="none" || !box.style.display);
   if(show){ renderTable(); box.style.display="block"; if(b) b.textContent="📋 Tabelle ausblenden"; }
   else { box.style.display="none"; if(b) b.textContent="📋 Tabelle anzeigen"; }
+}
+function toggleList(){
+  const box=$("fbList"), b=$("listBtn"); if(!box) return;
+  const show=(box.style.display==="none" || !box.style.display);
+  box.style.display = show ? "block" : "none";
+  if(b) b.textContent = show ? "🐟 Fänge ausblenden" : "🐟 Fänge anzeigen";
 }
 function refreshFangbuch(){
   renderCatches(); renderMarkers();
