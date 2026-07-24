@@ -1,0 +1,126 @@
+:root{
+  --bg:#0a0e14; --bg2:#111823; --card:#151e2b; --card2:#1b2635;
+  --line:#243146; --text:#e8eef7; --muted:#8ea2be; --muted2:#5f748f;
+  --water:#38bdf8; --teal:#2dd4bf; --amber:#fbbf24; --red:#f87171; --green:#4ade80;
+  --shadow:0 6px 22px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 600px at 20% -10%,#12233a 0%,var(--bg) 55%) fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.4;
+  padding:16px; max-width:1080px; margin:0 auto;
+}
+a{color:var(--water);text-decoration:none}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--water),var(--teal));
+  display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--shadow)}
+h1{font-size:20px;margin:0;letter-spacing:.3px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.updated{font-size:12px;color:var(--muted2);text-align:right}
+.refresh{margin-top:6px;background:var(--card2);border:1px solid var(--line);color:var(--text);
+  padding:7px 12px;border-radius:9px;font-size:13px;cursor:pointer;transition:.15s}
+.refresh:hover{background:#25344a;border-color:#37496a}
+.refresh:active{transform:scale(.97)}
+
+.cond{margin:14px 0 18px;border-radius:16px;padding:16px 18px;display:flex;gap:16px;align-items:center;
+  background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow)}
+.cond .dot{width:52px;height:52px;min-width:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:700}
+.cond .lvl{font-size:17px;font-weight:700;margin-bottom:3px}
+.cond .why{font-size:13px;color:var(--muted)}
+.lg-green{background:rgba(74,222,128,.16);color:var(--green);border:1px solid rgba(74,222,128,.35)}
+.lg-amber{background:rgba(251,191,36,.16);color:var(--amber);border:1px solid rgba(251,191,36,.35)}
+.lg-red{background:rgba(248,113,113,.16);color:var(--red);border:1px solid rgba(248,113,113,.35)}
+
+.sect{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);
+  margin:22px 4px 10px;font-weight:700}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:6px;min-height:118px;position:relative;overflow:hidden;
+  border-top:2px solid var(--water)}
+.tile .lbl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;font-weight:600}
+.tile .val{font-size:30px;font-weight:750;line-height:1;letter-spacing:.5px}
+.tile .val small{font-size:15px;font-weight:600;color:var(--muted);margin-left:3px}
+.tile .meta{font-size:11px;color:var(--muted2);margin-top:auto}
+.tile .ico{font-size:15px}
+.trend{font-size:12px;font-weight:700;padding:1px 7px;border-radius:20px;display:inline-flex;gap:3px;align-items:center}
+.t-up{background:rgba(56,189,248,.14);color:var(--water)}
+.t-dn{background:rgba(251,191,36,.14);color:var(--amber)}
+.t-fl{background:rgba(142,162,190,.14);color:var(--muted)}
+.pgbadge{font-size:12px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:2px}
+.pg-red{background:rgba(248,113,113,.16);color:var(--red)}
+.pg-amber{background:rgba(251,191,36,.16);color:var(--amber)}
+.pg-green{background:rgba(74,222,128,.16);color:var(--green)}
+.pg-blue{background:rgba(56,189,248,.16);color:var(--water)}
+.spark{position:absolute;left:0;right:0;bottom:0;height:34px;opacity:.5}
+
+/* Wasserqualität – Hinweis-Kachel (Leerzustand) */
+.qtile{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:8px;min-height:112px}
+.qtile .lbl{font-size:13px;font-weight:650;display:flex;align-items:center;gap:7px}
+.qtile .hint{font-size:11.5px;color:var(--muted2);line-height:1.45}
+.qtile .go{margin-top:auto;align-self:flex-start;background:var(--card2);border:1px solid var(--line);
+  color:var(--water);font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px}
+.qtile .go:hover{background:#25344a}
+
+footer{margin:26px 4px 10px;font-size:12px;color:var(--muted2);line-height:1.6}
+footer a{color:var(--muted)}
+.err{color:var(--red);font-size:13px}
+
+/* Karte */
+.mapcard{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:var(--shadow)}
+.mapmeta{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.mapmeta .co{font-size:15px;font-weight:700;letter-spacing:.4px}
+.mapmeta .pos{font-size:12px;color:var(--muted)}
+.mapmeta .btns{display:flex;gap:8px;flex-wrap:wrap}
+.mapmeta button,.mapmeta a.b{background:var(--card2);border:1px solid var(--line);color:var(--text);
+  font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer}
+.mapmeta button:hover,.mapmeta a.b:hover{background:#25344a}
+#map{height:360px;width:100%;background:#0e1622}
+.leaflet-popup-content{font-size:13px;line-height:1.5}
+
+/* Fangbuch */
+.fbcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow)}
+.fbrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.fbfield{display:flex;flex-direction:column;gap:4px}
+.fbfield.fbwide{grid-column:1/-1}
+.fbfield label{font-size:11px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px}
+.fbfield input{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+  padding:8px 10px;font-size:14px;font-family:inherit}
+.fbfield input:focus{outline:none;border-color:var(--water)}
+.fbbtn{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+  padding:8px 10px;font-size:13px;cursor:pointer;width:100%}
+.fbbtn:hover{background:#25344a}
+.fbnote{font-size:11.5px;color:var(--muted2)}
+.fbactions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.fbsave{background:linear-gradient(135deg,var(--water),var(--teal));color:#04222f;font-weight:700;
+  border:0;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer}
+.fbsave:active{transform:scale(.98)}
+.fbtoolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:14px 4px 8px}
+.fbtools{display:flex;gap:8px;flex-wrap:wrap}
+.fbtool{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+  padding:6px 11px;font-size:12px;cursor:pointer}
+.fbtool:hover{background:#25344a}
+.fbitem{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.fbitem .h{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.fbitem .fish{font-size:15px;font-weight:700}
+.fbitem .when{font-size:12px;color:var(--muted2);margin-top:3px}
+.fbitem .cond{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+.fbitem .del{background:none;border:0;color:var(--muted2);cursor:pointer;font-size:12px;white-space:nowrap}
+.fbitem .del:hover{color:var(--red)}
+.fbwrap{overflow-x:auto;margin-top:8px}
+.fbtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.fbtable th,.fbtable td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+.fbtable th{color:var(--muted2);text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;font-weight:700}
+.fbtable tbody tr:hover td{background:#0e1622}
+
+@media(max-width:520px){
+  .tile .val{font-size:26px}
+  h1{font-size:18px}
+  body{padding:12px}
+  #map{height:300px}
+}
