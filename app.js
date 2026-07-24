@@ -475,10 +475,119 @@ function initFangbuch(){
   initMap();
 }
 
+/* ===================== Beißwetter ===================== */
+/* Grobe Heuristik je Fischart aus Angler-Wissen & Fachbeiträgen (Luftdruck, Wassertemperatur,
+   Licht, Trübung). Keine exakte Wissenschaft – als Faustregel gedacht. */
+const BITE = [
+  {name:"Zander",  emoji:"🐟", temp:[12,22], tol:[8,26],  light:"low",  turbid:"like"},
+  {name:"Hecht",   emoji:"🐊", temp:[8,18],  tol:[3,22],  light:"low",  turbid:"neutral", wind:true},
+  {name:"Barsch",  emoji:"🐠", temp:[10,21], tol:[5,25],  light:"day",  turbid:"neutral"},
+  {name:"Rapfen",  emoji:"🐟", temp:[16,27], tol:[12,30], light:"day",  turbid:"clear", sun:true},
+  {name:"Wels",    emoji:"🐋", temp:[20,28], tol:[16,31], light:"low",  turbid:"like", risewater:true},
+  {name:"Aal",     emoji:"🐍", temp:[16,26], tol:[12,31], light:"night",turbid:"like", risewater:true, dark:true},
+  {name:"Karpfen", emoji:"🐡", temp:[15,25], tol:[10,29], light:"twi",  turbid:"neutral"},
+  {name:"Brasse",  emoji:"🐟", temp:[14,25], tol:[8,29],  light:"twi",  turbid:"slightlike"}
+];
+function qNum(label){
+  const it=((window.WQ_DATA&&window.WQ_DATA.items)||[]).find(x=>x.label===label);
+  if(!it) return null; const n=deNum(it.value); return (typeof n==="number")? n : null;
+}
+function biteContext(){
+  const w=snap.weather||{}, now=new Date(), hour=now.getHours();
+  const cloud=w.bewoelkung_pct;
+  let lowLight;
+  if(hour<=5 || hour>=22) lowLight="night";
+  else if(hour<=8 || hour>=19) lowLight="twilight";
+  else if(cloud!=null && cloud>=70) lowLight="overcast";
+  else lowLight="day";
+  let pegelUp=null;
+  if(state.pegelTrend && state.pegelTrend.length>13){
+    const s=state.pegelTrend; pegelUp=s[s.length-1].value - s[s.length-13].value;
+  }
+  return { wt:qNum("Wassertemperatur"), turb:qNum("Trübung"), hour, cloud, lowLight,
+    ptrend:w.luftdruck_tendenz_3h_hpa, wind:w.wind_kmh, gust:w.boen_kmh, wcode:w.wettercode,
+    pegelUp, moon:moonPhase(now) };
+}
+function evalBite(sp, ctx){
+  let score=0; const pros=[], cons=[];
+  if(ctx.wt!=null){
+    const [lo,hi]=sp.temp,[tlo,thi]=sp.tol;
+    if(ctx.wt>=lo && ctx.wt<=hi){ score+=2; pros.push("die Wassertemperatur ("+ctx.wt+" °C) im idealen Bereich liegt"); }
+    else if(ctx.wt<tlo || ctx.wt>thi){ score-=2; cons.push("die Wassertemperatur ("+ctx.wt+" °C) ungünstig ist"); }
+    else { score-=1; cons.push("die Wassertemperatur ("+ctx.wt+" °C) nicht optimal ist"); }
+  }
+  const ll=ctx.lowLight;
+  if(sp.light==="low"){
+    if(ll==="night"||ll==="twilight"){ score+=1; pros.push("wenig Licht herrscht (Dämmerung/Nacht)"); }
+    else if(ll==="overcast"){ score+=1; pros.push("der bedeckte Himmel das Licht dämpft"); }
+    else { score-=1; cons.push("es am hellen Tag zu grell ist"); }
+  } else if(sp.light==="day"){
+    if(ll==="day"){ score+=1; pros.push("heller Tag herrscht"); }
+    else if(ll==="night"){ score-=1; cons.push("nachts kaum Aktivität herrscht"); }
+  } else if(sp.light==="night"){
+    if(ll==="night"){ score+=2; pros.push("es dunkel ist (Nacht)"); }
+    else if(ll==="twilight"){ score+=1; pros.push("Dämmerung herrscht"); }
+    else { score-=2; cons.push("es tagsüber kaum Bisse gibt"); }
+  } else if(sp.light==="twi"){
+    if(ll==="twilight"){ score+=1; pros.push("Dämmerung herrscht – die beste Zeit"); }
+  }
+  if(ctx.turb!=null){
+    if(sp.turbid==="like"){ if(ctx.turb>=5){ score+=1; pros.push("das Wasser leicht angetrübt ist"); } else if(ctx.turb<2){ score-=1; cons.push("das Wasser sehr klar ist"); } }
+    else if(sp.turbid==="clear"){ if(ctx.turb<5){ score+=1; pros.push("das Wasser schön klar ist"); } else if(ctx.turb>=15){ score-=1; cons.push("das Wasser zu trüb ist"); } }
+    else if(sp.turbid==="slightlike"){ if(ctx.turb>=3 && ctx.turb<20){ score+=1; pros.push("das Wasser leicht angetrübt ist"); } }
+  }
+  if(sp.risewater && ctx.pegelUp!=null && ctx.pegelUp>4){ score+=1; pros.push("der Pegel steigt (mehr Strömung und Trübung)"); }
+  if(ctx.ptrend!=null){
+    if(ctx.ptrend<=-1.5){ score+=1; pros.push("der Luftdruck fällt (kurbelt das Fressen an)"); }
+    else if(ctx.ptrend<=0.8){ score+=1; pros.push("der Luftdruck stabil ist"); }
+    else if(ctx.ptrend>=2.5){ score-=1; cons.push("der Luftdruck stark steigt"); }
+  }
+  if(sp.sun && ctx.cloud!=null && ctx.cloud<40 && ctx.wt!=null && ctx.wt>=16){ score+=1; pros.push("es warm und sonnig ist"); }
+  if(sp.wind && ctx.wind!=null && ctx.wind>=12 && (ctx.gust==null||ctx.gust<45)){ score+=1; pros.push("leichter Wind das Wasser kräuselt"); }
+  if([82,95,96,99].includes(ctx.wcode) && sp.name!=="Wels"){ score-=1; cons.push("ein Gewitter/Starkregen aufzieht"); }
+  if(sp.dark && ctx.moon && ctx.moon.illum<=25){ score+=1; pros.push("die Nacht dunkel ist (wenig Mond)"); }
+
+  let color, frag;
+  if(score>=2){ color="green"; frag=pros[0]||"die Bedingungen gut passen"; }
+  else if(score<=-1){ color="red"; frag=cons[0]||"die Bedingungen ungünstig sind"; }
+  else { color="amber"; frag=cons[0]||pros[0]||"die Bedingungen durchwachsen sind"; }
+  const lead = color==="green"?"Gut, weil ":color==="red"?"Schwierig, weil ":"Mittel – weil ";
+  return { color, reason: lead+frag+"." };
+}
+function renderBite(){
+  const box=$("biteBox"); if(!box) return;
+  const ctx=biteContext();
+  const tag={green:"beißt gut",amber:"mittel",red:"eher nicht"};
+  const col={green:"--green",amber:"--amber",red:"--red"};
+  const rows=BITE.map(sp=>{
+    const r=evalBite(sp,ctx);
+    return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
+      '<span class="bitedot bd-'+r.color+'"></span>'+sp.emoji+' '+sp.name+
+      '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' ▾</span></button>'+
+      '<div class="bitereason">'+esc(r.reason)+'</div></div>';
+  }).join("");
+  const warn = ctx.wt==null ? '<div class="fbnote" style="margin:0 4px 10px">Wassertemperatur noch nicht geladen – Einstufung vorläufig.</div>' : '';
+  box.innerHTML = warn + rows +
+    '<div class="fbnote" style="margin-top:8px">Grobe Faustregeln aus Angler-Wissen &amp; Fachbeiträgen – keine Garantie. Tippe einen Fisch für die Begründung an.</div>';
+}
+function toggleBite(){
+  const box=$("biteBox"), b=$("biteBtn"); if(!box) return;
+  const show=(box.style.display==="none"||!box.style.display);
+  if(show){ renderBite(); box.style.display="block"; if(b) b.textContent="🎯 Beißwetter ausblenden"; }
+  else { box.style.display="none"; if(b) b.textContent="🎯 Beißwetter anzeigen"; }
+}
+function toggleFangbuch(){
+  const box=$("fangbuchBox"), b=$("fangbuchBtn"); if(!box) return;
+  const show=(box.style.display==="none"||!box.style.display);
+  box.style.display = show?"block":"none";
+  if(b) b.textContent = show?"📒 Fangbuch ausblenden":"📒 Fangbuch anzeigen";
+}
+
 async function loadAll(){
   $("updated").textContent = "aktualisiere …";
   await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
   updateAmpel();
+  if($("biteBox") && $("biteBox").style.display==="block") renderBite();
   $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
 }
 loadAll();

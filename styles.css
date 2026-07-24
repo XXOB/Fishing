@@ -118,6 +118,20 @@ footer a{color:var(--muted)}
 .fbtable th{color:var(--muted2);text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;font-weight:700}
 .fbtable tbody tr:hover td{background:#0e1622}
 
+/* Klappbare Sektionen + Beißwetter */
+.secttoggle{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:12px;
+  padding:12px 16px;font-size:15px;font-weight:700;cursor:pointer;width:100%;text-align:left;
+  margin:22px 0 6px;display:flex;align-items:center;gap:8px}
+.secttoggle:hover{background:#25344a}
+.biteitem{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;background:var(--card)}
+.bitehead{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--text);
+  padding:11px 13px;font-size:14px;cursor:pointer;text-align:left}
+.bitehead:hover{background:#0e1622}
+.bitedot{width:12px;height:12px;border-radius:50%;flex:none}
+.bd-green{background:var(--green)} .bd-amber{background:var(--amber)} .bd-red{background:var(--red)}
+.bitetag{margin-left:auto;font-size:12px;font-weight:700}
+.bitereason{display:none;padding:0 13px 12px 35px;font-size:12.5px;color:var(--muted);line-height:1.5}
+
 @media(max-width:520px){
   .tile .val{font-size:26px}
   h1{font-size:18px}

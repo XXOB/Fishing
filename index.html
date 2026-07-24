@@ -87,7 +87,12 @@
   <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>
 </div>
 
-<div class="sect">Fangbuch · neuen Fang eintragen</div>
+<button type="button" class="secttoggle" id="biteBtn" onclick="toggleBite()">🎯 Beißwetter anzeigen</button>
+<div id="biteBox" style="display:none"></div>
+
+<button type="button" class="secttoggle" id="fangbuchBtn" onclick="toggleFangbuch()">📒 Fangbuch anzeigen</button>
+<div id="fangbuchBox" style="display:none">
+<div class="sect" style="margin-top:10px">Neuen Fang eintragen</div>
 <div class="fbcard">
   <div class="fbrow">
     <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht"></div>
@@ -145,6 +150,7 @@
 </div>
 <div id="fbTable" style="display:none"></div>
 <div id="fbList" style="display:none"></div>
+</div>
 
 <div class="sect">Karte · Station &amp; deine Fänge</div>
 <div class="mapcard">
