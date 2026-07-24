@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 <header>
@@ -35,13 +35,13 @@
 
 <div class="sect">Fluss · Pegel Mainz (PEGELONLINE)</div>
 <div class="grid">
-  <div class="tile" id="tilePegel">
+  <div class="tile clickable" id="tilePegel" onclick="openChart('pegel')">
     <div class="lbl"><span class="ico">📏</span> Pegelstand</div>
     <div class="val" id="pegelVal">–</div>
     <svg class="spark" id="pegelSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
     <div class="meta" id="pegelMeta">–</div>
   </div>
-  <div class="tile">
+  <div class="tile clickable" onclick="openChart('durchfluss')">
     <div class="lbl"><span class="ico">🌊</span> Durchfluss</div>
     <div class="val" id="qVal">–</div>
     <svg class="spark" id="qSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
@@ -51,27 +51,27 @@
 
 <div class="sect">Wetter (Open-Meteo / DWD)</div>
 <div class="grid">
-  <div class="tile">
+  <div class="tile clickable" onclick="openChart('airTemp')">
     <div class="lbl"><span class="ico">🌡️</span> Lufttemperatur</div>
     <div class="val" id="airVal">–</div>
     <div class="meta" id="airMeta">gefühlt –</div>
   </div>
-  <div class="tile">
+  <div class="tile clickable" onclick="openChart('wind')">
     <div class="lbl"><span class="ico">💨</span> Wind</div>
     <div class="val" id="windVal">–</div>
     <div class="meta" id="windMeta">Böen –</div>
   </div>
-  <div class="tile">
+  <div class="tile clickable" onclick="openChart('rain')">
     <div class="lbl"><span class="ico">🌧️</span> Niederschlag</div>
     <div class="val" id="rainVal">–</div>
     <div class="meta" id="rainMeta">heute –</div>
   </div>
-  <div class="tile">
+  <div class="tile clickable" onclick="openChart('press')">
     <div class="lbl"><span class="ico">📊</span> Luftdruck</div>
     <div class="val" id="pressVal">–</div>
     <div class="meta" id="pressMeta">Tendenz –</div>
   </div>
-  <div class="tile">
+  <div class="tile clickable" onclick="openChart('cloud')">
     <div class="lbl"><span class="ico">🌥️</span> Himmel</div>
     <div class="val" id="skyVal" style="font-size:22px">–</div>
     <div class="meta" id="skyMeta">Bewölkung – · Feuchte –</div>
@@ -140,7 +140,7 @@
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
   <div class="fbtools">
-    <button type="button" class="fbtool" id="listBtn" onclick="toggleList()">🐟 Fänge anzeigen</button>
+    <button type="button" class="fbtool" id="listBtn" onclick="toggleList()">Fänge anzeigen</button>
     <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()">📋 Tabelle anzeigen</button>
     <button type="button" class="fbtool" onclick="exportJSON()">⬇ JSON</button>
     <button type="button" class="fbtool" onclick="exportCSV()">⬇ CSV</button>
@@ -175,11 +175,21 @@
     Wetter: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo (DWD)</a> ·
     Wasserqualität: <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Messstation Mainz-Wiesbaden (LfU RLP / HLNUG)</a>.
   </div>
-  <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil! 🐟</div>
+  <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil!</div>
   <div style="margin-top:6px">Dein Fangbuch wird nur lokal in diesem Browser gespeichert – nichts wird hochgeladen. Für ein Backup oder eine spätere Auswertung nutze den Export als JSON oder CSV.</div>
 </footer>
 
+<div id="chartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeChart()">
+  <div class="cmbox">
+    <div class="cmhead"><span id="cmTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen">✕</button></div>
+    <div class="cmtabs"><button id="cmt24" onclick="setChartRange('24h')">24 Stunden</button><button id="cmt7" onclick="setChartRange('7d')">7 Tage</button></div>
+    <div class="cmcanvas"><canvas id="cmChart"></canvas></div>
+    <div id="cmMeta" class="fbnote"></div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="app.js?v=2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

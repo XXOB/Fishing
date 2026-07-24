@@ -206,11 +206,13 @@ function renderQuality(){
       '<a class="go" target="_blank" rel="noopener" href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte">Live-Wert öffnen ↗</a></div>';
     return;
   }
+  const CHARTABLE={"Wassertemperatur":1,"O₂-Sättigung":1,"Trübung":1};
   box.innerHTML = items.map(it=>{
     const cls=classifyWQ(it.label, deNum(it.value));
     const badge = cls ? '<span class="pgbadge '+cls.c+'">'+cls.t+'</span>' : '';
     const stripe = cls ? stripeColor(cls.c) : "var(--water)";
-    return '<div class="tile" style="border-top-color:'+stripe+'"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
+    const clk = CHARTABLE[it.label] ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
+    return '<div class="tile'+clk+'" style="border-top-color:'+stripe+'"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
       '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
       '<div class="meta">'+badge+'Stand: '+(it.time||"–")+'</div></div>';
   }).join("");
@@ -320,7 +322,7 @@ function renderCatches(){
     if(w.luftdruck_hpa!=null) cond.push(Math.round(w.luftdruck_hpa)+" hPa");
     if(w.wetterlage) cond.push(w.wetterlage);
     if(c.mondphase&&c.mondphase.name) cond.push(c.mondphase.name);
-    return '<div class="fbitem"><div class="h"><span class="fish">🐟 '+esc(c.fischart)+
+    return '<div class="fbitem"><div class="h"><span class="fish">'+esc(c.fischart)+
       (c.groesse_cm?' · '+c.groesse_cm+' cm':'')+(c.gewicht_g?' · '+c.gewicht_g+' g':'')+'</span>'+
       '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
       '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+' · '+esc(c.gewaesser||"")+
@@ -418,7 +420,7 @@ function renderMarkers(){
   const cs=loadCatches().filter(c=>c.gps&&c.gps.lat!=null);
   cs.forEach(c=>{
     const wa=c.wasser||{};
-    const html='<b>🐟 '+esc(c.fischart||"Fang")+'</b>'+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+
+    const html='<b>'+esc(c.fischart||"Fang")+'</b>'+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+
       '<br>'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+(c.koeder?'<br>Köder: '+esc(c.koeder):'')+
       (wa.pegelstand_cm!=null?'<br>Pegel: '+wa.pegelstand_cm+' cm':'')+
       (wa.wassertemperatur_c!=null?'<br>Wasser: '+wa.wassertemperatur_c+' °C':'');
@@ -460,7 +462,7 @@ function toggleList(){
   const box=$("fbList"), b=$("listBtn"); if(!box) return;
   const show=(box.style.display==="none" || !box.style.display);
   box.style.display = show ? "block" : "none";
-  if(b) b.textContent = show ? "🐟 Fänge ausblenden" : "🐟 Fänge anzeigen";
+  if(b) b.textContent = show ? "Fänge ausblenden" : "Fänge anzeigen";
 }
 function refreshFangbuch(){
   renderCatches(); renderMarkers();
@@ -475,18 +477,105 @@ function initFangbuch(){
   initMap();
 }
 
+/* ===================== Verlaufs-Grafen (Chart.js) ===================== */
+let CHART=null, CHART_KEY=null, CHART_RANGE="24h";
+const HIST={};
+const CHART_DEFS={
+  pegel:      {title:"Pegelstand",     unit:"cm",   color:"#38bdf8", src:"pegel"},
+  durchfluss: {title:"Durchfluss",     unit:"m³/s", color:"#2dd4bf", src:"durchfluss"},
+  airTemp:    {title:"Lufttemperatur", unit:"°C",   color:"#fbbf24", src:"wx:temperature_2m"},
+  wind:       {title:"Wind",           unit:"km/h", color:"#2dd4bf", src:"wx:wind_speed_10m"},
+  rain:       {title:"Niederschlag",   unit:"mm/h", color:"#38bdf8", src:"wx:precipitation"},
+  press:      {title:"Luftdruck",      unit:"hPa",  color:"#fbbf24", src:"wx:pressure_msl"},
+  cloud:      {title:"Bewölkung",      unit:"%",    color:"#8ea2be", src:"wx:cloud_cover"}
+};
+const WQ_UNIT={"Wassertemperatur":"°C","O₂-Sättigung":"%","Trübung":"TE"};
+const WQ_COLOR={"Wassertemperatur":"#fbbf24","O₂-Sättigung":"#4ade80","Trübung":"#8ea2be"};
+function defFor(key){
+  if(CHART_DEFS[key]) return CHART_DEFS[key];
+  if(key.indexOf("wq:")===0){ const l=key.slice(3); return {title:l, unit:WQ_UNIT[l]||"", color:WQ_COLOR[l]||"#38bdf8", src:key}; }
+  return null;
+}
+function toHourly(pts){
+  const m=new Map();
+  for(const p of pts){ if(p.v==null||isNaN(p.v)) continue; const k=Math.floor(p.t.getTime()/3600000); m.set(k,{t:new Date(k*3600000), v:p.v}); }
+  return [...m.values()].sort((a,b)=>a.t-b.t);
+}
+async function histPegel(param){
+  const key=param==="W"?"pegel":"durchfluss";
+  if(HIST[key]) return HIST[key];
+  const a=await getJSON(PO+"/"+param+"/measurements.json?start=P8D");
+  HIST[key]=a.map(p=>({t:new Date(p.timestamp), v:p.value}));
+  return HIST[key];
+}
+async function histWx(){
+  if(HIST.wx) return HIST.wx;
+  const url="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+
+    "&hourly=temperature_2m,wind_speed_10m,pressure_msl,precipitation,cloud_cover"+
+    "&past_days=7&forecast_days=1&timezone=Europe%2FBerlin&wind_speed_unit=kmh";
+  const d=await getJSON(url);
+  HIST.wx={times:d.hourly.time.map(t=>new Date(t)), h:d.hourly};
+  return HIST.wx;
+}
+async function getSeries(def, range){
+  const cutoff=Date.now()-(range==="24h"?24*3600e3:7*24*3600e3);
+  let pts=null;
+  if(def.src==="pegel"||def.src==="durchfluss") pts=await histPegel(def.src==="pegel"?"W":"Q");
+  else if(def.src.indexOf("wx:")===0){ const v=def.src.slice(3), wx=await histWx(); pts=wx.times.map((t,i)=>({t, v:wx.h[v]?wx.h[v][i]:null})); }
+  else if(def.src.indexOf("wq:")===0){ const l=def.src.slice(3), hi=window.WQ_DATA&&window.WQ_DATA.history&&window.WQ_DATA.history[l]; if(!hi) return null; pts=hi.map(p=>({t:new Date(p.t), v:p.v})); }
+  if(!pts) return null;
+  return toHourly(pts).filter(p=>p.t.getTime()>=cutoff);
+}
+function openChart(key){
+  const def=defFor(key); if(!def) return;
+  CHART_KEY=key; $("cmTitle").textContent=def.title+" – Verlauf";
+  $("chartModal").style.display="flex";
+  setChartRange("24h");
+}
+function closeChart(){ $("chartModal").style.display="none"; if(CHART){ CHART.destroy(); CHART=null; } }
+async function setChartRange(range){
+  CHART_RANGE=range;
+  $("cmt24").classList.toggle("active", range==="24h");
+  $("cmt7").classList.toggle("active", range==="7d");
+  const def=defFor(CHART_KEY), meta=$("cmMeta");
+  meta.textContent="lädt …";
+  let pts=null; try{ pts=await getSeries(def, range); }catch(e){ pts=null; }
+  if(!pts || !pts.length){
+    meta.textContent = (def.src.indexOf("wq:")===0) ? "Für diesen Wert liegt noch kein Verlauf vor (kommt nach dem nächsten Datenimport)." : "Keine Verlaufsdaten verfügbar.";
+    if(CHART){ CHART.destroy(); CHART=null; }
+    return;
+  }
+  const labels=pts.map(p=> range==="24h" ? hhmm(p.t) : (p.t.getDate()+"."+(p.t.getMonth()+1)+". "+hhmm(p.t)));
+  const values=pts.map(p=>p.v);
+  const mn=Math.min(...values), mx=Math.max(...values), last=values[values.length-1];
+  meta.innerHTML="Aktuell <b>"+fmt(last,1)+" "+def.unit+"</b> · Min "+fmt(mn,1)+" · Max "+fmt(mx,1)+" · Auflösung 1 h";
+  drawChart(labels, values, def);
+}
+function drawChart(labels, values, def){
+  const cv=$("cmChart"); if(!cv || !window.Chart) return;
+  if(CHART) CHART.destroy();
+  CHART=new Chart(cv.getContext("2d"),{
+    type:"line",
+    data:{labels, datasets:[{data:values, borderColor:def.color, backgroundColor:def.color+"22", borderWidth:2, pointRadius:0, fill:true, tension:.25}]},
+    options:{responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmt(c.parsed.y,1)+" "+def.unit}}},
+      scales:{x:{ticks:{color:"#8ea2be", maxTicksLimit:7, maxRotation:0, autoSkip:true}, grid:{color:"#1c2635"}},
+              y:{ticks:{color:"#8ea2be"}, grid:{color:"#1c2635"}}}}
+  });
+}
+
 /* ===================== Beißwetter ===================== */
 /* Grobe Heuristik je Fischart aus Angler-Wissen & Fachbeiträgen (Luftdruck, Wassertemperatur,
    Licht, Trübung). Keine exakte Wissenschaft – als Faustregel gedacht. */
 const BITE = [
-  {name:"Zander",  emoji:"🐟", temp:[12,22], tol:[8,26],  light:"low",  turbid:"like"},
-  {name:"Hecht",   emoji:"🐊", temp:[8,18],  tol:[3,22],  light:"low",  turbid:"neutral", wind:true},
-  {name:"Barsch",  emoji:"🐠", temp:[10,21], tol:[5,25],  light:"day",  turbid:"neutral"},
-  {name:"Rapfen",  emoji:"🐟", temp:[16,27], tol:[12,30], light:"day",  turbid:"clear", sun:true},
-  {name:"Wels",    emoji:"🐋", temp:[20,28], tol:[16,31], light:"low",  turbid:"like", risewater:true},
-  {name:"Aal",     emoji:"🐍", temp:[16,26], tol:[12,31], light:"night",turbid:"like", risewater:true, dark:true},
-  {name:"Karpfen", emoji:"🐡", temp:[15,25], tol:[10,29], light:"twi",  turbid:"neutral"},
-  {name:"Brasse",  emoji:"🐟", temp:[14,25], tol:[8,29],  light:"twi",  turbid:"slightlike"}
+  {name:"Zander",  temp:[12,22], tol:[8,26],  light:"low",  turbid:"like"},
+  {name:"Hecht",   temp:[8,18],  tol:[3,22],  light:"low",  turbid:"neutral", wind:true},
+  {name:"Barsch",  temp:[10,21], tol:[5,25],  light:"day",  turbid:"neutral"},
+  {name:"Rapfen",  temp:[16,27], tol:[12,30], light:"day",  turbid:"clear", sun:true},
+  {name:"Wels",    temp:[20,28], tol:[16,31], light:"low",  turbid:"like", risewater:true},
+  {name:"Aal",     temp:[16,26], tol:[12,31], light:"night",turbid:"like", risewater:true, dark:true},
+  {name:"Karpfen", temp:[15,25], tol:[10,29], light:"twi",  turbid:"neutral"},
+  {name:"Brasse",  temp:[14,25], tol:[8,29],  light:"twi",  turbid:"slightlike"}
 ];
 function qNum(label){
   const it=((window.WQ_DATA&&window.WQ_DATA.items)||[]).find(x=>x.label===label);
@@ -562,7 +651,7 @@ function renderBite(){
   const rows=BITE.map(sp=>{
     const r=evalBite(sp,ctx);
     return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
-      '<span class="bitedot bd-'+r.color+'"></span>'+sp.emoji+' '+sp.name+
+      '<span class="bitedot bd-'+r.color+'"></span>'+sp.name+
       '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' ▾</span></button>'+
       '<div class="bitereason">'+esc(r.reason)+'</div></div>';
   }).join("");

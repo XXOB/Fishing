@@ -5,33 +5,33 @@ fetch_wasserwerte.py
 --------------------
 Holt die aktuellen Wasserqualitaets-Werte der Rheinwasser-Untersuchungsstation
 Mainz-Wiesbaden aus dem RLP-Portal und schreibt sie als wasserwerte.json.
- 
+
 Die CSV liegt im LANGFORMAT vor (eine Zeile je Messgroesse):
   Messstellennummer;Messstellenbezeichnung;Messleitung;Datum;Bezeichnung;Wert;Einheit
 Je Messgroesse (Spalte "Bezeichnung") wird der Wert mit dem juengsten Datum genommen.
- 
+
 Gedacht fuer GitHub Actions (alle 6 h), laeuft aber auch lokal:
     pip install playwright
     playwright install chromium
     python fetch_wasserwerte.py
 """
- 
+
 import json
 import re
 import sys
 import csv
 import io
 from pathlib import Path
-from datetime import datetime, timezone
- 
+from datetime import datetime, timezone, timedelta
+
 STATION_ID   = "2511510500"
 DOWNLOAD_URL = f"https://geodaten-wasser.rlp-umwelt.de/gus/{STATION_ID}/download"
- 
+
 BASE_DIR  = Path(__file__).resolve().parent
 JSON_FILE = BASE_DIR / "wasserwerte.json"
 CSV_DIR   = BASE_DIR / "wasserwerte_csv"
 CSV_DIR.mkdir(exist_ok=True)
- 
+
 # Messgroesse (aus Spalte "Bezeichnung") -> (Anzeige-Label, Icon, Nachkommastellen)
 # Reihenfolge = Prioritaet: "sättigung" vor "sauerstoff" pruefen.
 BEZ_MAP = [
@@ -46,15 +46,15 @@ BEZ_MAP = [
 ]
 ORDER = ["Wassertemperatur", "Sauerstoff", "O₂-Sättigung",
          "Trübung", "pH-Wert", "Leitfähigkeit"]
- 
+
 DATE_FORMATS = ("%d.%m.%Y %H:%M", "%d.%m.%Y %H:%M:%S", "%d.%m.%Y",
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M")
- 
- 
+
+
 # ---------------------------------------------------------------- Download ----
 def download_csv() -> Path:
     from playwright.sync_api import sync_playwright
- 
+
     out = CSV_DIR / f"rust_mainz_{datetime.now():%Y%m%d_%H%M%S}.csv"
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -62,7 +62,7 @@ def download_csv() -> Path:
         page = ctx.new_page()
         print(f"[1/4] Oeffne {DOWNLOAD_URL}")
         page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=90_000)
- 
+
         for label in ["Akzeptieren", "Alle akzeptieren", "Zustimmen",
                       "Einverstanden", "OK", "Accept"]:
             try:
@@ -72,7 +72,7 @@ def download_csv() -> Path:
                     break
             except Exception:
                 pass
- 
+
         print("[2/4] Klicke 'als CSV' ...")
         page.wait_for_selector("text=/als CSV/i", timeout=60_000)
         with page.expect_download(timeout=90_000) as dl_info:
@@ -96,8 +96,8 @@ def download_csv() -> Path:
         browser.close()
     print(f"      gespeichert: {out.name}")
     return out
- 
- 
+
+
 # ------------------------------------------------------------------ Parse -----
 def read_table(path: Path):
     raw = None
@@ -116,8 +116,8 @@ def read_table(path: Path):
             best, delim = c, d
     rows = list(csv.reader(io.StringIO(raw), delimiter=delim))
     return [r for r in rows if any(c.strip() for c in r)]
- 
- 
+
+
 def to_number(text: str):
     t = (text or "").strip().replace("\xa0", "").replace(" ", "")
     if not t or not re.search(r"\d", t):
@@ -128,8 +128,8 @@ def to_number(text: str):
         return float(t)
     except ValueError:
         return None
- 
- 
+
+
 def parse_dt(text: str):
     t = (text or "").strip()
     for fmt in DATE_FORMATS:
@@ -138,8 +138,8 @@ def parse_dt(text: str):
         except ValueError:
             continue
     return None
- 
- 
+
+
 def find_col(header, exact, contains, exclude=()):
     low = [c.strip().lower() for c in header]
     for i, c in enumerate(low):            # zuerst exakte Treffer (z.B. "bezeichnung")
@@ -149,22 +149,22 @@ def find_col(header, exact, contains, exclude=()):
         if any(k in c for k in contains) and not any(x in c for x in exclude):
             return i
     return None
- 
- 
+
+
 def find_header(rows):
     for i, r in enumerate(rows):
         low = " ".join(r).lower()
         if "bezeichnung" in low and "wert" in low:
             return i
     return 0
- 
- 
+
+
 def parse_latest(rows):
     """Langformat: je Bezeichnung den Wert mit dem juengsten Datum."""
     h = find_header(rows)
     header = [c.strip() for c in rows[h]]
     data = rows[h + 1:]
- 
+
     i_datum = find_col(header, {"datum", "zeit", "zeitpunkt"}, ("datum", "zeit"))
     i_bez   = find_col(header, {"bezeichnung", "parameter", "kenngroesse"},
                        ("bezeichnung", "parameter", "kenngr"), exclude=("messstell",))
@@ -173,7 +173,7 @@ def parse_latest(rows):
     i_einh  = find_col(header, {"einheit"}, ("einheit",))
     if i_bez is None or i_wert is None:
         return {}
- 
+
     best = {}  # bezeichnung -> (dt, wert_text, einheit, datum_text)
     for r in data:
         if i_bez >= len(r) or i_wert >= len(r):
@@ -190,26 +190,26 @@ def parse_latest(rows):
         if take:
             best[bez] = (dt, r[i_wert].strip(), unit, dtxt)
     return best
- 
- 
+
+
 def map_bez(bez):
     low = bez.lower()
     for key, val in BEZ_MAP:
         if key in low:
             return val
     return None
- 
- 
+
+
 def fmt_time(t: str) -> str:
     dt = parse_dt(t)
     return dt.strftime("%d.%m.%Y %H:%M") if dt else t.strip()
- 
- 
+
+
 def fmt_value(num, decimals):
     s = f"{num:.{decimals}f}"
     return s.replace(".", ",")
- 
- 
+
+
 def build_items(best: dict):
     items, seen = [], set()
     for bez, (_dt, vtext, unit, dtxt) in best.items():
@@ -226,41 +226,82 @@ def build_items(best: dict):
                       "icon": icon, "time": fmt_time(dtxt)})
     items.sort(key=lambda it: ORDER.index(it["label"]) if it["label"] in ORDER else 99)
     return items
- 
- 
+
+
+# --------------------------------------------------------------- Historie -----
+HIST_LABELS = {"Wassertemperatur", "O₂-Sättigung", "Trübung"}
+HIST_DAYS = 8
+def build_history(rows):
+    """Stündlicher Verlauf der letzten HIST_DAYS Tage je Messgroesse (für die Grafen)."""
+    h = find_header(rows)
+    header = [c.strip() for c in rows[h]]
+    data = rows[h + 1:]
+    i_datum = find_col(header, {"datum", "zeit", "zeitpunkt"}, ("datum", "zeit"))
+    i_bez   = find_col(header, {"bezeichnung", "parameter", "kenngroesse"},
+                       ("bezeichnung", "parameter", "kenngr"), exclude=("messstell",))
+    i_wert  = find_col(header, {"wert", "messwert"}, ("wert", "messwert"), exclude=("nummer", "einheit"))
+    if i_bez is None or i_wert is None or i_datum is None:
+        return {}
+    cutoff = datetime.now() - timedelta(days=HIST_DAYS)
+    buckets = {}  # label -> {stunde: (dt, wert)}
+    for r in data:
+        if i_bez >= len(r) or i_wert >= len(r) or i_datum >= len(r):
+            continue
+        m = map_bez(r[i_bez].strip())
+        if not m or m[0] not in HIST_LABELS:
+            continue
+        num = to_number(r[i_wert])
+        if num is None:
+            continue
+        dt = parse_dt(r[i_datum].strip())
+        if dt is None or dt < cutoff:
+            continue
+        hk = dt.replace(minute=0, second=0, microsecond=0)
+        buckets.setdefault(m[0], {})[hk] = (hk, num)   # letzter Wert je Stunde
+    out = {}
+    for label, by in buckets.items():
+        series = sorted(by.values(), key=lambda x: x[0])
+        out[label] = [{"t": dt.strftime("%Y-%m-%dT%H:%M"), "v": round(v, 3)} for dt, v in series]
+    return out
+
+
 # ------------------------------------------------------------------- Main -----
-def write_json(items):
+def write_json(items, history):
     payload = {
         "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
         "station": "Rhein Mainz-Wiesbaden",
         "items": items,
+        "history": history,
     }
     JSON_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
- 
- 
+
+
 def main():
     try:
         csv_path = download_csv()
     except Exception as e:
         print(f"FEHLER beim Download: {e}")
         sys.exit(1)
- 
+
     print("[3/4] Lese Werte aus der CSV ...")
     rows = read_table(csv_path)
     items = build_items(parse_latest(rows))
- 
+
     if not items:
         print("      Keine bekannten Messgroessen erkannt. Kopf der CSV:")
         for r in rows[:8]:
             print("      | " + " | ".join(r))
         sys.exit(2)
- 
+
     for it in items:
         print(f"      {it['label']}: {it['value']} {it['unit']}  (Stand {it['time']})")
- 
-    print("[4/4] Schreibe wasserwerte.json ...")
-    write_json(items)
+
+    history = build_history(rows)
+    print("[4/4] Schreibe wasserwerte.json (inkl. Verlauf: " +
+          ", ".join(f"{k}={len(v)} Std" for k, v in history.items()) + ") ...")
+    write_json(items, history)
     print("Fertig.")
+
 
 if __name__ == "__main__":
     main()
