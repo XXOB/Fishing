@@ -36,6 +36,16 @@ h1{font-size:20px;margin:0;letter-spacing:.3px}
 .stabar button{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
   padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
 .stabar button:hover{background:#25344a}
+.stabar input{flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+.stabar input:focus{outline:none;border-color:var(--water)}
+.spotchips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.chip-active{border-color:var(--water)}
+.chip-load{background:none;border:0;color:var(--text);padding:6px 10px;font-size:13px;cursor:pointer}
+.chip-load small{color:var(--muted2)}
+.chip-del{background:none;border:0;color:var(--muted2);padding:6px 9px;cursor:pointer;font-size:12px}
+.chip-del:hover{color:var(--red)}
 
 .cond{margin:14px 0 18px;border-radius:16px;padding:16px 18px;display:flex;gap:16px;align-items:center;
   background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow)}
@@ -93,6 +103,8 @@ footer a{color:var(--muted)}
 .mapmeta button:hover,.mapmeta a.b:hover{background:#25344a}
 #map{height:360px;width:100%;background:#0e1622}
 .leaflet-popup-content{font-size:13px;line-height:1.5}
+.spot-ic{background:none;border:0;font-size:20px;line-height:26px;text-align:center;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
 
 /* Fangbuch */
 .fbcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow)}

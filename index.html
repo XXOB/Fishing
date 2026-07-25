@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 <header>
@@ -25,15 +25,13 @@
 <div class="stabar">
   <div class="staleft">
     <span class="stalbl">📍 Angelplatz</span>
-    <input id="spotName" placeholder="Name (z. B. Buhne Mombach)">
+    <span id="curStation" class="fbnote">…</span>
   </div>
   <div class="stabtns">
-    <button onclick="pickAuto()">📍 Automatisch</button>
-    <button onclick="pickMap()">🗺️ Karte</button>
-    <button onclick="saveSpot()">★ Speichern</button>
+    <button onclick="pickAuto()">📍 Hier anlegen</button>
+    <button onclick="newSpotOnMap()">🗺️ Auf Karte anlegen</button>
   </div>
 </div>
-<div id="curStation" class="fbnote" style="margin:0 4px 6px">…</div>
 <div id="spotChips" class="spotchips" style="margin:0 4px 6px"></div>
 
 <div class="cond" id="cond">
@@ -116,7 +114,7 @@
   <div class="fbrow">
     <div class="fbfield"><label>Köder</label><input id="f_koeder" placeholder="z. B. Gummifisch 12 cm"></div>
     <div class="fbfield"><label>Methode</label><input id="f_methode" list="methodeliste" placeholder="z. B. Spinnfischen"></div>
-    <div class="fbfield"><label>Angelplatz</label><input id="f_angelplatz" placeholder="gewählter Platz"></div>
+    <div class="fbfield"><label>Angelplatz</label><select id="f_angelplatz" onchange="onCatchSpotChange(this.value)"></select></div>
     <div class="fbfield"><label>Gewässer</label><input id="f_gewaesser" value="Rhein (Mainz/Wiesbaden)"></div>
   </div>
   <div class="fbrow">
@@ -172,9 +170,11 @@
   <div class="mapmeta">
     <div>
       <div class="co" id="mapCo">📍 Pegel …</div>
-      <div class="pos">Tippe auf die Karte, um den Fangort zu setzen · Blau: gewählter Pegel · Grün: Fänge · Gelb: gewählter Ort</div>
+      <div class="pos">🎣 Angelplätze · graue Punkte: Pegel-Stationen · Grün: Fänge · Gelb: Fangort · Tippen setzt den Fangort</div>
     </div>
     <div class="btns">
+      <button onclick="toggleStationsLayer()" id="layStations">◉ Stationen</button>
+      <button onclick="toggleSpotsLayer()" id="laySpots">◉ Angelplätze</button>
       <button onclick="copyCoords()" id="copyBtn">Koordinaten kopieren</button>
       <a class="b" id="mapOsm" target="_blank" rel="noopener" href="#">OpenStreetMap ↗</a>
       <a class="b" id="mapGmaps" target="_blank" rel="noopener" href="#">Google Maps ↗</a>
@@ -205,6 +205,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

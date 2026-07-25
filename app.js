@@ -9,7 +9,8 @@ const MAINZ_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af";
 const SPOTS_KEY = "rheincheck_spots_v1";
 const ACTIVE_KEY = "rheincheck_activespot_v1";
 let STATIONS = [{uuid:MAINZ_UUID, name:"Mainz", km:498.27, lat:50.003995, lon:8.275319}];
-let CUR = STATIONS[0];                 // aktuell gewählte Station
+let CUR = STATIONS[0];                 // aktuelle Pegel-Station (für Pegel/Durchfluss)
+let WXPOS = {lat:50.003995, lon:8.275319}; // Ort für Wetter (Angelplatz-Koordinaten)
 const REF_CACHE = {};                  // Hauptwerte je Station-UUID
 function poStation(){ return PO_BASE+"/stations/"+CUR.uuid; }
 
@@ -129,7 +130,7 @@ async function loadPegel(){
 }
 
 async function loadWeather(){
-  const url = "https://api.open-meteo.com/v1/forecast?latitude="+CUR.lat+"&longitude="+CUR.lon+
+  const url = "https://api.open-meteo.com/v1/forecast?latitude="+WXPOS.lat+"&longitude="+WXPOS.lon+
     "&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"+
     "&hourly=pressure_msl&daily=sunrise,sunset,precipitation_sum"+
     "&timezone=Europe%2FBerlin&forecast_days=1&wind_speed_unit=kmh";
@@ -296,7 +297,7 @@ function saveCatch(){
     id: Date.now(),
     erfasst_iso: new Date().toISOString(),
     gewaesser: $("f_gewaesser").value.trim() || "Rhein (Mainz/Wiesbaden)",
-    angelplatz: $("f_angelplatz").value.trim(),
+    angelplatz: (loadSpots().find(x=>String(x.id)===String($("f_angelplatz").value))||{}).name || "",
     datum, uhrzeit: zeit,
     fischart: art,
     groesse_cm: $("f_groesse").value ? +$("f_groesse").value : null,
@@ -319,7 +320,7 @@ function saveCatch(){
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
-  setAngelplatzDefault();
+  populateCatchSpots();
   refreshFangbuch();
 }
 
@@ -399,42 +400,59 @@ function importJSON(ev){
 }
 
 /* ---- Leaflet-Karte ---- */
-let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null, STATIONS_LAYER=null, PICK_MODE=false;
+let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
+let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=true, SPOTS_VISIBLE=true, SPOT_PICK=false;
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
-  MAP = L.map("map",{scrollWheelZoom:false}).setView([CUR.lat, CUR.lon], 13);
+  MAP = L.map("map",{scrollWheelZoom:false}).setView([WXPOS.lat, WXPOS.lon], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
-  STATIONS_LAYER=L.layerGroup().addTo(MAP);
-  addStationDots();
+  STATIONS_LAYER=L.layerGroup(); SPOTS_LAYER=L.layerGroup();
+  addStationDots(); addSpotMarkers();
+  if(STATIONS_VISIBLE) STATIONS_LAYER.addTo(MAP);
+  if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP);
   STATION_MARKER=L.circleMarker([CUR.lat,CUR.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
     .addTo(MAP).bindPopup("Pegel "+CUR.name);
   CATCH_LAYER=L.layerGroup().addTo(MAP);
   MAP.on("click", e=>{
-    if(PICK_MODE){
-      let best=null, bd=1e9;
-      for(const s of STATIONS){ const d=haversine(e.latlng.lat,e.latlng.lng,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
-      PICK_MODE=false; const hb=$("markHint"); if(hb) hb.style.display="none";
-      if(best) setStation(best.uuid);
-      return;
+    if(SPOT_PICK){
+      SPOT_PICK=false; const hb=$("markHint"); if(hb) hb.style.display="none";
+      createSpotAt(e.latlng.lat, e.latlng.lng); return;
     }
     setSelectedLocation(e.latlng.lat, e.latlng.lng, null, false);
     MARKING=false;
     const hb=$("markHint");
     if(hb){ hb.innerHTML='✓ Fangort markiert. <a href="#" onclick="scrollToSave();return false;">↑ zum Speichern</a>'; hb.style.display="block"; }
   });
+  updateLayerBtns();
   renderMarkers();
 }
 function addStationDots(){
-  if(!MAP || !STATIONS_LAYER) return;
+  if(!STATIONS_LAYER) return;
   STATIONS_LAYER.clearLayers();
   for(const s of STATIONS){
-    const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:"#7f93b3",weight:1,fillColor:"#7f93b3",fillOpacity:.6});
+    const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:"#7f93b3",weight:1,fillColor:"#7f93b3",fillOpacity:.55});
     mk.bindTooltip(s.name+" · km "+s.km);
-    mk.on("click", e=>{ try{ L.DomEvent.stopPropagation(e.originalEvent); }catch(_){}
-      PICK_MODE=false; const hb=$("markHint"); if(hb) hb.style.display="none"; setStation(s.uuid); });
     STATIONS_LAYER.addLayer(mk);
   }
 }
+function spotLatLon(sp){
+  if(sp.lat!=null && sp.lon!=null) return [sp.lat, sp.lon];
+  const st=STATIONS.find(x=>x.uuid===sp.uuid); return st?[st.lat,st.lon]:[CUR.lat,CUR.lon];
+}
+function addSpotMarkers(){
+  if(!SPOTS_LAYER || !window.L) return;
+  SPOTS_LAYER.clearLayers();
+  const icon=L.divIcon({className:"spot-ic", html:"🎣", iconSize:[26,26], iconAnchor:[13,13]});
+  for(const sp of loadSpots()){
+    const ll=spotLatLon(sp);
+    const mk=L.marker(ll,{icon}).bindTooltip("🎣 "+sp.name);
+    mk.on("click", ()=>loadSpot(sp.id));
+    SPOTS_LAYER.addLayer(mk);
+  }
+}
+function toggleStationsLayer(){ STATIONS_VISIBLE=!STATIONS_VISIBLE; if(MAP&&STATIONS_LAYER){ if(STATIONS_VISIBLE) STATIONS_LAYER.addTo(MAP); else STATIONS_LAYER.remove(); } updateLayerBtns(); }
+function toggleSpotsLayer(){ SPOTS_VISIBLE=!SPOTS_VISIBLE; if(MAP&&SPOTS_LAYER){ if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP); else SPOTS_LAYER.remove(); } updateLayerBtns(); }
+function updateLayerBtns(){ const a=$("layStations"), b=$("laySpots"); if(a) a.textContent=(STATIONS_VISIBLE?"◉":"○")+" Stationen"; if(b) b.textContent=(SPOTS_VISIBLE?"◉":"○")+" Angelplätze"; }
 function setSelectedLocation(lat, lon, acc, pan){
   CURRENT_GPS={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6), genauigkeit_m: (acc==null? null : Math.round(acc)) };
   if(MAP && window.L){
@@ -515,7 +533,7 @@ function initFangbuch(){
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   if($("f_datum")) $("f_datum").value = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
   if($("f_zeit")) $("f_zeit").value = pad(now.getHours())+':'+pad(now.getMinutes());
-  setAngelplatzDefault();
+  populateCatchSpots();
   refreshFangbuch();
   initMap();
 }
@@ -553,7 +571,7 @@ async function histPegel(param){
 }
 async function histWx(){
   if(HIST.wx) return HIST.wx;
-  const url="https://api.open-meteo.com/v1/forecast?latitude="+CUR.lat+"&longitude="+CUR.lon+
+  const url="https://api.open-meteo.com/v1/forecast?latitude="+WXPOS.lat+"&longitude="+WXPOS.lon+
     "&hourly=temperature_2m,wind_speed_10m,pressure_msl,precipitation,cloud_cover"+
     "&past_days=7&forecast_days=1&timezone=Europe%2FBerlin&wind_speed_unit=kmh";
   const d=await getJSON(url);
@@ -731,80 +749,85 @@ async function loadStations(){
     if(list.length) STATIONS=list;
   }catch(e){}
 }
+function nearestStation(lat,lon){ let best=STATIONS[0], bd=1e9; for(const s of STATIONS){ const d=haversine(lat,lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } } return best; }
 function reflectStation(){
+  const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
   const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
-  const cs=$("curStation"); if(cs) cs.textContent="Gewählte Pegel-Station: "+CUR.name+" · km "+CUR.km;
+  const cs=$("curStation"); if(cs) cs.textContent = (sp? "Angelplatz: "+sp.name+" · " : "")+"Pegel "+CUR.name+" · km "+CUR.km;
   const mc=$("mapCo"); if(mc) mc.textContent="📍 Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O";
-  const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+CUR.lat+"&mlon="+CUR.lon+"#map=14/"+CUR.lat+"/"+CUR.lon;
-  const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+CUR.lat+","+CUR.lon;
+  const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+WXPOS.lat+"&mlon="+WXPOS.lon+"#map=14/"+WXPOS.lat+"/"+WXPOS.lon;
+  const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+WXPOS.lat+","+WXPOS.lon;
 }
 function updateStationMarker(){
   if(!MAP || !STATION_MARKER) return;
   STATION_MARKER.setLatLng([CUR.lat,CUR.lon]).bindPopup("Pegel "+CUR.name);
-  try{ MAP.setView([CUR.lat,CUR.lon], MAP.getZoom()||13); }catch(e){}
+  try{ MAP.setView([WXPOS.lat, WXPOS.lon], MAP.getZoom()||13); }catch(e){}
 }
-function setStation(uuid){
-  const s=STATIONS.find(x=>x.uuid===uuid); if(!s) return;
-  CUR=s;
-  delete HIST.pegel; delete HIST.durchfluss; delete HIST.wx;
-  reflectStation(); updateStationMarker(); setAngelplatzDefault(); loadAll();
-}
-function pickAuto(){
-  if(!navigator.geolocation){ alert("Ortung auf diesem Gerät nicht verfügbar."); return; }
-  navigator.geolocation.getCurrentPosition(p=>{
-    let best=null, bd=1e9;
-    for(const s of STATIONS){ const d=haversine(p.coords.latitude,p.coords.longitude,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
-    if(best) setStation(best.uuid);
-  }, ()=>alert("Ortung fehlgeschlagen."), {enableHighAccuracy:true, timeout:10000, maximumAge:0});
-}
-function pickMap(){
-  PICK_MODE=true;
-  if(!MAP) initMap();
-  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe eine Station an (grauer Punkt) – oder einfach in die Nähe."; hb.style.display="block"; }
-  const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
-}
+function activateStationFor(uuid){ const s=STATIONS.find(x=>x.uuid===uuid); if(s){ CUR=s; delete HIST.pegel; delete HIST.durchfluss; delete HIST.wx; } }
 /* gespeicherte Angelplätze */
 function loadSpots(){ try{ return JSON.parse(localStorage.getItem(SPOTS_KEY))||[]; }catch(e){ return []; } }
 function saveSpots(a){ localStorage.setItem(SPOTS_KEY, JSON.stringify(a)); }
-function saveSpot(){
-  const name=($("spotName").value||"").trim();
-  if(!name){ alert("Bitte einen Namen für den Angelplatz eingeben."); $("spotName").focus(); return; }
+function newSpotOnMap(){
+  SPOT_PICK=true;
+  if(!MAP) initMap();
+  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe auf deinen Angelplatz auf der Karte – danach kannst du ihn benennen."; hb.style.display="block"; }
+  const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
+}
+function pickAuto(){
+  if(!navigator.geolocation){ alert("Ortung auf diesem Gerät nicht verfügbar."); return; }
+  navigator.geolocation.getCurrentPosition(p=>{ createSpotAt(p.coords.latitude, p.coords.longitude); },
+    ()=>alert("Ortung fehlgeschlagen."), {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+}
+function createSpotAt(lat, lon){
+  const name=(prompt("Name des Angelplatzes:","")||"").trim();
+  if(!name) return;
+  const st=nearestStation(lat,lon);
   const spots=loadSpots();
   let sp=spots.find(x=>x.name.toLowerCase()===name.toLowerCase());
-  if(sp){ sp.uuid=CUR.uuid; sp.station=CUR.name; }
-  else { sp={id:Date.now(), name:name, uuid:CUR.uuid, station:CUR.name}; spots.push(sp); }
+  if(sp){ sp.lat=+lat.toFixed(6); sp.lon=+lon.toFixed(6); sp.uuid=st.uuid; sp.station=st.name; }
+  else { sp={id:Date.now(), name:name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), uuid:st.uuid, station:st.name}; spots.push(sp); }
   saveSpots(spots);
+  addSpotMarkers();
+  activateSpotById(sp.id, [lat,lon]);
+}
+function activateSpotById(id, latlon){
+  const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
   localStorage.setItem(ACTIVE_KEY, sp.id);
-  renderSpots();
+  activateStationFor(sp.uuid);
+  const ll = latlon || spotLatLon(sp);
+  WXPOS={ lat:ll[0], lon:ll[1] };
+  reflectStation(); updateStationMarker(); populateCatchSpots(); renderSpots();
+  loadAll();
 }
-function loadSpot(id){
-  const s=loadSpots().find(x=>String(x.id)===String(id)); if(!s) return;
-  localStorage.setItem(ACTIVE_KEY, s.id);
-  if($("spotName")) $("spotName").value=s.name;
-  setStation(s.uuid);
-  renderSpots();
-}
+function loadSpot(id){ activateSpotById(id); }
 function deleteSpot(id){
   if(!confirm("Angelplatz löschen?")) return;
   saveSpots(loadSpots().filter(x=>String(x.id)!==String(id)));
   if(String(localStorage.getItem(ACTIVE_KEY))===String(id)) localStorage.removeItem(ACTIVE_KEY);
-  renderSpots();
+  addSpotMarkers(); renderSpots(); populateCatchSpots();
 }
 function renderSpots(){
   const box=$("spotChips"); if(!box) return;
   const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
-  if(!spots.length){ box.innerHTML='<span class="fbnote">Noch kein Angelplatz gespeichert – Station wählen, benennen, „★ Speichern".</span>'; return; }
+  if(!spots.length){ box.innerHTML='<span class="fbnote">Noch kein Angelplatz – „📍 Hier anlegen" oder „🗺️ Auf Karte anlegen".</span>'; return; }
   box.innerHTML=spots.map(s=>{
     const act=String(s.id)===String(active)?' chip-active':'';
-    return '<span class="chip'+act+'"><button class="chip-load" onclick="loadSpot('+s.id+')">'+esc(s.name)+' <small>· '+esc(s.station||"")+'</small></button>'+
+    return '<span class="chip'+act+'"><button class="chip-load" onclick="loadSpot('+s.id+')">🎣 '+esc(s.name)+' <small>· '+esc(s.station||"")+'</small></button>'+
       '<button class="chip-del" title="löschen" onclick="deleteSpot('+s.id+')">✕</button></span>';
   }).join("");
 }
 function currentSpotName(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
-  return sp ? sp.name : (CUR ? CUR.name : "");
+  return sp ? sp.name : "";
 }
-function setAngelplatzDefault(){ const f=$("f_angelplatz"); if(f) f.value=currentSpotName(); }
+function populateCatchSpots(){
+  const sel=$("f_angelplatz"); if(!sel) return;
+  const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
+  if(!spots.length){ sel.innerHTML='<option value="">— kein Angelplatz gespeichert —</option>'; return; }
+  sel.innerHTML='<option value="">— keiner —</option>'+spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+  if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active;
+}
+function onCatchSpotChange(id){ if(id) loadSpot(id); }
 
 async function loadAll(){
   $("updated").textContent = "aktualisiere …";
@@ -817,11 +840,17 @@ async function boot(){
   await loadStations();                       // alle Rhein-Pegel laden
   const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
   const sp = spots.find(x=>String(x.id)===String(active)) || spots[0] || null;
-  if(sp){ const st=STATIONS.find(x=>x.uuid===sp.uuid); if(st){ CUR=st; if($("spotName")) $("spotName").value=sp.name; } }
-  else { CUR = STATIONS.find(x=>x.uuid===MAINZ_UUID) || STATIONS[0]; }
+  if(sp){
+    const st=STATIONS.find(x=>x.uuid===sp.uuid) || STATIONS[0];
+    CUR=st; localStorage.setItem(ACTIVE_KEY, sp.id);
+    const ll=spotLatLon(sp); WXPOS={lat:ll[0], lon:ll[1]};
+  } else {
+    CUR = STATIONS.find(x=>x.uuid===MAINZ_UUID) || STATIONS[0];
+    WXPOS={lat:CUR.lat, lon:CUR.lon};
+  }
   reflectStation(); renderSpots();
-  initFangbuch();                             // Formular, Liste, Karte (Stationen als Punkte)
-  loadAll();                                  // Daten der aktiven Station
+  initFangbuch();                             // Formular, Liste, Karte (Stationen + Angelplätze)
+  loadAll();                                  // Daten des aktiven Angelplatzes
   setInterval(loadAll, 10*60*1000);
 }
 boot();
