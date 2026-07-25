@@ -754,6 +754,7 @@ function reflectStation(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
   const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
   const cs=$("curStation"); if(cs) cs.textContent = (sp? "Angelplatz: "+sp.name+" · " : "")+"Pegel "+CUR.name+" · km "+CUR.km;
+  const pn=$("staPegName"); if(pn) pn.textContent = CUR.name;
   const mc=$("mapCo"); if(mc) mc.textContent="📍 Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O";
   const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+WXPOS.lat+"&mlon="+WXPOS.lon+"#map=14/"+WXPOS.lat+"/"+WXPOS.lon;
   const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+WXPOS.lat+","+WXPOS.lon;
@@ -807,14 +808,19 @@ function deleteSpot(id){
   addSpotMarkers(); renderSpots(); populateCatchSpots();
 }
 function renderSpots(){
-  const box=$("spotChips"); if(!box) return;
+  const sel=$("spotSelect"); if(!sel) return;
   const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
-  if(!spots.length){ box.innerHTML='<span class="fbnote">Noch kein Angelplatz – „📍 Hier anlegen" oder „🗺️ Auf Karte anlegen".</span>'; return; }
-  box.innerHTML=spots.map(s=>{
-    const act=String(s.id)===String(active)?' chip-active':'';
-    return '<span class="chip'+act+'"><button class="chip-load" onclick="loadSpot('+s.id+')">🎣 '+esc(s.name)+' <small>· '+esc(s.station||"")+'</small></button>'+
-      '<button class="chip-del" title="löschen" onclick="deleteSpot('+s.id+')">✕</button></span>';
-  }).join("");
+  if(!spots.length){ sel.innerHTML='<option value="">— noch keiner —</option>'; return; }
+  sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">🎣 '+esc(s.name)+'</option>').join("");
+  if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active;
+}
+function onSpotSelect(id){ if(id) loadSpot(id); }
+function deleteActiveSpot(){
+  const sel=$("spotSelect"); const id = sel ? sel.value : localStorage.getItem(ACTIVE_KEY);
+  if(!id){ alert("Kein Angelplatz zum Löschen gewählt."); return; }
+  deleteSpot(id);
+  const rest=loadSpots();
+  if(rest.length) loadSpot(rest[0].id);
 }
 function currentSpotName(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));

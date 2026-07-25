@@ -36,9 +36,13 @@ h1{font-size:20px;margin:0;letter-spacing:.3px}
 .stabar button{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
   padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
 .stabar button:hover{background:#25344a}
-.stabar input{flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+.stabar input,.stabar select{min-width:120px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
   border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
-.stabar input:focus{outline:none;border-color:var(--water)}
+.stabar input:focus,.stabar select:focus{outline:none;border-color:var(--water)}
+.stadel{background:none;border:0;color:var(--muted2);cursor:pointer;font-size:14px;padding:4px 6px}
+.stadel:hover{color:var(--red)}
+.stapeg{font-size:12px;color:var(--muted);white-space:nowrap}
+.stapeg b{color:var(--text);font-weight:700}
 .spotchips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{display:inline-flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden}
 .chip-active{border-color:var(--water)}

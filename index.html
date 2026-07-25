@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 <header>
@@ -25,14 +25,15 @@
 <div class="stabar">
   <div class="staleft">
     <span class="stalbl">📍 Angelplatz</span>
-    <span id="curStation" class="fbnote">…</span>
+    <select id="spotSelect" onchange="onSpotSelect(this.value)"></select>
+    <button class="stadel" onclick="deleteActiveSpot()" title="Angelplatz löschen">✕</button>
+    <span class="stapeg">Pegelstation: <b id="staPegName">–</b></span>
   </div>
   <div class="stabtns">
     <button onclick="pickAuto()">📍 Hier anlegen</button>
     <button onclick="newSpotOnMap()">🗺️ Auf Karte anlegen</button>
   </div>
 </div>
-<div id="spotChips" class="spotchips" style="margin:0 4px 6px"></div>
 
 <div class="cond" id="cond">
   <div class="dot lg-amber" id="condDot">…</div>
@@ -205,6 +206,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
