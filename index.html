@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <header>
@@ -25,13 +25,16 @@
 <div class="stabar">
   <div class="staleft">
     <span class="stalbl">📍 Angelplatz</span>
-    <select id="staSelect" onchange="setStation(this.value,false)"><option>lädt …</option></select>
+    <input id="spotName" placeholder="Name (z. B. Buhne Mombach)">
   </div>
   <div class="stabtns">
-    <button onclick="useNearest()">Nächste (Ortung)</button>
-    <button id="staSaveBtn" onclick="saveDefaultStation()">☆ Als Standard</button>
+    <button onclick="pickAuto()">📍 Automatisch</button>
+    <button onclick="pickMap()">🗺️ Karte</button>
+    <button onclick="saveSpot()">★ Speichern</button>
   </div>
 </div>
+<div id="curStation" class="fbnote" style="margin:0 4px 6px">…</div>
+<div id="spotChips" class="spotchips" style="margin:0 4px 6px"></div>
 
 <div class="cond" id="cond">
   <div class="dot lg-amber" id="condDot">…</div>
@@ -113,6 +116,7 @@
   <div class="fbrow">
     <div class="fbfield"><label>Köder</label><input id="f_koeder" placeholder="z. B. Gummifisch 12 cm"></div>
     <div class="fbfield"><label>Methode</label><input id="f_methode" list="methodeliste" placeholder="z. B. Spinnfischen"></div>
+    <div class="fbfield"><label>Angelplatz</label><input id="f_angelplatz" placeholder="gewählter Platz"></div>
     <div class="fbfield"><label>Gewässer</label><input id="f_gewaesser" value="Rhein (Mainz/Wiesbaden)"></div>
   </div>
   <div class="fbrow">
@@ -201,6 +205,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
