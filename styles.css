@@ -26,6 +26,17 @@ h1{font-size:20px;margin:0;letter-spacing:.3px}
 .refresh:hover{background:#25344a;border-color:#37496a}
 .refresh:active{transform:scale(.97)}
 
+.stabar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:12px 0;box-shadow:var(--shadow)}
+.staleft{display:flex;align-items:center;gap:8px;flex:1;min-width:200px}
+.stalbl{font-size:12px;color:var(--muted2);white-space:nowrap;font-weight:700}
+.stabar select{flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+.stabtns{display:flex;gap:8px;flex-wrap:wrap}
+.stabar button{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+  padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.stabar button:hover{background:#25344a}
+
 .cond{margin:14px 0 18px;border-radius:16px;padding:16px 18px;display:flex;gap:16px;align-items:center;
   background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow)}
 .cond .dot{width:52px;height:52px;min-width:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;

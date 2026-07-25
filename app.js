@@ -4,10 +4,13 @@
    Die GitHub-Action aktualisiert diese Datei alle 3 Stunden. Nur Startwert: */
 window.WQ_DATA = { "updated": "", "items": [] };
 
-const RHEIN_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af"; // Pegel MAINZ, Rhein
-const LAT = 50.004, LON = 8.271;
-const STATION = {lat:50.0068, lon:8.2795};
-const PO = "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/" + RHEIN_UUID;
+const PO_BASE = "https://www.pegelonline.wsv.de/webservices/rest-api/v2";
+const MAINZ_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af";
+const STA_KEY = "rheincheck_station_v1";
+let STATIONS = [{uuid:MAINZ_UUID, name:"Mainz", km:498.27, lat:50.003995, lon:8.275319}];
+let CUR = STATIONS[0];                 // aktuell gewählte Station
+const REF_CACHE = {};                  // Hauptwerte je Station-UUID
+function poStation(){ return PO_BASE+"/stations/"+CUR.uuid; }
 
 const $ = id => document.getElementById(id);
 const fmt = (n,d=0) => (n==null||isNaN(n)) ? "–" : Number(n).toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -75,10 +78,9 @@ const state = {pegelTrend:null, gust:null, rainNow:null, wcode:null, pressTrend:
 const snap = { weather:null, pegel:null, q:null };  // Momentaufnahme für Fänge
 let CURRENT_GPS = null;
 
-// Amtliche Hauptwerte Pegel Mainz (Zeitreihe 2010–2020, Quelle: PEGELONLINE), in cm
-const PEGEL_REF = { MNW:159, MW:288, MHW:547 };
-function classifyPegel(w){
-  const {MNW,MW,MHW}=PEGEL_REF;
+function classifyPegel(w, ref){
+  if(!ref || ref.MNW==null || ref.MW==null || ref.MHW==null) return null;
+  const {MNW,MW,MHW}=ref;
   const loMid=(MNW+MW)/2, hiMid=(MW+MHW)/2;
   if(w<MNW)   return {t:"sehr niedrig", c:"pg-red"};
   if(w<loMid) return {t:"niedrig",      c:"pg-amber"};
@@ -86,31 +88,47 @@ function classifyPegel(w){
   if(w<MHW)   return {t:"hoch",         c:"pg-amber"};
   return              {t:"sehr hoch",   c:"pg-red"};
 }
+async function stationRef(uuid){
+  if(uuid in REF_CACHE) return REF_CACHE[uuid];
+  let ref=null;
+  try{
+    const d=await getJSON(PO_BASE+"/stations/"+uuid+"/W.json?includeCharacteristicValues=true");
+    const cv=d.characteristicValues||[], g=n=>{ const e=cv.find(x=>x.shortname===n); return e?e.value:null; };
+    const r={MNW:g("MNW"), MW:g("MW"), MHW:g("MHW")};
+    if(r.MNW!=null && r.MW!=null && r.MHW!=null) ref=r;
+  }catch(e){}
+  REF_CACHE[uuid]=ref; return ref;
+}
 
 async function loadPegel(){
+  const base=poStation();
+  const ref=await stationRef(CUR.uuid);
   try{
-    const w = await getJSON(PO+"/W/measurements.json?start=P2D");
+    const w = await getJSON(base+"/W/measurements.json?start=P2D");
+    if(!w.length) throw 0;
     const last = w[w.length-1];
     $("pegelVal").innerHTML = fmt(last.value)+' <small>cm</small>';
-    const pc = classifyPegel(last.value);
-    $("pegelMeta").innerHTML = '<span class="pgbadge '+pc.c+'" title="Einordnung nach Hauptwerten Pegel Mainz: MNW 159 · MW 288 · MHW 547 cm">'+pc.t+'</span>'+trendBadge(w)+' · '+relTime(last.timestamp);
+    const pc = classifyPegel(last.value, ref);
+    const badge = pc ? '<span class="pgbadge '+pc.c+'" title="Hauptwerte '+CUR.name+': MNW '+ref.MNW+' · MW '+ref.MW+' · MHW '+ref.MHW+' cm">'+pc.t+'</span>' : '';
+    $("pegelMeta").innerHTML = badge+trendBadge(w)+' · '+relTime(last.timestamp);
     sparkline($("pegelSpark"), w.slice(-96), "#38bdf8");
-    const pt=$("tilePegel"); if(pt) pt.style.borderTopColor = stripeColor(pc.c);
+    const pt=$("tilePegel"); if(pt) pt.style.borderTopColor = pc ? stripeColor(pc.c) : "var(--water)";
     state.pegelTrend = w;
-    snap.pegel = { pegelstand_cm: last.value, stufe: pc.t };
-  }catch(e){ $("pegelVal").innerHTML='<span class="err">n/v</span>'; $("pegelMeta").textContent="Pegel nicht erreichbar"; }
+    snap.pegel = { pegelstand_cm: last.value, stufe: pc? pc.t : null };
+  }catch(e){ $("pegelVal").innerHTML='<span class="err">n/v</span>'; $("pegelMeta").textContent="Pegel nicht erreichbar"; state.pegelTrend=null; snap.pegel=null; }
   try{
-    const q = await getJSON(PO+"/Q/measurements.json?start=P2D");
+    const q = await getJSON(base+"/Q/measurements.json?start=P2D");
+    if(!q.length) throw 0;
     const last = q[q.length-1];
     $("qVal").innerHTML = fmt(last.value)+' <small>m³/s</small>';
     $("qMeta").innerHTML = trendBadge(q)+' · '+relTime(last.timestamp);
     sparkline($("qSpark"), q.slice(-96), "#2dd4bf");
     snap.q = last.value;
-  }catch(e){ $("qVal").innerHTML='<span class="err">n/v</span>'; $("qMeta").textContent="Durchfluss nicht erreichbar"; }
+  }catch(e){ $("qVal").innerHTML='<span class="err">–</span>'; $("qMeta").textContent="kein Durchfluss an dieser Station"; snap.q=null; }
 }
 
 async function loadWeather(){
-  const url = "https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+
+  const url = "https://api.open-meteo.com/v1/forecast?latitude="+CUR.lat+"&longitude="+CUR.lon+
     "&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"+
     "&hourly=pressure_msl&daily=sunrise,sunset,precipitation_sum"+
     "&timezone=Europe%2FBerlin&forecast_days=1&wind_speed_unit=kmh";
@@ -178,7 +196,7 @@ function updateAmpel(){
 }
 
 function copyCoords(){
-  const t = STATION.lat+", "+STATION.lon;
+  const t = CUR.lat+", "+CUR.lon;
   navigator.clipboard?.writeText(t).then(()=>{
     const b=$("copyBtn"), o=b.textContent; b.textContent="✓ kopiert"; setTimeout(()=>b.textContent=o,1500);
   }).catch(()=>{});
@@ -292,7 +310,7 @@ function saveCatch(){
       pegel_stufe: snap.pegel? snap.pegel.stufe : null,
       durchfluss_m3s: snap.q
     }, waterQualitySnap()),
-    station: { pegel:"MAINZ", guete:"Mainz-Wiesbaden" }
+    station: { pegel:CUR.name, pegel_uuid:CUR.uuid, km:CUR.km, guete:"Mainz-Wiesbaden (Güte, fest)" }
   };
   const arr=loadCatches(); arr.push(rec); saveCatches(arr);
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_koeder").value=""; $("f_notiz").value="";
@@ -377,13 +395,13 @@ function importJSON(ev){
 }
 
 /* ---- Leaflet-Karte ---- */
-let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null;
+let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
-  MAP = L.map("map",{scrollWheelZoom:false}).setView([STATION.lat, STATION.lon], 13);
+  MAP = L.map("map",{scrollWheelZoom:false}).setView([CUR.lat, CUR.lon], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
-  L.circleMarker([STATION.lat,STATION.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
-    .addTo(MAP).bindPopup("Messstation Mainz-Wiesbaden");
+  STATION_MARKER=L.circleMarker([CUR.lat,CUR.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
+    .addTo(MAP).bindPopup("Pegel "+CUR.name);
   CATCH_LAYER=L.layerGroup().addTo(MAP);
   MAP.on("click", e=>{
     setSelectedLocation(e.latlng.lat, e.latlng.lng, null, false);
@@ -504,13 +522,13 @@ function toHourly(pts){
 async function histPegel(param){
   const key=param==="W"?"pegel":"durchfluss";
   if(HIST[key]) return HIST[key];
-  const a=await getJSON(PO+"/"+param+"/measurements.json?start=P8D");
+  const a=await getJSON(poStation()+"/"+param+"/measurements.json?start=P8D");
   HIST[key]=a.map(p=>({t:new Date(p.timestamp), v:p.value}));
   return HIST[key];
 }
 async function histWx(){
   if(HIST.wx) return HIST.wx;
-  const url="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+
+  const url="https://api.open-meteo.com/v1/forecast?latitude="+CUR.lat+"&longitude="+CUR.lon+
     "&hourly=temperature_2m,wind_speed_10m,pressure_msl,precipitation,cloud_cover"+
     "&past_days=7&forecast_days=1&timezone=Europe%2FBerlin&wind_speed_unit=kmh";
   const d=await getJSON(url);
@@ -672,6 +690,64 @@ function toggleFangbuch(){
   if(b) b.textContent = show?"📒 Fangbuch ausblenden":"📒 Fangbuch anzeigen";
 }
 
+/* ===================== Stationswahl ===================== */
+function tidy(s){ return String(s||"").toLowerCase().replace(/(^|[\s\-\/])([a-zäöü])/g,(m,a,b)=>a+b.toUpperCase()); }
+function haversine(la1,lo1,la2,lo2){
+  const R=6371, r=Math.PI/180, dLa=(la2-la1)*r, dLo=(lo2-lo1)*r,
+    x=Math.sin(dLa/2)**2 + Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function populateStaSelect(){
+  const sel=$("staSelect"); if(!sel) return;
+  sel.innerHTML=STATIONS.map(s=>'<option value="'+s.uuid+'">'+esc(s.name)+' · km '+s.km+'</option>').join("");
+}
+function reflectStation(){
+  const sel=$("staSelect"); if(sel) sel.value=CUR.uuid;
+  const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
+  const saved=localStorage.getItem(STA_KEY), sb=$("staSaveBtn");
+  if(sb) sb.textContent = (saved===CUR.uuid) ? "★ Standard" : "☆ Als Standard";
+  const mc=$("mapCo"); if(mc) mc.textContent="📍 Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O";
+  const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+CUR.lat+"&mlon="+CUR.lon+"#map=14/"+CUR.lat+"/"+CUR.lon;
+  const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+CUR.lat+","+CUR.lon;
+}
+function updateStationMarker(){
+  if(!MAP || !STATION_MARKER) return;
+  STATION_MARKER.setLatLng([CUR.lat,CUR.lon]).bindPopup("Pegel "+CUR.name);
+  try{ MAP.setView([CUR.lat,CUR.lon], MAP.getZoom()||13); }catch(e){}
+}
+async function loadStations(){
+  try{
+    const arr=await getJSON(PO_BASE+"/stations.json?waters=RHEIN");
+    const list=arr.filter(s=>s.latitude&&s.longitude)
+      .map(s=>({uuid:s.uuid, name:tidy(s.shortname), km:s.km, lat:s.latitude, lon:s.longitude}))
+      .sort((a,b)=>a.km-b.km);
+    if(list.length) STATIONS=list;
+  }catch(e){}
+  populateStaSelect();
+  const saved=localStorage.getItem(STA_KEY);
+  CUR = STATIONS.find(s=>s.uuid===saved) || STATIONS.find(s=>s.uuid===MAINZ_UUID) || STATIONS[0];
+  reflectStation();
+}
+function setStation(uuid, save){
+  const s=STATIONS.find(x=>x.uuid===uuid); if(!s) return;
+  CUR=s;
+  if(save) localStorage.setItem(STA_KEY, uuid);
+  delete HIST.pegel; delete HIST.durchfluss; delete HIST.wx;
+  reflectStation(); updateStationMarker(); loadAll();
+}
+function useNearest(){
+  if(!navigator.geolocation){ alert("Ortung auf diesem Gerät nicht verfügbar."); return; }
+  navigator.geolocation.getCurrentPosition(p=>{
+    let best=null, bd=1e9;
+    for(const s of STATIONS){ const d=haversine(p.coords.latitude,p.coords.longitude,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
+    if(best) setStation(best.uuid, false);
+  }, ()=>alert("Ortung fehlgeschlagen."), {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+}
+function saveDefaultStation(){
+  localStorage.setItem(STA_KEY, CUR.uuid);
+  const sb=$("staSaveBtn"); if(sb){ sb.textContent="★ gespeichert"; setTimeout(reflectStation, 1400); }
+}
+
 async function loadAll(){
   $("updated").textContent = "aktualisiere …";
   await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
@@ -679,6 +755,10 @@ async function loadAll(){
   if($("biteBox") && $("biteBox").style.display==="block") renderBite();
   $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
 }
-loadAll();
-setInterval(loadAll, 10*60*1000);
-initFangbuch();
+async function boot(){
+  await loadStations();     // Rhein-Pegel laden + Standard-/Startstation setzen
+  initFangbuch();           // Formular, Liste, Karte (nutzt CUR)
+  loadAll();                // Daten der aktiven Station
+  setInterval(loadAll, 10*60*1000);
+}
+boot();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 <header>
@@ -22,6 +22,17 @@
   </div>
 </header>
 
+<div class="stabar">
+  <div class="staleft">
+    <span class="stalbl">📍 Angelplatz</span>
+    <select id="staSelect" onchange="setStation(this.value,false)"><option>lädt …</option></select>
+  </div>
+  <div class="stabtns">
+    <button onclick="useNearest()">Nächste (Ortung)</button>
+    <button id="staSaveBtn" onclick="saveDefaultStation()">☆ Als Standard</button>
+  </div>
+</div>
+
 <div class="cond" id="cond">
   <div class="dot lg-amber" id="condDot">…</div>
   <div>
@@ -33,7 +44,7 @@
 <button type="button" class="secttoggle" id="biteBtn" onclick="toggleBite()">🎯 Beißwetter anzeigen</button>
 <div id="biteBox" style="display:none"></div>
 
-<div class="sect">Fluss · Pegel Mainz (PEGELONLINE)</div>
+<div class="sect" id="pegelSect">Fluss · Pegel Mainz (PEGELONLINE)</div>
 <div class="grid">
   <div class="tile clickable" id="tilePegel" onclick="openChart('pegel')">
     <div class="lbl"><span class="ico">📏</span> Pegelstand</div>
@@ -47,6 +58,13 @@
     <svg class="spark" id="qSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
     <div class="meta" id="qMeta">–</div>
   </div>
+</div>
+
+<div class="sect">Wasserqualität · Messstation Mainz-Wiesbaden</div>
+<div class="grid" id="quality"></div>
+<div id="qStamp" style="font-size:11.5px;color:var(--muted2);margin:9px 4px 0">
+  Werte werden alle 3 Stunden aus dem RLP-Portal importiert (fest: Mainz-Wiesbaden, unabhängig vom gewählten Pegel). ·
+  <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>
 </div>
 
 <div class="sect">Wetter (Open-Meteo / DWD)</div>
@@ -81,13 +99,6 @@
     <div class="val" id="sunVal" style="font-size:20px">–</div>
     <div class="meta" id="sunMeta">Auf – · Unter –</div>
   </div>
-</div>
-
-<div class="sect">Wasserqualität · Messstation Mainz-Wiesbaden</div>
-<div class="grid" id="quality"></div>
-<div id="qStamp" style="font-size:11.5px;color:var(--muted2);margin:9px 4px 0">
-  Werte werden alle 3 Stunden aus dem RLP-Portal importiert. ·
-  <a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>
 </div>
 
 <button type="button" class="secttoggle" id="fangbuchBtn" onclick="toggleFangbuch()">📒 Fangbuch anzeigen</button>
@@ -156,13 +167,13 @@
 <div class="mapcard">
   <div class="mapmeta">
     <div>
-      <div class="co">📍 Messstation 50.0068° N, 8.2795° O</div>
-      <div class="pos">Tippe auf die Karte, um den Fangort zu setzen · Blau: Messstation · Grün: Fänge · Gelb: gewählter Ort</div>
+      <div class="co" id="mapCo">📍 Pegel …</div>
+      <div class="pos">Tippe auf die Karte, um den Fangort zu setzen · Blau: gewählter Pegel · Grün: Fänge · Gelb: gewählter Ort</div>
     </div>
     <div class="btns">
       <button onclick="copyCoords()" id="copyBtn">Koordinaten kopieren</button>
-      <a class="b" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=50.0068&mlon=8.2795#map=15/50.0068/8.2795">OpenStreetMap ↗</a>
-      <a class="b" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=50.0068,8.2795">Google Maps ↗</a>
+      <a class="b" id="mapOsm" target="_blank" rel="noopener" href="#">OpenStreetMap ↗</a>
+      <a class="b" id="mapGmaps" target="_blank" rel="noopener" href="#">Google Maps ↗</a>
     </div>
   </div>
   <div id="markHint" style="display:none;padding:10px 14px;font-size:13px;background:rgba(56,189,248,.14);color:var(--water);border-bottom:1px solid var(--line)"></div>
@@ -190,6 +201,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
