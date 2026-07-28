@@ -3,8 +3,9 @@
 """
 fetch_wasserwerte.py
 --------------------
-Holt die aktuellen Wasserqualitaets-Werte der Rheinwasser-Untersuchungsstation
-Mainz-Wiesbaden aus dem RLP-Portal und schreibt sie als wasserwerte.json.
+Holt die aktuellen Wasserqualitaets-Werte aller kontinuierlichen RLP-Gewaesser-
+Untersuchungsstationen (Rhein, Mosel, Saar, Lahn, Nahe) aus dem RLP-Portal und
+schreibt sie als wasserwerte.json. Faellt eine Station aus, laufen die uebrigen weiter.
 
 Die CSV liegt im LANGFORMAT vor (eine Zeile je Messgroesse):
   Messstellennummer;Messstellenbezeichnung;Messleitung;Datum;Bezeichnung;Wert;Einheit
@@ -24,8 +25,23 @@ import io
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
-STATION_ID   = "2511510500"
-DOWNLOAD_URL = f"https://geodaten-wasser.rlp-umwelt.de/gus/{STATION_ID}/download"
+# Unterstuetzte Guetestationen (RLP-Portal, gleicher Download-Mechanismus).
+# Neue Station ergaenzen: "id" = Zahl aus der Portal-URL /gus/<id>/messwerte,
+# plus Koordinaten (lat/lon) und Fluss. Die App zeigt je Angelplatz die naechste
+# Station am selben Fluss.
+# Alle 7 kontinuierlichen Gewaesser-Untersuchungsstationen von RLP
+# (Quelle: wasserportal.rlp-umwelt.de – "Chemisch-physikalische Gewaesseruntersuchung").
+# Neue Station ergaenzen: "id" = Zahl aus der Portal-URL /gus/<id>, plus lat/lon und Fluss.
+QUALITY_STATIONS = [
+    {"id": "2511510500", "name": "Mainz-Wiesbaden",    "lat": 50.0068, "lon": 8.2795, "river": "Rhein"},
+    {"id": "2391566500", "name": "Worms",              "lat": 49.6353, "lon": 8.3838, "river": "Rhein"},
+    {"id": "2691510700", "name": "Fankel",             "lat": 50.1647, "lon": 7.2017, "river": "Mosel"},
+    {"id": "2619521210", "name": "Palzem",             "lat": 49.5033, "lon": 6.4517, "river": "Mosel"},
+    {"id": "2649525000", "name": "Kanzem Land",        "lat": 49.6533, "lon": 6.5828, "river": "Saar"},
+    {"id": "2589535410", "name": "Lahnstein",          "lat": 50.3050, "lon": 7.5983, "river": "Lahn"},
+    {"id": "2549523210", "name": "Bingen-Dietersheim", "lat": 49.9686, "lon": 7.8956, "river": "Nahe"},
+]
+GUS_URL = "https://geodaten-wasser.rlp-umwelt.de/gus/{id}/download"
 
 BASE_DIR  = Path(__file__).resolve().parent
 JSON_FILE = BASE_DIR / "wasserwerte.json"
@@ -52,16 +68,17 @@ DATE_FORMATS = ("%d.%m.%Y %H:%M", "%d.%m.%Y %H:%M:%S", "%d.%m.%Y",
 
 
 # ---------------------------------------------------------------- Download ----
-def download_csv() -> Path:
+def download_csv(station_id) -> Path:
     from playwright.sync_api import sync_playwright
 
-    out = CSV_DIR / f"rust_mainz_{datetime.now():%Y%m%d_%H%M%S}.csv"
+    url = GUS_URL.format(id=station_id)
+    out = CSV_DIR / f"rust_{station_id}_{datetime.now():%Y%m%d_%H%M%S}.csv"
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         ctx = browser.new_context(accept_downloads=True)
         page = ctx.new_page()
-        print(f"[1/4] Oeffne {DOWNLOAD_URL}")
-        page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=90_000)
+        print(f"      oeffne {url}")
+        page.goto(url, wait_until="networkidle", timeout=90_000)
 
         for label in ["Akzeptieren", "Alle akzeptieren", "Zustimmen",
                       "Einverstanden", "OK", "Accept"]:
@@ -266,40 +283,45 @@ def build_history(rows):
 
 
 # ------------------------------------------------------------------- Main -----
-def write_json(items, history):
+def write_json(stations):
     payload = {
         "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
-        "station": "Rhein Mainz-Wiesbaden",
-        "items": items,
-        "history": history,
+        "stations": stations,
     }
     JSON_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def main():
-    try:
-        csv_path = download_csv()
-    except Exception as e:
-        print(f"FEHLER beim Download: {e}")
-        sys.exit(1)
-
-    print("[3/4] Lese Werte aus der CSV ...")
+def process_station(st):
+    print(f"[Station] {st['name']} (id {st['id']}) ...")
+    csv_path = download_csv(st["id"])
     rows = read_table(csv_path)
     items = build_items(parse_latest(rows))
-
     if not items:
         print("      Keine bekannten Messgroessen erkannt. Kopf der CSV:")
         for r in rows[:8]:
             print("      | " + " | ".join(r))
-        sys.exit(2)
-
+        raise RuntimeError("keine Messgroessen")
     for it in items:
         print(f"      {it['label']}: {it['value']} {it['unit']}  (Stand {it['time']})")
-
     history = build_history(rows)
-    print("[4/4] Schreibe wasserwerte.json (inkl. Verlauf: " +
-          ", ".join(f"{k}={len(v)} Std" for k, v in history.items()) + ") ...")
-    write_json(items, history)
+    return {
+        "id": st["id"], "name": st["name"], "lat": st["lat"], "lon": st["lon"], "river": st["river"],
+        "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+        "items": items, "history": history,
+    }
+
+def main():
+    results = []
+    for st in QUALITY_STATIONS:
+        try:
+            results.append(process_station(st))
+        except Exception as e:
+            print(f"      FEHLER bei {st['name']}: {e}")
+    if not results:
+        print("Keine Station erfolgreich abgerufen.")
+        sys.exit(2)
+    print(f"Schreibe wasserwerte.json ({len(results)} Station(en)) ...")
+    write_json(results)
     print("Fertig.")
 
 
