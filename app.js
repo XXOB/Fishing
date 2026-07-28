@@ -1,8 +1,9 @@
 "use strict";
 
-/* Wasserqualitäts-Werte werden beim Laden aus wasserwerte.json geholt.
-   Die GitHub-Action aktualisiert diese Datei alle 3 Stunden. Nur Startwert: */
-window.WQ_DATA = { "updated": "", "items": [] };
+/* Wasserqualität wird beim Laden aus wasserwerte.json geholt (mehrere Gütestationen).
+   Die GitHub-Action aktualisiert die Datei alle 3 Stunden. Nur Startwert: */
+window.WQ = { "updated": "", "stations": [] };
+const WQ_MAXKM = 60;   // Gütestation nur nutzen, wenn näher als … km und gleicher Fluss
 
 const PO_BASE = "https://www.pegelonline.wsv.de/webservices/rest-api/v2";
 const MAINZ_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af";
@@ -218,14 +219,15 @@ function classifyWQ(label, num){
 }
 function renderQuality(){
   const box=$("quality"); if(!box) return;
-  const d=window.WQ_DATA||{items:[]};
-  const items=(d.items||[]).filter(it=> it.label!=="pH-Wert" && it.label!=="Leitfähigkeit");
-  if(!items.length){
-    box.innerHTML='<div class="qtile"><div class="lbl">🌡️ Wasserqualität</div>'+
-      '<div class="hint">Noch keine Werte importiert. Der 3-Stunden-Job füllt sie automatisch – oder öffne die amtliche Live-Ansicht.</div>'+
-      '<a class="go" target="_blank" rel="noopener" href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte">Live-Wert öffnen ↗</a></div>';
+  const st=$("qStamp");
+  const aw=activeWQ();
+  if(!aw){
+    box.innerHTML='<div class="qtile"><div class="lbl">🌊 Wasserqualität</div>'+
+      '<div class="hint">Für dieses Gewässer gibt es (noch) keine unterstützte Gütestation in der Nähe. Weitere Stationen folgen (Phase 2). Pegel &amp; Wetter passen aber zum Angelplatz.</div></div>';
+    if(st) st.textContent="";
     return;
   }
+  const items=(aw.station.items||[]).filter(it=> it.label!=="pH-Wert" && it.label!=="Leitfähigkeit");
   const CHARTABLE={"Wassertemperatur":1,"O₂-Sättigung":1,"Trübung":1};
   box.innerHTML = items.map(it=>{
     const cls=classifyWQ(it.label, deNum(it.value));
@@ -236,17 +238,34 @@ function renderQuality(){
       '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
       '<div class="meta">'+badge+'Stand: '+(it.time||"–")+'</div></div>';
   }).join("");
-  const st=$("qStamp");
-  if(st && d.updated){ st.innerHTML='Importiert am '+d.updated+' aus dem RLP-Portal · '+
-    '<a href="https://geodaten-wasser.rlp-umwelt.de/gus/2511510500/messwerte" target="_blank" rel="noopener">Amtliche Live-Ansicht ↗</a>'; }
+  if(st){
+    const link = aw.station.id ? ' · <a href="https://geodaten-wasser.rlp-umwelt.de/gus/'+esc(aw.station.id)+'/messwerte" target="_blank" rel="noopener">amtlich ↗</a>' : '';
+    st.innerHTML="Gütestation "+esc(aw.station.name)+" · "+aw.dist.toFixed(1)+" km entfernt · Stand "+esc(aw.station.updated||(window.WQ&&window.WQ.updated)||"")+link;
+  }
 }
 
 async function loadQuality(){
   try{
     const r = await fetch("wasserwerte.json?t="+Math.floor(Date.now()/300000), {cache:"no-store"});
-    if(r.ok){ const j = await r.json(); if(j && Array.isArray(j.items)){ window.WQ_DATA = j; } }
-  }catch(e){ /* z.B. lokal ohne Server geöffnet – dann Startwert/Hinweis */ }
+    if(r.ok){ const j = await r.json();
+      if(j && Array.isArray(j.stations)) window.WQ = j;
+      else if(j && Array.isArray(j.items)) window.WQ = { updated:j.updated||"", stations:[{ id:"2511510500", name:"Mainz-Wiesbaden", lat:50.0068, lon:8.2795, river:"Rhein", updated:j.updated||"", items:j.items, history:j.history||{} }] };
+    }
+  }catch(e){ /* z.B. lokal ohne Server geöffnet */ }
   renderQuality();
+}
+function activeWQ(){
+  const st=(window.WQ&&window.WQ.stations)||[]; if(!st.length) return null;
+  const sp=activeSpot();
+  const river = (sp&&sp.river) ? sp.river : (CUR&&CUR.river ? CUR.river : null);
+  if(!river) return null;                                   // Fluss unbekannt → keine Güte (nie Mainz-Notlösung)
+  const rk = String(river).toLowerCase().trim();
+  const cand = st.filter(s => String(s.river||"").toLowerCase().trim() === rk);  // NUR gleicher Fluss
+  if(!cand.length) return null;                             // kein Messpunkt an diesem Fluss → nichts anzeigen
+  let best=null, bd=1e9;
+  for(const s of cand){ if(s.lat==null) continue; const d=haversine(WXPOS.lat,WXPOS.lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
+  if(!best || bd>WQ_MAXKM) return null;
+  return { station:best, dist:bd };
 }
 
 /* ===================== Fangbuch ===================== */
@@ -278,8 +297,9 @@ function moonPhase(date){
 function waterQualitySnap(){
   const M={ "Wassertemperatur":"wassertemperatur_c","Sauerstoff":"sauerstoff_mgl",
     "O₂-Sättigung":"o2_saettigung_pct","Trübung":"truebung","pH-Wert":"ph","Leitfähigkeit":"leitfaehigkeit_uScm" };
-  const out={ stand: (window.WQ_DATA&&window.WQ_DATA.updated)||"" };
-  ((window.WQ_DATA&&window.WQ_DATA.items)||[]).forEach(it=>{ const k=M[it.label]; if(k) out[k]=deNum(it.value); });
+  const aw=activeWQ(); const items=aw?aw.station.items:[];
+  const out={ stand:(aw&&aw.station.updated)||"", station:(aw&&aw.station.name)||"", entfernung_km:(aw? Math.round(aw.dist*10)/10 : null) };
+  items.forEach(it=>{ const k=M[it.label]; if(k) out[k]=deNum(it.value); });
   return out;
 }
 
@@ -613,7 +633,7 @@ async function getSeries(def, range){
   let pts=null;
   if(def.src==="pegel"||def.src==="durchfluss") pts=await histPegel(def.src==="pegel"?"W":"Q");
   else if(def.src.indexOf("wx:")===0){ const v=def.src.slice(3), wx=await histWx(); pts=wx.times.map((t,i)=>({t, v:wx.h[v]?wx.h[v][i]:null})); }
-  else if(def.src.indexOf("wq:")===0){ const l=def.src.slice(3), hi=window.WQ_DATA&&window.WQ_DATA.history&&window.WQ_DATA.history[l]; if(!hi) return null; pts=hi.map(p=>({t:new Date(p.t), v:p.v})); }
+  else if(def.src.indexOf("wq:")===0){ const l=def.src.slice(3), aw=activeWQ(), hi=aw&&aw.station.history&&aw.station.history[l]; if(!hi) return null; pts=hi.map(p=>({t:new Date(p.t), v:p.v})); }
   if(!pts) return null;
   return toHourly(pts).filter(p=>p.t.getTime()>=cutoff);
 }
@@ -669,7 +689,8 @@ const BITE = [
   {name:"Brasse",  temp:[14,25], tol:[8,29],  light:"twi",  turbid:"slightlike"}
 ];
 function qNum(label){
-  const it=((window.WQ_DATA&&window.WQ_DATA.items)||[]).find(x=>x.label===label);
+  const aw=activeWQ(); const items=aw?aw.station.items:[];
+  const it=items.find(x=>x.label===label);
   if(!it) return null; const n=deNum(it.value); return (typeof n==="number")? n : null;
 }
 function biteContext(){
