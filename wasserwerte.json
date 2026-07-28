@@ -1,5 +1,5 @@
 {
-  "updated": "28.07.2026 21:15",
+  "updated": "28.07.2026 21:26",
   "stations": [
     {
       "id": "2511510500",
@@ -7,7 +7,7 @@
       "lat": 50.0068,
       "lon": 8.2795,
       "river": "Rhein",
-      "updated": "28.07.2026 21:13",
+      "updated": "28.07.2026 21:24",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -2359,7 +2359,7 @@
       "lat": 49.6353,
       "lon": 8.3838,
       "river": "Rhein",
-      "updated": "28.07.2026 21:13",
+      "updated": "28.07.2026 21:24",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -4735,7 +4735,7 @@
       "lat": 50.1647,
       "lon": 7.2017,
       "river": "Mosel",
-      "updated": "28.07.2026 21:14",
+      "updated": "28.07.2026 21:24",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -6330,7 +6330,7 @@
       "lat": 49.5033,
       "lon": 6.4517,
       "river": "Mosel",
-      "updated": "28.07.2026 21:14",
+      "updated": "28.07.2026 21:24",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -7925,7 +7925,7 @@
       "lat": 49.6533,
       "lon": 6.5828,
       "river": "Saar",
-      "updated": "28.07.2026 21:14",
+      "updated": "28.07.2026 21:25",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -9520,7 +9520,7 @@
       "lat": 49.9686,
       "lon": 7.8956,
       "river": "Nahe",
-      "updated": "28.07.2026 21:15",
+      "updated": "28.07.2026 21:26",
       "items": [
         {
           "label": "Wassertemperatur",
