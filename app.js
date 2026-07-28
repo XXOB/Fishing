@@ -253,6 +253,14 @@ async function loadQuality(){
 const CATCH_KEY = "rheincheck_faenge_v1";
 function loadCatches(){ try{ return JSON.parse(localStorage.getItem(CATCH_KEY)) || []; }catch(e){ return []; } }
 function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
+let FB_FILTER="spot";   // "spot" = nur aktiver Angelplatz, "all" = alle
+function catchesForView(){
+  const all=loadCatches();
+  if(FB_FILTER==="spot"){ const n=activeSpotName(); if(n) return all.filter(c=>c.angelplatz===n); }
+  return all;
+}
+function toggleFbFilter(){ FB_FILTER = (FB_FILTER==="spot") ? "all" : "spot"; updateFilterBtn(); refreshFangbuch(); }
+function updateFilterBtn(){ const b=$("filterBtn"); if(!b) return; const n=activeSpotName(); b.textContent = (FB_FILTER==="spot") ? ("🎣 nur: "+(n||"aktueller Platz")) : "🎣 alle Plätze"; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function deNum(s){ if(s==null) return null; const n=parseFloat(String(s).replace(/\./g,'').replace(',','.')); return isNaN(n)? String(s) : n; }
 
@@ -331,7 +339,7 @@ function deleteCatch(id){
 }
 
 function renderCatches(){
-  const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  const arr=catchesForView().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
   $("fbCount").textContent = arr.length+" Fang"+(arr.length===1?"":"e")+" gespeichert";
   const box=$("fbList");
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge – trag deinen ersten Fang oben ein.</div>'; return; }
@@ -401,7 +409,7 @@ function importJSON(ev){
 
 /* ---- Leaflet-Karte ---- */
 let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
-let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=true, SPOTS_VISIBLE=true, SPOT_PICK=false;
+let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=true, SPOTS_VISIBLE=true, SPOT_PICK=false, STATION_PICK=false;
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
   MAP = L.map("map",{scrollWheelZoom:false}).setView([WXPOS.lat, WXPOS.lon], 12);
@@ -414,6 +422,14 @@ function initMap(){
     .addTo(MAP).bindPopup("Pegel "+CUR.name);
   CATCH_LAYER=L.layerGroup().addTo(MAP);
   MAP.on("click", e=>{
+    if(STATION_PICK){
+      STATION_PICK=false; const hb=$("markHint"); if(hb) hb.style.display="none";
+      const st=nearestStation(e.latlng.lat, e.latlng.lng);
+      const sp=activeSpot();
+      if(sp){ assignStationToSpot(sp.id, st.uuid); }
+      else { activateStationFor(st.uuid); reflectStation(); updateStationMarker(); loadAll(); }
+      return;
+    }
     if(SPOT_PICK){
       SPOT_PICK=false; const hb=$("markHint"); if(hb) hb.style.display="none";
       createSpotAt(e.latlng.lat, e.latlng.lng); return;
@@ -477,7 +493,7 @@ function clearSelectedLocation(){
 function renderMarkers(){
   if(!CATCH_LAYER) return;
   CATCH_LAYER.clearLayers();
-  const cs=loadCatches().filter(c=>c.gps&&c.gps.lat!=null);
+  const cs=catchesForView().filter(c=>c.gps&&c.gps.lat!=null);
   cs.forEach(c=>{
     const wa=c.wasser||{};
     const html='<b>'+esc(c.fischart||"Fang")+'</b>'+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+
@@ -500,7 +516,7 @@ function markOnMap(){
 function scrollToSave(){ const b=document.getElementById("fbSaveBtn"); if(b) b.scrollIntoView({behavior:"smooth", block:"center"}); }
 function renderTable(){
   const box=$("fbTable"); if(!box) return;
-  const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  const arr=catchesForView().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge.</div>'; return; }
   const rows=arr.map(c=>{
     const ort = c.gps ? (c.gps.lat+', '+c.gps.lon) : esc(c.gewaesser||"");
@@ -534,6 +550,7 @@ function initFangbuch(){
   if($("f_datum")) $("f_datum").value = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
   if($("f_zeit")) $("f_zeit").value = pad(now.getHours())+':'+pad(now.getMinutes());
   populateCatchSpots();
+  updateFilterBtn();
   refreshFangbuch();
   initMap();
 }
@@ -750,6 +767,30 @@ async function loadStations(){
   }catch(e){}
 }
 function nearestStation(lat,lon){ let best=STATIONS[0], bd=1e9; for(const s of STATIONS){ const d=haversine(lat,lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } } return best; }
+function activeSpot(){ return loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY))) || null; }
+function activeSpotName(){ const s=activeSpot(); return s ? s.name : ""; }
+function assignStationToSpot(spotId, uuid){
+  const spots=loadSpots(), sp=spots.find(x=>String(x.id)===String(spotId)), st=STATIONS.find(x=>x.uuid===uuid);
+  if(!sp || !st) return;
+  sp.uuid=st.uuid; sp.station=st.name; saveSpots(spots);
+  activateStationFor(st.uuid);
+  reflectStation(); updateStationMarker(); renderSpots(); populateCatchSpots(); loadAll();
+}
+/* Pegelstation eines Angelplatzes ändern */
+function togglePegEdit(){ const el=$("pegEdit"); if(!el) return; el.style.display=(el.style.display==="none"||!el.style.display)?"inline-flex":"none"; }
+function hidePegEdit(){ const el=$("pegEdit"); if(el) el.style.display="none"; }
+function pegAuto(){
+  hidePegEdit();
+  const sp=activeSpot();
+  if(sp){ const st=nearestStation(sp.lat!=null?sp.lat:CUR.lat, sp.lon!=null?sp.lon:CUR.lon); assignStationToSpot(sp.id, st.uuid); }
+  else { const st=nearestStation(WXPOS.lat, WXPOS.lon); activateStationFor(st.uuid); reflectStation(); updateStationMarker(); loadAll(); }
+}
+function pegPickMap(){
+  hidePegEdit(); STATION_PICK=true;
+  if(!MAP) initMap();
+  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
+  const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
+}
 function reflectStation(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
   const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
@@ -798,6 +839,7 @@ function activateSpotById(id, latlon){
   const ll = latlon || spotLatLon(sp);
   WXPOS={ lat:ll[0], lon:ll[1] };
   reflectStation(); updateStationMarker(); populateCatchSpots(); renderSpots();
+  updateFilterBtn(); refreshFangbuch();
   loadAll();
 }
 function loadSpot(id){ activateSpotById(id); }

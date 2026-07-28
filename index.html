@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhein-Check · Mainz / Wiesbaden</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 <header>
@@ -24,10 +24,18 @@
 
 <div class="stabar">
   <div class="staleft">
-    <span class="stalbl">📍 Angelplatz</span>
-    <select id="spotSelect" onchange="onSpotSelect(this.value)"></select>
-    <button class="stadel" onclick="deleteActiveSpot()" title="Angelplatz löschen">✕</button>
-    <span class="stapeg">Pegelstation: <b id="staPegName">–</b></span>
+    <div class="starow">
+      <span class="stalbl">📍 Angelplatz</span>
+      <select id="spotSelect" onchange="onSpotSelect(this.value)"></select>
+      <button class="stadel" onclick="deleteActiveSpot()" title="Angelplatz löschen">✕</button>
+    </div>
+    <div class="starow">
+      <button id="pegBtn" class="pegbtn" onclick="togglePegEdit()">Pegelstation: <b id="staPegName">–</b> <span class="pegic">✎ ändern</span></button>
+      <span id="pegEdit" class="pegedit" style="display:none">
+        <button onclick="pegPickMap()">🗺️ auf Karte wählen</button>
+        <button onclick="pegAuto()">📍 automatisch</button>
+      </span>
+    </div>
   </div>
   <div class="stabtns">
     <button onclick="pickAuto()">📍 Hier anlegen</button>
@@ -154,6 +162,7 @@
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
   <div class="fbtools">
+    <button type="button" class="fbtool" id="filterBtn" onclick="toggleFbFilter()">🎣 nur: aktueller Platz</button>
     <button type="button" class="fbtool" id="listBtn" onclick="toggleList()">Fänge anzeigen</button>
     <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()">📋 Tabelle anzeigen</button>
     <button type="button" class="fbtool" onclick="exportJSON()">⬇ JSON</button>
@@ -206,6 +215,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
