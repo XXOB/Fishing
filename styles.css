@@ -36,6 +36,18 @@ h1{font-size:20px;margin:0;letter-spacing:.3px}
 .pegedit{display:inline-flex;gap:6px;flex-wrap:wrap}
 .pegedit button{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
 .pegedit button:hover{background:#25344a}
+.spotlist{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+.spotrow{display:flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.spotopen{flex:1;background:none;border:0;color:var(--text);text-align:left;padding:13px 15px;font-size:15px;font-weight:600;cursor:pointer}
+.spotopen small{color:var(--muted2);font-weight:400}
+.spotopen:hover{background:#0e1622}
+.spotdel{background:none;border:0;color:var(--muted2);padding:13px 13px;cursor:pointer;font-size:13px}
+.spotdel:hover{color:var(--red)}
+.homebtns{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.homebtns button{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer}
+.homebtns button:hover{background:#25344a}
+.backbtn{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 11px;font-size:13px;cursor:pointer;white-space:nowrap}
+.backbtn:hover{background:#25344a}
 .stalbl{font-size:12px;color:var(--muted2);white-space:nowrap;font-weight:700}
 .stabar select{flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
   border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}

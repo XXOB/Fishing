@@ -462,7 +462,7 @@ function addSpotMarkers(){
   for(const sp of loadSpots()){
     const ll=spotLatLon(sp);
     const mk=L.marker(ll,{icon}).bindTooltip("🎣 "+sp.name);
-    mk.on("click", ()=>loadSpot(sp.id));
+    mk.on("click", ()=>openSpot(sp.id));
     SPOTS_LAYER.addLayer(mk);
   }
 }
@@ -551,6 +551,7 @@ function initFangbuch(){
   if($("f_zeit")) $("f_zeit").value = pad(now.getHours())+':'+pad(now.getMinutes());
   populateCatchSpots();
   updateFilterBtn();
+  updateFangbuchBtn();
   refreshFangbuch();
   initMap();
 }
@@ -744,10 +745,10 @@ function toggleBite(){
   else { box.style.display="none"; if(b) b.textContent="🎯 Beißwetter anzeigen"; }
 }
 function toggleFangbuch(){
-  const box=$("fangbuchBox"), b=$("fangbuchBtn"); if(!box) return;
+  const box=$("fangbuchBox"); if(!box) return;
   const show=(box.style.display==="none"||!box.style.display);
   box.style.display = show?"block":"none";
-  if(b) b.textContent = show?"📒 Fangbuch ausblenden":"📒 Fangbuch anzeigen";
+  updateFangbuchBtn();
 }
 
 /* ===================== Angelplatz / Stationswahl ===================== */
@@ -830,7 +831,7 @@ function createSpotAt(lat, lon){
   else { sp={id:Date.now(), name:name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), uuid:st.uuid, station:st.name}; spots.push(sp); }
   saveSpots(spots);
   addSpotMarkers();
-  activateSpotById(sp.id, [lat,lon]);
+  openSpot(sp.id);
 }
 function activateSpotById(id, latlon){
   const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
@@ -839,7 +840,7 @@ function activateSpotById(id, latlon){
   const ll = latlon || spotLatLon(sp);
   WXPOS={ lat:ll[0], lon:ll[1] };
   reflectStation(); updateStationMarker(); populateCatchSpots(); renderSpots();
-  updateFilterBtn(); refreshFangbuch();
+  updateFilterBtn(); updateFangbuchBtn(); refreshFangbuch();
   loadAll();
 }
 function loadSpot(id){ activateSpotById(id); }
@@ -850,11 +851,55 @@ function deleteSpot(id){
   addSpotMarkers(); renderSpots(); populateCatchSpots();
 }
 function renderSpots(){
-  const sel=$("spotSelect"); if(!sel) return;
+  const sel=$("spotSelect");
   const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
-  if(!spots.length){ sel.innerHTML='<option value="">— noch keiner —</option>'; return; }
-  sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">🎣 '+esc(s.name)+'</option>').join("");
-  if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active;
+  if(sel){
+    if(!spots.length) sel.innerHTML='<option value="">— noch keiner —</option>';
+    else { sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">🎣 '+esc(s.name)+'</option>').join("");
+      if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active; }
+  }
+  renderSpotList();
+}
+function renderSpotList(){
+  const box=$("spotList"); if(!box) return;
+  const spots=loadSpots();
+  if(!spots.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch kein Angelplatz – lege deinen ersten an (Knöpfe unten).</div>'; return; }
+  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+' <small>· Pegel '+esc(s.station||"")+'</small></button>'+
+    '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
+}
+function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); }
+/* Ansichten: Start (Liste) vs. Angelplatz (Daten) */
+function showHome(){
+  const h=$("homeView"), sv=$("spotView"), mc=$("mapCard");
+  if(sv) sv.style.display="none";
+  if(mc) mc.style.display="none";
+  if(h) h.style.display="";
+  const b=$("homeMapBtn"); if(b) b.textContent="🗺️ Karte anzeigen";
+  renderSpotList();
+}
+function openSpot(id){
+  if(id) activateSpotById(id);
+  const h=$("homeView"), sv=$("spotView"), mc=$("mapCard");
+  if(h) h.style.display="none";
+  if(sv) sv.style.display="";
+  if(mc) mc.style.display="";
+  initMap();
+  setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80);
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function goHome(){ showHome(); }
+function toggleHomeMap(){
+  const m=$("mapCard"); if(!m) return;
+  const show=(m.style.display==="none"||!m.style.display);
+  m.style.display=show?"":"none";
+  const b=$("homeMapBtn"); if(b) b.textContent=show?"🗺️ Karte ausblenden":"🗺️ Karte anzeigen";
+  if(show){ initMap(); setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80); m.scrollIntoView({behavior:"smooth", block:"start"}); }
+}
+function fbTitle(){ const n=activeSpotName(); return (n? n+" " : "")+"Fangbuch"; }
+function updateFangbuchBtn(){
+  const b=$("fangbuchBtn"); if(!b) return;
+  const box=$("fangbuchBox"); const shown = box && box.style.display && box.style.display!=="none";
+  b.textContent="📒 "+fbTitle()+(shown?" ausblenden":" anzeigen");
 }
 function onSpotSelect(id){ if(id) loadSpot(id); }
 function deleteActiveSpot(){
@@ -897,8 +942,8 @@ async function boot(){
     WXPOS={lat:CUR.lat, lon:CUR.lon};
   }
   reflectStation(); renderSpots();
-  initFangbuch();                             // Formular, Liste, Karte (Stationen + Angelplätze)
-  loadAll();                                  // Daten des aktiven Angelplatzes
-  setInterval(loadAll, 10*60*1000);
+  initFangbuch();                             // Formular, Karte (Stationen + Angelplätze)
+  showHome();                                 // Startbildschirm: nur Angelplatz-Liste
+  setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
 }
 boot();

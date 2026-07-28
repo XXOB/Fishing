@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rhein-Check · Mainz / Wiesbaden</title>
+<title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 <header>
   <div class="brand">
     <div class="logo">🎣</div>
     <div>
-      <h1>Rhein-Check · Mainz / Wiesbaden</h1>
-      <div class="sub">Live-Bedingungen für Angler · Pegel km 498,3</div>
+      <h1>DeepFish</h1>
+      <div class="sub">Angelplätze am Rhein · Live-Bedingungen</div>
     </div>
   </div>
   <div>
@@ -22,10 +22,21 @@
   </div>
 </header>
 
+<div id="homeView">
+  <div class="sect">Deine Angelplätze</div>
+  <div id="spotList" class="spotlist"></div>
+  <div class="homebtns">
+    <button onclick="pickAuto()">📍 Platz hier anlegen</button>
+    <button onclick="newSpotOnMap()">🗺️ Platz auf Karte anlegen</button>
+    <button onclick="toggleHomeMap()" id="homeMapBtn">🗺️ Karte anzeigen</button>
+  </div>
+</div>
+
+<div id="spotView" style="display:none">
 <div class="stabar">
   <div class="staleft">
     <div class="starow">
-      <span class="stalbl">📍 Angelplatz</span>
+      <button class="backbtn" onclick="goHome()">← Übersicht</button>
       <select id="spotSelect" onchange="onSpotSelect(this.value)"></select>
       <button class="stadel" onclick="deleteActiveSpot()" title="Angelplatz löschen">✕</button>
     </div>
@@ -36,10 +47,6 @@
         <button onclick="pegAuto()">📍 automatisch</button>
       </span>
     </div>
-  </div>
-  <div class="stabtns">
-    <button onclick="pickAuto()">📍 Hier anlegen</button>
-    <button onclick="newSpotOnMap()">🗺️ Auf Karte anlegen</button>
   </div>
 </div>
 
@@ -174,8 +181,10 @@
 <div id="fbTable" style="display:none"></div>
 <div id="fbList" style="display:none"></div>
 </div>
+</div><!-- /spotView -->
 
-<div class="sect">Karte · Station &amp; deine Fänge</div>
+<div id="mapCard" style="display:none">
+<div class="sect">Karte · Angelplätze &amp; Stationen</div>
 <div class="mapcard">
   <div class="mapmeta">
     <div>
@@ -193,6 +202,7 @@
   <div id="markHint" style="display:none;padding:10px 14px;font-size:13px;background:rgba(56,189,248,.14);color:var(--water);border-bottom:1px solid var(--line)"></div>
   <div id="map"></div>
 </div>
+</div><!-- /mapCard -->
 
 <footer>
   <div><strong>Datenquellen:</strong>
@@ -215,6 +225,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
