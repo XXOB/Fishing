@@ -8,7 +8,7 @@ const PO_BASE = "https://www.pegelonline.wsv.de/webservices/rest-api/v2";
 const MAINZ_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af";
 const SPOTS_KEY = "rheincheck_spots_v1";
 const ACTIVE_KEY = "rheincheck_activespot_v1";
-let STATIONS = [{uuid:MAINZ_UUID, name:"Mainz", km:498.27, lat:50.003995, lon:8.275319}];
+let STATIONS = [{uuid:MAINZ_UUID, name:"Mainz", km:498.27, lat:50.003995, lon:8.275319, river:"Rhein"}];
 let CUR = STATIONS[0];                 // aktuelle Pegel-Station (für Pegel/Durchfluss)
 let WXPOS = {lat:50.003995, lon:8.275319}; // Ort für Wetter (Angelplatz-Koordinaten)
 const REF_CACHE = {};                  // Hauptwerte je Station-UUID
@@ -428,6 +428,7 @@ function initMap(){
   STATION_MARKER=L.circleMarker([CUR.lat,CUR.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
     .addTo(MAP).bindPopup("Pegel "+CUR.name);
   CATCH_LAYER=L.layerGroup().addTo(MAP);
+  MAP.on("moveend", addStationDots);
   MAP.on("click", e=>{
     if(STATION_PICK){
       STATION_PICK=false; const hb=$("markHint"); if(hb) hb.style.display="none";
@@ -452,9 +453,12 @@ function initMap(){
 function addStationDots(){
   if(!STATIONS_LAYER) return;
   STATIONS_LAYER.clearLayers();
-  for(const s of STATIONS){
+  let list=STATIONS;
+  try{ if(MAP){ const b=MAP.getBounds(); list=STATIONS.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
+  if(list.length>250) list=list.slice(0,250);
+  for(const s of list){
     const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:"#7f93b3",weight:1,fillColor:"#7f93b3",fillOpacity:.55});
-    mk.bindTooltip(s.name+" · km "+s.km);
+    mk.bindTooltip(s.name+" · "+(s.river||"")+" · km "+s.km);
     STATIONS_LAYER.addLayer(mk);
   }
 }
@@ -768,22 +772,51 @@ function haversine(la1,lo1,la2,lo2){
 }
 async function loadStations(){
   try{
-    const arr=await getJSON(PO_BASE+"/stations.json?waters=RHEIN");
+    const arr=await getJSON(PO_BASE+"/stations.json");   // alle deutschen Pegel (alle Flüsse)
     const list=arr.filter(s=>s.latitude&&s.longitude)
-      .map(s=>({uuid:s.uuid, name:tidy(s.shortname), km:s.km, lat:s.latitude, lon:s.longitude}))
-      .sort((a,b)=>a.km-b.km);
+      .map(s=>({uuid:s.uuid, name:tidy(s.shortname), km:s.km, lat:s.latitude, lon:s.longitude,
+        river:(s.water&&s.water.shortname)? tidy(s.water.shortname) : ""}))
+      .sort((a,b)=>a.name.localeCompare(b.name));
     if(list.length) STATIONS=list;
   }catch(e){}
 }
-function nearestStation(lat,lon){ let best=STATIONS[0], bd=1e9; for(const s of STATIONS){ const d=haversine(lat,lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } } return best; }
+function nearestList(lat, lon, n){
+  return STATIONS.map(s=>({s, d:haversine(lat,lon,s.lat,s.lon)})).sort((a,b)=>a.d-b.d).slice(0, n||8);
+}
+function nearestStation(lat,lon,river){
+  let pool=STATIONS;
+  if(river){ const f=STATIONS.filter(s=>s.river===river); if(f.length) pool=f; }
+  let best=pool[0], bd=1e9; for(const s of pool){ const d=haversine(lat,lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } } return best;
+}
 function activeSpot(){ return loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY))) || null; }
 function activeSpotName(){ const s=activeSpot(); return s ? s.name : ""; }
 function assignStationToSpot(spotId, uuid){
   const spots=loadSpots(), sp=spots.find(x=>String(x.id)===String(spotId)), st=STATIONS.find(x=>x.uuid===uuid);
   if(!sp || !st) return;
-  sp.uuid=st.uuid; sp.station=st.name; saveSpots(spots);
+  sp.uuid=st.uuid; sp.station=st.name; sp.river=st.river; saveSpots(spots);
   activateStationFor(st.uuid);
   reflectStation(); updateStationMarker(); renderSpots(); populateCatchSpots(); loadAll();
+}
+/* Stations-Auswahl (nächste Stationen mit Fluss + Entfernung) */
+function openStationPicker(lat, lon, onPick){
+  const box=$("stPickList"); if(!box){ if(onPick) onPick(nearestStation(lat,lon).uuid); return; }
+  const list=nearestList(lat, lon, 8);
+  box.innerHTML=list.map(o=>'<button class="stpick" onclick="__stPick(\''+o.s.uuid+'\')">'+esc(o.s.name)+
+    ' <small>· '+esc(o.s.river||"?")+' · '+o.d.toFixed(1)+' km</small></button>').join("");
+  window.__stPickCb = onPick;
+  const m=$("stationModal"); if(m) m.style.display="flex";
+}
+function __stPick(uuid){ const cb=window.__stPickCb; window.__stPickCb=null; const m=$("stationModal"); if(m) m.style.display="none"; if(cb) cb(uuid); }
+function closeStationPicker(){ window.__stPickCb=null; const m=$("stationModal"); if(m) m.style.display="none"; }
+function pegPickList(){
+  hidePegEdit();
+  const sp=activeSpot();
+  const la = sp && sp.lat!=null ? sp.lat : (sp? CUR.lat : WXPOS.lat);
+  const lo = sp && sp.lon!=null ? sp.lon : (sp? CUR.lon : WXPOS.lon);
+  openStationPicker(la, lo, function(uuid){
+    if(sp) assignStationToSpot(sp.id, uuid);
+    else { activateStationFor(uuid); reflectStation(); updateStationMarker(); loadAll(); }
+  });
 }
 /* Pegelstation eines Angelplatzes ändern */
 function togglePegEdit(){ const el=$("pegEdit"); if(!el) return; el.style.display=(el.style.display==="none"||!el.style.display)?"inline-flex":"none"; }
@@ -791,7 +824,7 @@ function hidePegEdit(){ const el=$("pegEdit"); if(el) el.style.display="none"; }
 function pegAuto(){
   hidePegEdit();
   const sp=activeSpot();
-  if(sp){ const st=nearestStation(sp.lat!=null?sp.lat:CUR.lat, sp.lon!=null?sp.lon:CUR.lon); assignStationToSpot(sp.id, st.uuid); }
+  if(sp){ const st=nearestStation(sp.lat!=null?sp.lat:CUR.lat, sp.lon!=null?sp.lon:CUR.lon, sp.river||null); assignStationToSpot(sp.id, st.uuid); }
   else { const st=nearestStation(WXPOS.lat, WXPOS.lon); activateStationFor(st.uuid); reflectStation(); updateStationMarker(); loadAll(); }
 }
 function pegPickMap(){
@@ -804,7 +837,7 @@ function reflectStation(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
   const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
   const cs=$("curStation"); if(cs) cs.textContent = (sp? "Angelplatz: "+sp.name+" · " : "")+"Pegel "+CUR.name+" · km "+CUR.km;
-  const pn=$("staPegName"); if(pn) pn.textContent = CUR.name;
+  const pn=$("staPegName"); if(pn) pn.textContent = CUR.name + (CUR.river? " ("+CUR.river+")" : "");
   const mc=$("mapCo"); if(mc) mc.textContent="📍 Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O";
   const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+WXPOS.lat+"&mlon="+WXPOS.lon+"#map=14/"+WXPOS.lat+"/"+WXPOS.lon;
   const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+WXPOS.lat+","+WXPOS.lon;
@@ -833,14 +866,16 @@ function pickAuto(){
 function createSpotAt(lat, lon){
   const name=(prompt("Name des Angelplatzes:","")||"").trim();
   if(!name) return;
-  const st=nearestStation(lat,lon);
-  const spots=loadSpots();
-  let sp=spots.find(x=>x.name.toLowerCase()===name.toLowerCase());
-  if(sp){ sp.lat=+lat.toFixed(6); sp.lon=+lon.toFixed(6); sp.uuid=st.uuid; sp.station=st.name; }
-  else { sp={id:Date.now(), name:name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), uuid:st.uuid, station:st.name}; spots.push(sp); }
-  saveSpots(spots);
-  addSpotMarkers();
-  openSpot(sp.id);
+  openStationPicker(lat, lon, function(uuid){
+    const st=STATIONS.find(x=>x.uuid===uuid) || nearestStation(lat,lon);
+    const spots=loadSpots();
+    let sp=spots.find(x=>x.name.toLowerCase()===name.toLowerCase());
+    if(sp){ sp.lat=+lat.toFixed(6); sp.lon=+lon.toFixed(6); sp.uuid=st.uuid; sp.station=st.name; sp.river=st.river; }
+    else { sp={id:Date.now(), name:name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), uuid:st.uuid, station:st.name, river:st.river}; spots.push(sp); }
+    saveSpots(spots);
+    addSpotMarkers();
+    openSpot(sp.id);
+  });
 }
 function activateSpotById(id, latlon){
   const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
@@ -873,7 +908,7 @@ function renderSpotList(){
   const box=$("spotList"); if(!box) return;
   const spots=loadSpots();
   if(!spots.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch kein Angelplatz – lege deinen ersten an (Knöpfe unten).</div>'; return; }
-  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+' <small>· Pegel '+esc(s.station||"")+'</small></button>'+
+  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+' <small>· Pegel '+esc(s.station||"")+(s.river?' ('+esc(s.river)+')':'')+'</small></button>'+
     '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
 }
 function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); }

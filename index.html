@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <header>
@@ -13,7 +13,7 @@
     <div class="logo">🎣</div>
     <div>
       <h1>DeepFish</h1>
-      <div class="sub">Angelplätze am Rhein · Live-Bedingungen</div>
+      <div class="sub">Angelplätze an deutschen Gewässern · Live-Bedingungen</div>
     </div>
   </div>
   <div>
@@ -50,7 +50,8 @@
     <div class="starow">
       <button id="pegBtn" class="pegbtn" onclick="togglePegEdit()">Pegelstation: <b id="staPegName">–</b> <span class="pegic">✎ ändern</span></button>
       <span id="pegEdit" class="pegedit" style="display:none">
-        <button onclick="pegPickMap()">🗺️ auf Karte wählen</button>
+        <button onclick="pegPickList()">🎣 Station wählen</button>
+        <button onclick="pegPickMap()">🗺️ auf Karte</button>
         <button onclick="pegAuto()">📍 automatisch</button>
       </span>
     </div>
@@ -217,6 +218,14 @@
   <div style="margin-top:6px">Dein Fangbuch wird nur lokal in diesem Browser gespeichert – nichts wird hochgeladen. Für ein Backup oder eine spätere Auswertung nutze den Export als JSON oder CSV.</div>
 </footer>
 
+<div id="stationModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeStationPicker()">
+  <div class="cmbox">
+    <div class="cmhead"><span id="cmTitle">Pegelstation wählen</span><button class="cmx" onclick="closeStationPicker()" aria-label="Schließen">✕</button></div>
+    <div class="fbnote" style="margin-bottom:10px">Nächste Stationen mit Fluss und Entfernung. Wähle die passende – am Main z. B. eine Main-Station, auch wenn eine Rhein-Station näher ist.</div>
+    <div id="stPickList" class="stpicklist"></div>
+  </div>
+</div>
+
 <div id="chartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeChart()">
   <div class="cmbox">
     <div class="cmhead"><span id="cmTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen">✕</button></div>
@@ -228,6 +237,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
