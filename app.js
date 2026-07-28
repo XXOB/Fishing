@@ -338,29 +338,36 @@ function deleteCatch(id){
   refreshFangbuch();
 }
 
+function catchCard(c){
+  const w=c.wetter||{}, wa=c.wasser||{}, cond=[];
+  if(wa.wassertemperatur_c!=null) cond.push("Wasser "+wa.wassertemperatur_c+" °C");
+  if(wa.pegelstand_cm!=null) cond.push("Pegel "+wa.pegelstand_cm+" cm"+(wa.pegel_stufe?" ("+wa.pegel_stufe+")":""));
+  if(wa.sauerstoff_mgl!=null) cond.push("O₂ "+wa.sauerstoff_mgl+" mg/l");
+  if(w.lufttemperatur_c!=null) cond.push("Luft "+w.lufttemperatur_c+" °C");
+  if(w.luftdruck_hpa!=null) cond.push(Math.round(w.luftdruck_hpa)+" hPa");
+  if(w.wetterlage) cond.push(w.wetterlage);
+  if(c.mondphase&&c.mondphase.name) cond.push(c.mondphase.name);
+  return '<div class="fbitem"><div class="h"><span class="fish">'+esc(c.fischart)+
+    (c.groesse_cm?' · '+c.groesse_cm+' cm':'')+(c.gewicht_g?' · '+c.gewicht_g+' g':'')+'</span>'+
+    '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
+    '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
+    (c.angelplatz?' · <b>'+esc(c.angelplatz)+'</b>':'')+' · '+esc(c.gewaesser||"")+
+    (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
+    (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
+    (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
+}
 function renderCatches(){
   const arr=catchesForView().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
-  $("fbCount").textContent = arr.length+" Fang"+(arr.length===1?"":"e")+" gespeichert";
-  const box=$("fbList");
+  const cnt=$("fbCount"); if(cnt) cnt.textContent = arr.length+" Fang"+(arr.length===1?"":"e")+" gespeichert";
+  const box=$("fbList"); if(!box) return;
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge – trag deinen ersten Fang oben ein.</div>'; return; }
-  box.innerHTML = arr.map(c=>{
-    const w=c.wetter||{}, wa=c.wasser||{}, cond=[];
-    if(wa.wassertemperatur_c!=null) cond.push("Wasser "+wa.wassertemperatur_c+" °C");
-    if(wa.pegelstand_cm!=null) cond.push("Pegel "+wa.pegelstand_cm+" cm"+(wa.pegel_stufe?" ("+wa.pegel_stufe+")":""));
-    if(wa.sauerstoff_mgl!=null) cond.push("O₂ "+wa.sauerstoff_mgl+" mg/l");
-    if(w.lufttemperatur_c!=null) cond.push("Luft "+w.lufttemperatur_c+" °C");
-    if(w.luftdruck_hpa!=null) cond.push(Math.round(w.luftdruck_hpa)+" hPa");
-    if(w.wetterlage) cond.push(w.wetterlage);
-    if(c.mondphase&&c.mondphase.name) cond.push(c.mondphase.name);
-    return '<div class="fbitem"><div class="h"><span class="fish">'+esc(c.fischart)+
-      (c.groesse_cm?' · '+c.groesse_cm+' cm':'')+(c.gewicht_g?' · '+c.gewicht_g+' g':'')+'</span>'+
-      '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
-      '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
-      (c.angelplatz?' · '+esc(c.angelplatz):'')+' · '+esc(c.gewaesser||"")+
-      (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
-      (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
-      (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
-  }).join("");
+  box.innerHTML = arr.map(catchCard).join("");
+}
+function renderMyFb(){
+  const box=$("myFbList"); if(!box) return;
+  const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge erfasst.</div>'; return; }
+  box.innerHTML = arr.map(catchCard).join("");
 }
 
 /* ---- Export / Import ---- */
@@ -543,6 +550,7 @@ function toggleList(){
 function refreshFangbuch(){
   renderCatches(); renderMarkers();
   if($("fbTable") && $("fbTable").style.display==="block") renderTable();
+  if($("myFbView") && $("myFbView").style.display==="block") renderMyFb();
 }
 
 function initFangbuch(){
@@ -788,9 +796,9 @@ function pegAuto(){
 }
 function pegPickMap(){
   hidePegEdit(); STATION_PICK=true;
-  if(!MAP) initMap();
+  ensureMapVisible();
   const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
-  const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
+  setTimeout(()=>{ const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
 function reflectStation(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
@@ -812,9 +820,10 @@ function loadSpots(){ try{ return JSON.parse(localStorage.getItem(SPOTS_KEY))||[
 function saveSpots(a){ localStorage.setItem(SPOTS_KEY, JSON.stringify(a)); }
 function newSpotOnMap(){
   SPOT_PICK=true;
-  if(!MAP) initMap();
+  ensureMapVisible();
+  const b=$("homeMapBtn"); if(b && $("homeView") && $("homeView").style.display!=="none") b.textContent="🗺️ Karte ausblenden";
   const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe auf deinen Angelplatz auf der Karte – danach kannst du ihn benennen."; hb.style.display="block"; }
-  const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
+  setTimeout(()=>{ const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
 function pickAuto(){
   if(!navigator.geolocation){ alert("Ortung auf diesem Gerät nicht verfügbar."); return; }
@@ -868,32 +877,42 @@ function renderSpotList(){
     '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
 }
 function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); }
-/* Ansichten: Start (Liste) vs. Angelplatz (Daten) */
+/* Ansichten: Start (Liste) · Angelplatz (Daten) · Mein Fangbuch (alle Fänge) */
+function hideAllViews(){ ["homeView","spotView","myFbView","mapCard"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
 function showHome(){
-  const h=$("homeView"), sv=$("spotView"), mc=$("mapCard");
-  if(sv) sv.style.display="none";
-  if(mc) mc.style.display="none";
-  if(h) h.style.display="";
+  hideAllViews();
+  const h=$("homeView"); if(h) h.style.display="block";
   const b=$("homeMapBtn"); if(b) b.textContent="🗺️ Karte anzeigen";
   renderSpotList();
 }
+function showMyFangbuch(){
+  hideAllViews();
+  const v=$("myFbView"); if(v) v.style.display="block";
+  renderMyFb();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
 function openSpot(id){
   if(id) activateSpotById(id);
-  const h=$("homeView"), sv=$("spotView"), mc=$("mapCard");
-  if(h) h.style.display="none";
-  if(sv) sv.style.display="";
-  if(mc) mc.style.display="";
+  hideAllViews();
+  const sv=$("spotView"), mc=$("mapCard");
+  if(sv) sv.style.display="block";
+  if(mc) mc.style.display="block";
   initMap();
   setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80);
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function goHome(){ showHome(); }
+function ensureMapVisible(){
+  const m=$("mapCard"); if(m) m.style.display="block";
+  if(!MAP) initMap();
+  setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80);
+}
 function toggleHomeMap(){
   const m=$("mapCard"); if(!m) return;
-  const show=(m.style.display==="none"||!m.style.display);
-  m.style.display=show?"":"none";
-  const b=$("homeMapBtn"); if(b) b.textContent=show?"🗺️ Karte ausblenden":"🗺️ Karte anzeigen";
-  if(show){ initMap(); setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80); m.scrollIntoView({behavior:"smooth", block:"start"}); }
+  const hidden = (m.style.display==="none" || m.style.display==="");
+  const b=$("homeMapBtn");
+  if(hidden){ ensureMapVisible(); if(b) b.textContent="🗺️ Karte ausblenden"; m.scrollIntoView({behavior:"smooth", block:"start"}); }
+  else { m.style.display="none"; if(b) b.textContent="🗺️ Karte anzeigen"; }
 }
 function fbTitle(){ const n=activeSpotName(); return (n? n+" " : "")+"Fangbuch"; }
 function updateFangbuchBtn(){

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <header>
@@ -22,6 +22,14 @@
   </div>
 </header>
 
+<button class="navbtn" onclick="showMyFangbuch()">📒 Mein Fangbuch</button>
+<button class="navbtn" onclick="showHome()">🎣 Alle Angelplätze</button>
+
+<div id="myFbView" style="display:none">
+  <div class="sect">Mein Fangbuch · alle Fänge</div>
+  <div id="myFbList"></div>
+</div>
+
 <div id="homeView">
   <div class="sect">Deine Angelplätze</div>
   <div id="spotList" class="spotlist"></div>
@@ -36,7 +44,6 @@
 <div class="stabar">
   <div class="staleft">
     <div class="starow">
-      <button class="backbtn" onclick="goHome()">← Übersicht</button>
       <select id="spotSelect" onchange="onSpotSelect(this.value)"></select>
       <button class="stadel" onclick="deleteActiveSpot()" title="Angelplatz löschen">✕</button>
     </div>
@@ -188,15 +195,11 @@
 <div class="mapcard">
   <div class="mapmeta">
     <div>
-      <div class="co" id="mapCo">📍 Pegel …</div>
-      <div class="pos">🎣 Angelplätze · graue Punkte: Pegel-Stationen · Grün: Fänge · Gelb: Fangort · Tippen setzt den Fangort</div>
+      <div class="pos">🎣 Angelplätze · 🔵 aktive Messstation · graue Punkte: weitere Pegel-Stationen · Grün: Fänge · Gelb: Fangort. Tippen setzt den Fangort.</div>
     </div>
     <div class="btns">
       <button onclick="toggleStationsLayer()" id="layStations">◉ Stationen</button>
       <button onclick="toggleSpotsLayer()" id="laySpots">◉ Angelplätze</button>
-      <button onclick="copyCoords()" id="copyBtn">Koordinaten kopieren</button>
-      <a class="b" id="mapOsm" target="_blank" rel="noopener" href="#">OpenStreetMap ↗</a>
-      <a class="b" id="mapGmaps" target="_blank" rel="noopener" href="#">Google Maps ↗</a>
     </div>
   </div>
   <div id="markHint" style="display:none;padding:10px 14px;font-size:13px;background:rgba(56,189,248,.14);color:var(--water);border-bottom:1px solid var(--line)"></div>
@@ -225,6 +228,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

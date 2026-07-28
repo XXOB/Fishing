@@ -48,6 +48,9 @@ h1{font-size:20px;margin:0;letter-spacing:.3px}
 .homebtns button:hover{background:#25344a}
 .backbtn{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 11px;font-size:13px;cursor:pointer;white-space:nowrap}
 .backbtn:hover{background:#25344a}
+.navbtn{display:block;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);color:var(--text);
+  border-radius:12px;padding:12px 16px;font-size:15px;font-weight:700;cursor:pointer;margin:10px 0 0}
+.navbtn:hover{background:#25344a}
 .stalbl{font-size:12px;color:var(--muted2);white-space:nowrap;font-weight:700}
 .stabar select{flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
   border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
