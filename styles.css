@@ -238,6 +238,26 @@ body{padding-bottom:82px}
 .fbitem.blank{opacity:.86}
 .fbitem.blank .fish{color:var(--muted)}
 .countbadge .tripico{font-size:12px}
+.fbblanktop{width:100%;margin:0 0 14px}
+
+/* Köder-Kategorien (aufklappbar) mit Varianten */
+.baitcat{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.baitcatrow{display:flex;align-items:center}
+.baitcathead{flex:1;background:none;border:0;color:var(--text);text-align:left;padding:14px 15px;font-size:15.5px;
+  font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
+.baitcathead:hover{background:#0e1622}
+.baitcathead .tw{color:var(--muted2);font-size:12px;width:12px;display:inline-block}
+.baitcathead small{color:var(--muted2);font-weight:400;margin-left:4px}
+.baitvars{border-top:1px solid var(--line);background:var(--bg2);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px}
+.baitvar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+.baitvar .vlabel{flex:1;font-size:14px}
+.baitvaradd{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.baitvaradd input{flex:1 1 120px;min-width:100px;background:var(--card);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:9px 11px;font-size:13px;font-family:inherit}
+.baitvaradd input:focus{outline:none;border-color:var(--water)}
+.baitvaradd button{flex:0 0 auto;background:var(--card2);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;cursor:pointer}
+.baitvaradd button:hover{background:#25344a}
 
 @media(max-width:520px){
   .tile .val{font-size:26px}

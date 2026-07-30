@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
 <header>
@@ -37,11 +37,10 @@
 <div id="baitView" style="display:none">
   <div class="sect">Köder</div>
   <div class="baitadd">
-    <input id="baitBase" list="baitBaseList" placeholder="Köder, z. B. Gummifisch">
-    <input id="baitSize" placeholder="Größe, z. B. 5 cm">
-    <input id="baitColor" placeholder="Farbe, z. B. braun" onkeydown="if(event.key==='Enter'){event.preventDefault();addBait();}">
-    <button onclick="addBait()">+ Hinzufügen</button>
+    <input id="baitCatInput" list="baitBaseList" placeholder="Neue Köder-Kategorie, z. B. Gummifisch" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory();}">
+    <button onclick="addCategory()">+ Kategorie</button>
   </div>
+  <div class="fbnote" style="margin:0 0 10px 2px">Tippe auf einen Köder, um Varianten (Größe, Farbe) hinzuzufügen. Die 🐟-Zahl zeigt die Fänge je Köder.</div>
   <div id="baitList" class="spotlist"></div>
   <datalist id="baitBaseList">
     <option>Tauwurm</option><option>Rotwurm</option><option>Made</option><option>Mais</option>
@@ -153,6 +152,7 @@
 <div id="fangbuchBox" style="display:none">
 <div class="sect" style="margin-top:10px">Neuen Fang eintragen</div>
 <div class="fbcard">
+  <button type="button" class="fbblank fbblanktop" id="fbBlankBtn" onclick="saveBlank()">🚫 Angeltag ohne Fang eintragen</button>
   <div class="fbrow">
     <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht"></div>
     <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
@@ -182,7 +182,6 @@
   <div id="gpsInfo" class="fbnote">Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren".</div>
   <div class="fbactions">
     <button type="button" class="fbsave" id="fbSaveBtn" onclick="saveCatch()">🎣 Fang speichern</button>
-    <button type="button" class="fbblank" id="fbBlankBtn" onclick="saveBlank()">🚫 Angeltag ohne Fang</button>
     <span class="fbnote">Bedingungen (Wetter, Wasser, Mond) werden immer mitgespeichert – auch ohne Fang.</span>
   </div>
 </div>
@@ -268,6 +267,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

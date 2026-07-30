@@ -1057,12 +1057,25 @@ function addCatchFromList(){
 }
 /* --- Tab 3: Köder-Liste --- */
 const BAIT_KEY="deepfish_koeder_v1";
-function normBait(b){ return (typeof b==="string") ? {base:b, size:"", color:""} : {base:(b&&b.base)||"", size:(b&&b.size)||"", color:(b&&b.color)||""}; }
-function loadBaits(){ try{ return (JSON.parse(localStorage.getItem(BAIT_KEY))||[]).map(normBait); }catch(e){ return []; } }
-function saveBaits(a){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(a)); }catch(e){} }
+/* Köder = Kategorien mit Varianten: [{base, variants:[{size,color}]}] (migriert alte Formate) */
+function loadBaits(){
+  let raw=[]; try{ raw=JSON.parse(localStorage.getItem(BAIT_KEY))||[]; }catch(e){ raw=[]; }
+  const cats=[], idx={};
+  const cat=(base)=>{ base=String(base||"").trim(); if(!base) return null; const k=base.toLowerCase();
+    if(!(k in idx)){ idx[k]=cats.length; cats.push({base, variants:[]}); } return cats[idx[k]]; };
+  const addV=(c,size,color)=>{ if(!c) return; size=(size||"").trim(); color=(color||"").trim(); if(!size&&!color) return;
+    const key=(size+"|"+color).toLowerCase(); if(!c.variants.some(v=>(v.size+"|"+v.color).toLowerCase()===key)) c.variants.push({size,color}); };
+  raw.forEach(it=>{
+    if(typeof it==="string"){ cat(it); }
+    else if(it && Array.isArray(it.variants)){ const c=cat(it.base); if(c) it.variants.forEach(v=>addV(c, v.size, v.color)); }
+    else if(it && it.base){ addV(cat(it.base), it.size, it.color); }   // altes Flachformat {base,size,color}
+  });
+  return cats;
+}
+function saveBaits(cats){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(cats)); }catch(e){} }
 const BAIT_INIT_KEY="deepfish_koeder_init_v1";
 const DEFAULT_BAITS=["Tauwurm","Rotwurm","Made","Mais","Boilie","Brot","Käse",
-  "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"].map(normBait);
+  "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"].map(b=>({base:b, variants:[]}));
 function ensureBaitSeed(){                         // Standardköder als Startpunkt (einmalig)
   if(localStorage.getItem(BAIT_INIT_KEY)) return;
   if(!loadBaits().length) saveBaits(DEFAULT_BAITS.slice());
@@ -1085,8 +1098,15 @@ function baitIcon(text){
   if(/fliege|streamer|nymphe/.test(s)) return "🪰";
   return "🎣";
 }
-function baitLabel(b){ b=normBait(b); return b.base + (b.size?(" "+b.size):"") + (b.color?(", "+b.color):""); }
-function baitKey(b){ return baitLabel(b).toLowerCase().trim(); }
+function variantLabel(base, v){ return base + (v&&v.size?(" "+v.size):"") + (v&&v.color?(", "+v.color):""); }
+/* Anzahl Fänge je Köder: Kategorie = alle Varianten (Präfix), Variante = exakt. Nur echte Fänge. */
+function koederCatchCount(text, isCat){
+  const t=String(text||"").toLowerCase().trim(); if(!t) return 0;
+  return loadCatches().filter(c=>{ if(!isFish(c)) return false; const k=(c.koeder||"").toLowerCase().trim();
+    return isCat ? (k===t || k.indexOf(t+" ")===0 || k.indexOf(t+",")===0) : k===t; }).length;
+}
+function countBadgeFish(n){ return '<span class="countbadge" title="Fänge mit diesem Köder"><span class="fishico">🐟</span>'+n+'</span>'; }
+const BAIT_OPEN={};   // aufgeklappte Kategorien (Basename kleingeschrieben)
 function showBaitList(){
   hideAllViews();
   const v=$("baitView"); if(v) v.style.display="block";
@@ -1094,24 +1114,52 @@ function showBaitList(){
   setActiveTab("bait");
   window.scrollTo({top:0, behavior:"smooth"});
 }
-function addBait(){
-  const base=($("baitBase")?$("baitBase").value:"").trim();
-  if(!base){ if($("baitBase")) $("baitBase").focus(); return; }
-  const nb={ base, size:($("baitSize")?$("baitSize").value:"").trim(), color:($("baitColor")?$("baitColor").value:"").trim() };
-  const arr=loadBaits();
-  if(!arr.some(b=>baitKey(b)===baitKey(nb))) arr.push(nb);
-  saveBaits(arr);
-  ["baitBase","baitSize","baitColor"].forEach(id=>{ const e=$(id); if(e) e.value=""; });
-  renderBaitList(); if($("baitBase")) $("baitBase").focus();
+function addCategory(){
+  const inp=$("baitCatInput"); if(!inp) return; const base=(inp.value||"").trim(); if(!base){ inp.focus(); return; }
+  const cats=loadBaits();
+  if(!cats.some(c=>c.base.toLowerCase()===base.toLowerCase())) cats.push({base, variants:[]});
+  saveBaits(cats); inp.value=""; BAIT_OPEN[base.toLowerCase()]=true; renderBaitList(); inp.focus();
 }
-function deleteBait(i){ const arr=loadBaits(); arr.splice(i,1); saveBaits(arr); renderBaitList(); }
+function toggleBaitCat(i){ const c=loadBaits()[i]; if(!c) return; const k=c.base.toLowerCase(); BAIT_OPEN[k]=!BAIT_OPEN[k]; renderBaitList(); }
+function deleteBaitCat(i){ const cats=loadBaits(); if(i<0||i>=cats.length) return;
+  if(!confirm("Köder „"+cats[i].base+"“ mit allen Varianten löschen?")) return; cats.splice(i,1); saveBaits(cats); renderBaitList(); }
+function addVariant(i){
+  const cats=loadBaits(); const c=cats[i]; if(!c) return;
+  const size=(($("var_size_"+i)||{}).value||"").trim();
+  const color=(($("var_color_"+i)||{}).value||"").trim();
+  if(!size && !color){ const e=$("var_size_"+i); if(e) e.focus(); return; }
+  const key=(size+"|"+color).toLowerCase();
+  if(!c.variants.some(v=>(v.size+"|"+v.color).toLowerCase()===key)) c.variants.push({size,color});
+  saveBaits(cats); BAIT_OPEN[c.base.toLowerCase()]=true; renderBaitList();
+}
+function deleteBaitVar(i,j){ const cats=loadBaits(); if(!cats[i]) return; cats[i].variants.splice(j,1); saveBaits(cats); renderBaitList(); }
 function renderBaitList(){
-  const arr=loadBaits();
-  const dl=$("koederliste"); if(dl) dl.innerHTML=arr.map(b=>'<option>'+esc(baitLabel(b))+'</option>').join("");
+  const cats=loadBaits();
+  const dl=$("koederliste");
+  if(dl){ let opts=[]; cats.forEach(c=>{ opts.push(c.base); c.variants.forEach(v=>opts.push(variantLabel(c.base,v))); });
+    dl.innerHTML=opts.map(o=>'<option>'+esc(o)+'</option>').join(""); }
   const box=$("baitList"); if(!box) return;
-  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Köder – füge oben deinen ersten hinzu. Sie erscheinen dann als Vorschlag im Fangbuch.</div>'; return; }
-  box.innerHTML=arr.map((b,i)=>'<div class="spotrow"><span class="spotopen" style="cursor:default">'+baitIcon(baitLabel(b))+' '+esc(baitLabel(b))+'</span>'+
-    '<button class="spotdel" title="löschen" onclick="deleteBait('+i+')">✕</button></div>').join("");
+  if(!cats.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Köder – lege oben eine Kategorie an.</div>'; return; }
+  box.innerHTML=cats.map((c,i)=>{
+    const open=!!BAIT_OPEN[c.base.toLowerCase()];
+    let h='<div class="baitcat"><div class="baitcatrow">'+
+      '<button class="baitcathead" onclick="toggleBaitCat('+i+')"><span class="tw">'+(open?'▾':'▸')+'</span> '+
+        baitIcon(c.base)+' '+esc(c.base)+' <small>'+c.variants.length+' Variante'+(c.variants.length===1?'':'n')+'</small></button>'+
+      countBadgeFish(koederCatchCount(c.base,true))+
+      '<button class="spotdel" title="Köder löschen" onclick="deleteBaitCat('+i+')">✕</button></div>';
+    if(open){
+      h+='<div class="baitvars">';
+      h+=c.variants.map((v,j)=>{ const lbl=variantLabel(c.base,v);
+        return '<div class="baitvar"><span class="vlabel">'+esc(lbl)+'</span>'+countBadgeFish(koederCatchCount(lbl,false))+
+          '<button class="spotdel" onclick="deleteBaitVar('+i+','+j+')">✕</button></div>'; }).join("");
+      h+='<div class="baitvaradd">'+
+         '<input id="var_size_'+i+'" placeholder="Größe, z. B. 5 cm">'+
+         '<input id="var_color_'+i+'" placeholder="Farbe, z. B. braun" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addVariant('+i+');}">'+
+         '<button onclick="addVariant('+i+')">+ Variante</button></div>';
+      h+='</div>';
+    }
+    return h+'</div>';
+  }).join("");
 }
 /* --- Tab-Leiste (aktiver Reiter) --- */
 function setActiveTab(which){
