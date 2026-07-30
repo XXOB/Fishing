@@ -222,13 +222,22 @@ body{padding-bottom:82px}
 .countbadge .fishico{font-size:14px}
 
 /* Köder-Eingabe */
-.baitadd{display:flex;gap:8px;margin:0 0 12px}
-.baitadd input{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+.baitadd{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.baitadd input{flex:1 1 130px;min-width:110px;background:var(--bg2);border:1px solid var(--line);color:var(--text);
   border-radius:9px;padding:11px 13px;font-size:14px;font-family:inherit}
 .baitadd input:focus{outline:none;border-color:var(--water)}
-.baitadd button{background:var(--card2);border:1px solid var(--line);color:var(--text);
+.baitadd button{flex:0 0 auto;background:var(--card2);border:1px solid var(--line);color:var(--text);
   border-radius:9px;padding:11px 15px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .baitadd button:hover{background:#25344a}
+
+/* Angeltag ohne Fang + Leereintrag-Karte */
+.fbblank{background:var(--card2);border:1px solid var(--line);color:var(--text);font-weight:600;
+  border-radius:9px;padding:10px 16px;font-size:14px;cursor:pointer}
+.fbblank:hover{background:#25344a}
+.fbblank:active{transform:scale(.98)}
+.fbitem.blank{opacity:.86}
+.fbitem.blank .fish{color:var(--muted)}
+.countbadge .tripico{font-size:12px}
 
 @media(max-width:520px){
   .tile .val{font-size:26px}

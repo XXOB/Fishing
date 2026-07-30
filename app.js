@@ -1,7 +1,7 @@
 "use strict";
 
 /* Wasserqualität wird beim Laden aus wasserwerte.json geholt (mehrere Gütestationen).
-   Die GitHub-Action aktualisiert die Datei alle 3 Stunden. Nur Startwert: */
+   Die GitHub-Action aktualisiert die Datei stündlich. Nur Startwert: */
 window.WQ = { "updated": "", "stations": [] };
 const WQ_MAXKM = 60;   // Gütestation nur nutzen, wenn näher als … km und gleicher Fluss
 
@@ -78,7 +78,7 @@ async function getJSON(url){
   return r.json();
 }
 const state = {pegelTrend:null, gust:null, rainNow:null, wcode:null, pressTrend:null};
-const snap = { weather:null, pegel:null, q:null };  // Momentaufnahme für Fänge
+const snap = { weather:null, pegel:null, q:null, marineTemp:null };  // Momentaufnahme für Fänge
 let CURRENT_GPS = null;
 
 function classifyPegel(w, ref){
@@ -315,23 +315,24 @@ function captureGps(){
   }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
 }
 
-function saveCatch(){
-  const art=$("f_art").value.trim();
-  if(!art){ alert("Bitte eine Fischart eintragen."); $("f_art").focus(); return; }
+function buildRecord(blank){
   const datum=$("f_datum").value, zeit=$("f_zeit").value;
   const dObj = datum ? new Date(datum+"T"+(zeit||"12:00")) : new Date();
   const mp=moonPhase(dObj);
-  const rec={
+  const sp=activeSpot();
+  return {
     id: Date.now(),
     erfasst_iso: new Date().toISOString(),
-    gewaesser: $("f_gewaesser").value.trim() || "Rhein (Mainz/Wiesbaden)",
-    angelplatz: (loadSpots().find(x=>String(x.id)===String($("f_angelplatz").value))||{}).name || "",
+    kein_fang: !!blank,
+    gewaesser: $("f_gewaesser").value.trim() || (sp? (sp.gewaesser||sp.river||"") : ""),
+    gewaessertyp: spotType(sp),
+    angelplatz: (loadSpots().find(x=>String(x.id)===String($("f_angelplatz").value))||{}).name || (sp?sp.name:""),
     datum, uhrzeit: zeit,
-    fischart: art,
-    groesse_cm: $("f_groesse").value ? +$("f_groesse").value : null,
-    gewicht_g: $("f_gewicht").value ? +$("f_gewicht").value : null,
-    koeder: $("f_koeder").value.trim(),
-    methode: $("f_methode").value.trim(),
+    fischart: blank ? "" : $("f_art").value.trim(),
+    groesse_cm: (!blank && $("f_groesse").value) ? +$("f_groesse").value : null,
+    gewicht_g: (!blank && $("f_gewicht").value) ? +$("f_gewicht").value : null,
+    koeder: blank ? "" : $("f_koeder").value.trim(),
+    methode: blank ? "" : $("f_methode").value.trim(),
     notiz: $("f_notiz").value.trim(),
     gps: CURRENT_GPS,
     mondphase: { name:mp.name, alter_tage:mp.age, illumination_pct:mp.illum },
@@ -339,10 +340,16 @@ function saveCatch(){
     wasser: Object.assign({
       pegelstand_cm: snap.pegel? snap.pegel.pegelstand_cm : null,
       pegel_stufe: snap.pegel? snap.pegel.stufe : null,
-      durchfluss_m3s: snap.q
+      durchfluss_m3s: snap.q,
+      wassertemperatur_modell_c: (snap.marineTemp!=null ? snap.marineTemp : null)
     }, waterQualitySnap()),
-    station: { pegel:CUR.name, pegel_uuid:CUR.uuid, km:CUR.km, guete:"Mainz-Wiesbaden (Güte, fest)" }
+    station: { pegel: CUR?CUR.name:"", pegel_uuid: CUR?CUR.uuid:"", km: CUR?CUR.km:null }
   };
+}
+function saveCatch(opts){
+  opts=opts||{};
+  const blank = opts.blank || !$("f_art").value.trim();   // ohne Fischart => Leereintrag (Angeltag)
+  const rec=buildRecord(blank);
   const arr=loadCatches(); arr.push(rec); saveCatches(arr);
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_koeder").value=""; $("f_notiz").value="";
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
@@ -350,7 +357,10 @@ function saveCatch(){
   clearSelectedLocation();
   populateCatchSpots();
   refreshFangbuch();
+  const bt=$(blank?"fbBlankBtn":"fbSaveBtn");
+  if(bt){ const o=bt.textContent; bt.textContent = blank?"✓ Angeltag gespeichert":"✓ Fang gespeichert"; setTimeout(()=>{ bt.textContent=o; }, 1500); }
 }
+function saveBlank(){ saveCatch({blank:true}); }
 
 function deleteCatch(id){
   if(!confirm("Diesen Fang löschen?")) return;
@@ -361,32 +371,41 @@ function deleteCatch(id){
 function catchCard(c){
   const w=c.wetter||{}, wa=c.wasser||{}, cond=[];
   if(wa.wassertemperatur_c!=null) cond.push("Wasser "+wa.wassertemperatur_c+" °C");
+  if(wa.wassertemperatur_modell_c!=null) cond.push("Wasser≈ "+wa.wassertemperatur_modell_c+" °C (Modell)");
   if(wa.pegelstand_cm!=null) cond.push("Pegel "+wa.pegelstand_cm+" cm"+(wa.pegel_stufe?" ("+wa.pegel_stufe+")":""));
   if(wa.sauerstoff_mgl!=null) cond.push("O₂ "+wa.sauerstoff_mgl+" mg/l");
   if(w.lufttemperatur_c!=null) cond.push("Luft "+w.lufttemperatur_c+" °C");
   if(w.luftdruck_hpa!=null) cond.push(Math.round(w.luftdruck_hpa)+" hPa");
   if(w.wetterlage) cond.push(w.wetterlage);
   if(c.mondphase&&c.mondphase.name) cond.push(c.mondphase.name);
-  return '<div class="fbitem"><div class="h"><span class="fish">'+esc(c.fischart)+
-    (c.groesse_cm?' · '+c.groesse_cm+' cm':'')+(c.gewicht_g?' · '+c.gewicht_g+' g':'')+'</span>'+
+  const title = c.kein_fang
+    ? '🚫 Kein Fang'
+    : esc(c.fischart)+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+(c.gewicht_g?' · '+c.gewicht_g+' g':'');
+  return '<div class="fbitem'+(c.kein_fang?' blank':'')+'"><div class="h"><span class="fish">'+title+'</span>'+
     '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
     '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
     (c.angelplatz?' · <b>'+esc(c.angelplatz)+'</b>':'')+' · '+esc(c.gewaesser||"")+
-    (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
+    (c.koeder?' · '+baitIcon(c.koeder)+' '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
     (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
     (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
 }
 function renderCatches(){
   const arr=catchesForView().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
-  const cnt=$("fbCount"); if(cnt) cnt.textContent = arr.length+" Fang"+(arr.length===1?"":"e")+" gespeichert";
+  const cnt=$("fbCount"); if(cnt){ const f=arr.filter(isFish).length; cnt.textContent = f+" Fang"+(f===1?"":"e")+" · "+arr.length+" Angeltrip"+(arr.length===1?"":"s"); }
   const box=$("fbList"); if(!box) return;
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge – trag deinen ersten Fang oben ein.</div>'; return; }
   box.innerHTML = arr.map(catchCard).join("");
 }
 let CATCH_VIEW_SPOT = null;   // Name des Angelplatzes, oder null = Gesamtfangbuch
-function catchCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name).length; }
-function totalCatchCount(){ return loadCatches().length; }
-function countBadge(n){ return '<span class="countbadge"><span class="fishico">🐟</span>'+n+'</span>'; }
+function isFish(c){ return !c.kein_fang && !!c.fischart; }
+function fishCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name && isFish(c)).length; }
+function tripCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name).length; }
+function totalFish(){ return loadCatches().filter(isFish).length; }
+function totalTrips(){ return loadCatches().length; }
+function countBadge(fish, trips){
+  return '<span class="countbadge" title="Fänge · Angeltrips"><span class="fishico">🐟</span>'+fish+
+    ' <span class="tripico">🎣</span>'+trips+'</span>';
+}
 function renderCatchList(){
   const box=$("catchList"); if(!box) return;
   const all=loadCatches();
@@ -410,7 +429,8 @@ function A_(c,k){ return c.wasser&&c.wasser[k]!=null? c.wasser[k] : ""; }
 function exportCSV(){
   const arr=loadCatches();
   const cols=[
-    ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["gewaesser",c=>c.gewaesser],["fischart",c=>c.fischart],
+    ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
+    ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
     ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["methode",c=>c.methode],["notiz",c=>c.notiz],
     ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
     ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
@@ -419,7 +439,7 @@ function exportCSV(){
     ["luftdruck_tendenz_3h_hpa",c=>W_(c,"luftdruck_tendenz_3h_hpa")],["bewoelkung_pct",c=>W_(c,"bewoelkung_pct")],
     ["luftfeuchte_pct",c=>W_(c,"luftfeuchte_pct")],["niederschlag_mm_h",c=>W_(c,"niederschlag_mm_h")],["wetterlage",c=>W_(c,"wetterlage")],
     ["pegel_cm",c=>A_(c,"pegelstand_cm")],["pegel_stufe",c=>A_(c,"pegel_stufe")],["durchfluss_m3s",c=>A_(c,"durchfluss_m3s")],
-    ["wassertemp_c",c=>A_(c,"wassertemperatur_c")],["sauerstoff_mgl",c=>A_(c,"sauerstoff_mgl")],["o2_saettigung_pct",c=>A_(c,"o2_saettigung_pct")],
+    ["wassertemp_c",c=>A_(c,"wassertemperatur_c")],["wassertemp_modell_c",c=>A_(c,"wassertemperatur_modell_c")],["sauerstoff_mgl",c=>A_(c,"sauerstoff_mgl")],["o2_saettigung_pct",c=>A_(c,"o2_saettigung_pct")],
     ["truebung",c=>A_(c,"truebung")],["ph",c=>A_(c,"ph")],["leitfaehigkeit_uScm",c=>A_(c,"leitfaehigkeit_uScm")]
   ];
   const cell=v=>{ if(v==null)v=""; v=String(v).replace(/"/g,'""'); return /[";\n]/.test(v)?'"'+v+'"':v; };
@@ -559,7 +579,7 @@ function renderTable(){
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge.</div>'; return; }
   const rows=arr.map(c=>{
     const ort = c.gps ? (c.gps.lat+', '+c.gps.lon) : esc(c.gewaesser||"");
-    return '<tr><td>'+esc(c.datum||"")+'</td><td>'+esc(c.uhrzeit||"")+'</td><td>'+esc(c.fischart||"")+'</td>'+
+    return '<tr><td>'+esc(c.datum||"")+'</td><td>'+esc(c.uhrzeit||"")+'</td><td>'+(c.kein_fang?"— (kein Fang)":esc(c.fischart||""))+'</td>'+
       '<td>'+(c.groesse_cm!=null?c.groesse_cm:"")+'</td><td>'+(c.gewicht_g!=null?c.gewicht_g:"")+'</td>'+
       '<td>'+esc(c.koeder||"")+'</td><td>'+esc(c.angelplatz||"")+'</td><td>'+ort+'</td></tr>';
   }).join("");
@@ -851,7 +871,7 @@ function pegPickList(){
   });
 }
 /* Pegelstation eines Angelplatzes ändern */
-function togglePegEdit(){ const el=$("pegEdit"); if(!el) return; el.style.display=(el.style.display==="none"||!el.style.display)?"inline-flex":"none"; }
+function togglePegEdit(){ if(spotType(activeSpot())!=="fluss") return; const el=$("pegEdit"); if(!el) return; el.style.display=(el.style.display==="none"||!el.style.display)?"inline-flex":"none"; }
 function hidePegEdit(){ const el=$("pegEdit"); if(el) el.style.display="none"; }
 function pegAuto(){
   hidePegEdit();
@@ -865,14 +885,32 @@ function pegPickMap(){
   const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
   setTimeout(()=>{ const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
+function applyWaterType(sp){
+  const isRiver = spotType(sp)==="fluss";
+  ["pegelSect","pegelGrid","qSect","quality","qStamp","cond"].forEach(id=>{ const e=$(id); if(e) e.style.display = isRiver ? "" : "none"; });
+  const bt=$("biteBtn"); if(bt) bt.style.display = isRiver ? "" : "none";
+  if(!isRiver){ const bb=$("biteBox"); if(bb) bb.style.display="none"; }
+  const wt=$("waterTempTile"); if(wt) wt.style.display = isRiver ? "none" : "";
+  const hint=$("pegEditHint"); if(hint) hint.style.display = isRiver ? "" : "none";
+}
 function reflectStation(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
+  const typ=spotType(sp);
+  const pre=$("pegPrefix"), pn=$("staPegName");
+  if(typ!=="fluss"){                                  // See / Meer: kein Pegel
+    if(pre) pre.textContent="Gewässer:";
+    if(pn) pn.textContent=(sp&&sp.gewaesser? sp.gewaesser : "")+(typ==="see"?" (See)":" (Meer)");
+    applyWaterType(sp);
+    return;
+  }
+  if(pre) pre.textContent="Pegelstation:";
   const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
   const cs=$("curStation"); if(cs) cs.textContent = (sp? "Angelplatz: "+sp.name+" · " : "")+"Pegel "+CUR.name+" · km "+CUR.km;
-  const pn=$("staPegName"); if(pn) pn.textContent = CUR.name + (CUR.river? " ("+CUR.river+")" : "");
+  if(pn) pn.textContent = CUR.name + (CUR.river? " ("+CUR.river+")" : "");
   const mc=$("mapCo"); if(mc) mc.textContent="📍 Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O";
   const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+WXPOS.lat+"&mlon="+WXPOS.lon+"#map=14/"+WXPOS.lat+"/"+WXPOS.lon;
   const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+WXPOS.lat+","+WXPOS.lon;
+  applyWaterType(sp);
 }
 function updateStationMarker(){
   if(!MAP || !STATION_MARKER) return;
@@ -881,6 +919,13 @@ function updateStationMarker(){
 }
 function activateStationFor(uuid){ const s=STATIONS.find(x=>x.uuid===uuid); if(s){ CUR=s; delete HIST.pegel; delete HIST.durchfluss; delete HIST.wx; } }
 /* gespeicherte Angelplätze */
+function spotType(sp){ return (sp && sp.typ) ? sp.typ : "fluss"; }
+function spotWaterLabel(s){
+  const typ=spotType(s);
+  if(typ==="see")  return "See · "+esc(s.gewaesser||s.river||"");
+  if(typ==="meer") return "Meer · "+esc(s.gewaesser||s.river||"");
+  return "Fluss · Pegel "+esc(s.station||"")+(s.river?" ("+esc(s.river)+")":"");
+}
 function loadSpots(){ try{ return JSON.parse(localStorage.getItem(SPOTS_KEY))||[]; }catch(e){ return []; } }
 function saveSpots(a){ localStorage.setItem(SPOTS_KEY, JSON.stringify(a)); }
 function newSpotOnMap(){
@@ -898,16 +943,27 @@ function pickAuto(){
 function createSpotAt(lat, lon){
   const name=(prompt("Name des Angelplatzes:","")||"").trim();
   if(!name) return;
-  openStationPicker(lat, lon, function(uuid){
-    const st=STATIONS.find(x=>x.uuid===uuid) || nearestStation(lat,lon);
+  const t=(prompt("Gewässertyp?   1 = Fluss   2 = See   3 = Meer","1")||"").trim();
+  const typ = t==="2" ? "see" : t==="3" ? "meer" : "fluss";
+  const upsert=(base)=>{
     const spots=loadSpots();
     let sp=spots.find(x=>x.name.toLowerCase()===name.toLowerCase());
-    if(sp){ sp.lat=+lat.toFixed(6); sp.lon=+lon.toFixed(6); sp.uuid=st.uuid; sp.station=st.name; sp.river=st.river; }
-    else { sp={id:Date.now(), name:name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), uuid:st.uuid, station:st.name, river:st.river}; spots.push(sp); }
-    saveSpots(spots);
-    addSpotMarkers();
-    openSpot(sp.id);
-  });
+    if(sp) Object.assign(sp, base); else spots.push(base);
+    saveSpots(spots); addSpotMarkers(); openSpot(base.id);
+  };
+  if(typ==="fluss"){
+    openStationPicker(lat, lon, function(uuid){
+      const st=STATIONS.find(x=>x.uuid===uuid) || nearestStation(lat,lon);
+      const ex=loadSpots().find(x=>x.name.toLowerCase()===name.toLowerCase());
+      upsert({id: ex?ex.id:Date.now(), name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), typ:"fluss",
+        uuid:st.uuid, station:st.name, river:st.river, gewaesser:st.river});
+    });
+  } else {
+    const gw=(prompt("Name des Gewässers (z. B. Bodensee, Ostsee bei Kühlungsborn):","")||"").trim() || (typ==="see"?"See":"Meer");
+    const ex=loadSpots().find(x=>x.name.toLowerCase()===name.toLowerCase());
+    upsert({id: ex?ex.id:Date.now(), name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), typ,
+      uuid:null, station:"", river:gw, gewaesser:gw});
+  }
 }
 function activateSpotById(id, latlon){
   const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
@@ -941,8 +997,8 @@ function renderSpotList(){
   const spots=loadSpots();
   if(!spots.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch kein Angelplatz – lege deinen ersten an (Knöpfe unten).</div>'; return; }
   box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+
-    '<span class="spotsub">Pegel '+esc(s.station||"")+(s.river?' ('+esc(s.river)+')':'')+'</span></button>'+
-    countBadge(catchCountForSpot(s.name))+
+    '<span class="spotsub">'+spotWaterLabel(s)+'</span></button>'+
+    countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+
     '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
 }
 function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); }
@@ -967,11 +1023,11 @@ function renderFbIndex(){
   const box=$("fbIndexList"); if(!box) return;
   const spots=loadSpots();
   let html='<div class="spotrow"><button class="spotopen" onclick="showCatchList(null)">📚 Gesamtfangbuch'+
-    '<span class="spotsub">alle Angelplätze</span></button>'+countBadge(totalCatchCount())+'</div>';
+    '<span class="spotsub">alle Angelplätze</span></button>'+countBadge(totalFish(), totalTrips())+'</div>';
   if(spots.length){
     html+=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="showCatchListBySpot('+s.id+')">📒 '+esc(s.name)+' Fangbuch'+
-      '<span class="spotsub">Pegel '+esc(s.station||"")+(s.river?' ('+esc(s.river)+')':'')+'</span></button>'+
-      countBadge(catchCountForSpot(s.name))+'</div>').join("");
+      '<span class="spotsub">'+spotWaterLabel(s)+'</span></button>'+
+      countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+'</div>').join("");
   } else {
     html+='<div class="fbnote" style="padding:10px 4px">Noch keine Angelplätze – lege zuerst einen an.</div>';
   }
@@ -1001,16 +1057,36 @@ function addCatchFromList(){
 }
 /* --- Tab 3: Köder-Liste --- */
 const BAIT_KEY="deepfish_koeder_v1";
-function loadBaits(){ try{ return JSON.parse(localStorage.getItem(BAIT_KEY))||[]; }catch(e){ return []; } }
+function normBait(b){ return (typeof b==="string") ? {base:b, size:"", color:""} : {base:(b&&b.base)||"", size:(b&&b.size)||"", color:(b&&b.color)||""}; }
+function loadBaits(){ try{ return (JSON.parse(localStorage.getItem(BAIT_KEY))||[]).map(normBait); }catch(e){ return []; } }
 function saveBaits(a){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(a)); }catch(e){} }
 const BAIT_INIT_KEY="deepfish_koeder_init_v1";
 const DEFAULT_BAITS=["Tauwurm","Rotwurm","Made","Mais","Boilie","Brot","Käse",
-  "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"];
+  "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"].map(normBait);
 function ensureBaitSeed(){                         // Standardköder als Startpunkt (einmalig)
   if(localStorage.getItem(BAIT_INIT_KEY)) return;
   if(!loadBaits().length) saveBaits(DEFAULT_BAITS.slice());
   localStorage.setItem(BAIT_INIT_KEY,"1");
 }
+function baitIcon(text){
+  const s=String(text||"").toLowerCase();
+  if(/tauwurm|rotwurm|dendro|wurm/.test(s)) return "🪱";
+  if(/made|maden/.test(s)) return "🐛";
+  if(/mais/.test(s)) return "🌽";
+  if(/boilie|pellet/.test(s)) return "🔴";
+  if(/brot|teig/.test(s)) return "🍞";
+  if(/k(ä|ae)se/.test(s)) return "🧀";
+  if(/k(ö|oe)derfisch|fischfetzen|k(ö|oe)fi/.test(s)) return "🐟";
+  if(/gummifisch|gummi|shad|kaulquappe/.test(s)) return "🐠";
+  if(/wobbler|crank|jerk/.test(s)) return "🐡";
+  if(/spinner/.test(s)) return "✨";
+  if(/blinker|l(ö|oe)ffel|spoon/.test(s)) return "🥄";
+  if(/twister|twist/.test(s)) return "🌀";
+  if(/fliege|streamer|nymphe/.test(s)) return "🪰";
+  return "🎣";
+}
+function baitLabel(b){ b=normBait(b); return b.base + (b.size?(" "+b.size):"") + (b.color?(", "+b.color):""); }
+function baitKey(b){ return baitLabel(b).toLowerCase().trim(); }
 function showBaitList(){
   hideAllViews();
   const v=$("baitView"); if(v) v.style.display="block";
@@ -1019,19 +1095,22 @@ function showBaitList(){
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function addBait(){
-  const inp=$("baitInput"); if(!inp) return;
-  const name=(inp.value||"").trim(); if(!name) return;
+  const base=($("baitBase")?$("baitBase").value:"").trim();
+  if(!base){ if($("baitBase")) $("baitBase").focus(); return; }
+  const nb={ base, size:($("baitSize")?$("baitSize").value:"").trim(), color:($("baitColor")?$("baitColor").value:"").trim() };
   const arr=loadBaits();
-  if(!arr.some(b=>b.toLowerCase()===name.toLowerCase())) arr.push(name);
-  saveBaits(arr); inp.value=""; renderBaitList(); inp.focus();
+  if(!arr.some(b=>baitKey(b)===baitKey(nb))) arr.push(nb);
+  saveBaits(arr);
+  ["baitBase","baitSize","baitColor"].forEach(id=>{ const e=$(id); if(e) e.value=""; });
+  renderBaitList(); if($("baitBase")) $("baitBase").focus();
 }
 function deleteBait(i){ const arr=loadBaits(); arr.splice(i,1); saveBaits(arr); renderBaitList(); }
 function renderBaitList(){
   const arr=loadBaits();
-  const dl=$("koederliste"); if(dl) dl.innerHTML=arr.map(b=>'<option>'+esc(b)+'</option>').join("");
+  const dl=$("koederliste"); if(dl) dl.innerHTML=arr.map(b=>'<option>'+esc(baitLabel(b))+'</option>').join("");
   const box=$("baitList"); if(!box) return;
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Köder – füge oben deinen ersten hinzu. Sie erscheinen dann als Vorschlag im Fangbuch.</div>'; return; }
-  box.innerHTML=arr.map((b,i)=>'<div class="spotrow"><span class="spotopen" style="cursor:default">🪱 '+esc(b)+'</span>'+
+  box.innerHTML=arr.map((b,i)=>'<div class="spotrow"><span class="spotopen" style="cursor:default">'+baitIcon(baitLabel(b))+' '+esc(baitLabel(b))+'</span>'+
     '<button class="spotdel" title="löschen" onclick="deleteBait('+i+')">✕</button></div>').join("");
 }
 /* --- Tab-Leiste (aktiver Reiter) --- */
@@ -1088,14 +1167,40 @@ function populateCatchSpots(){
   if(!spots.length){ sel.innerHTML='<option value="">— kein Angelplatz gespeichert —</option>'; return; }
   sel.innerHTML='<option value="">— keiner —</option>'+spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
   if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active;
+  const asp=spots.find(x=>String(x.id)===String(active));
+  const gw=$("f_gewaesser"); if(gw && asp) gw.value = asp.gewaesser || asp.river || "";
 }
 function onCatchSpotChange(id){ if(id) loadSpot(id); }
 
+async function loadMarine(){
+  const val=$("waterTempVal"), meta=$("waterTempMeta");
+  try{
+    const url="https://marine-api.open-meteo.com/v1/marine?latitude="+WXPOS.lat+"&longitude="+WXPOS.lon+
+      "&current=sea_surface_temperature&timezone=Europe%2FBerlin";
+    const d=await getJSON(url);
+    const t=(d&&d.current)? d.current.sea_surface_temperature : null;
+    if(t==null||isNaN(t)) throw 0;
+    if(val) val.innerHTML=fmt(t,1)+' <small>°C</small>';
+    if(meta) meta.textContent="Oberflächentemperatur (Open-Meteo Modell)";
+    snap.marineTemp=t;
+  }catch(e){
+    if(val) val.innerHTML='<span class="err">n/v</span>';
+    if(meta) meta.textContent="Modell liefert hier keine Wassertemperatur";
+    snap.marineTemp=null;
+  }
+}
 async function loadAll(){
   $("updated").textContent = "aktualisiere …";
-  await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
-  updateAmpel();
-  if($("biteBox") && $("biteBox").style.display==="block") renderBite();
+  const typ = spotType(activeSpot());
+  if(typ==="fluss"){
+    snap.marineTemp=null;
+    await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
+    updateAmpel();
+    if($("biteBox") && $("biteBox").style.display==="block") renderBite();
+  } else {
+    snap.pegel=null; snap.q=null;
+    await Promise.allSettled([loadWeather(), loadMarine()]);
+  }
   $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
 }
 async function boot(){

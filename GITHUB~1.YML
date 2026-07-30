@@ -1,9 +1,11 @@
 name: Wasserwerte aktualisieren und veröffentlichen
 
-# Laeuft alle 3 Stunden (UTC) + manuell ueber den Actions-Tab.
+# Laeuft stuendlich (UTC, Minute 07 statt 00 -> GitHub verzoegert :00-Laeufe stark)
+# + manuell ueber den Actions-Tab. Haeufiger = frischere Daten trotz gelegentlich
+# ausgelassener/verspaeteter Scheduler-Laeufe bei GitHub.
 on:
   schedule:
-    - cron: "0 */3 * * *"
+    - cron: "7 * * * *"
   workflow_dispatch:
 
 permissions:
