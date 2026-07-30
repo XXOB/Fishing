@@ -142,9 +142,10 @@ footer a{color:var(--muted)}
 .fbfield{display:flex;flex-direction:column;gap:4px}
 .fbfield.fbwide{grid-column:1/-1}
 .fbfield label{font-size:11px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px}
-.fbfield input{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+.fbfield input,.fbfield select{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:8px;
   padding:8px 10px;font-size:14px;font-family:inherit}
-.fbfield input:focus{outline:none;border-color:var(--water)}
+.fbfield input:focus,.fbfield select:focus{outline:none;border-color:var(--water)}
+.fbfield select:disabled{opacity:.55}
 .fbbtn{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
   padding:8px 10px;font-size:13px;cursor:pointer;width:100%}
 .fbbtn:hover{background:#25344a}

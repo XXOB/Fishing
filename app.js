@@ -315,11 +315,21 @@ function captureGps(){
   }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
 }
 
+function readKoeder(){
+  const base=($("f_koeder_base")?$("f_koeder_base").value:"").trim();
+  const varLabel=($("f_koeder_var")?$("f_koeder_var").value:"").trim();
+  const label = varLabel || base;
+  let variante="";
+  if(varLabel && base && varLabel.toLowerCase().indexOf(base.toLowerCase())===0)
+    variante = varLabel.slice(base.length).replace(/^[\s,]+/,"").trim();
+  return { label, base, variante };
+}
 function buildRecord(blank){
   const datum=$("f_datum").value, zeit=$("f_zeit").value;
   const dObj = datum ? new Date(datum+"T"+(zeit||"12:00")) : new Date();
   const mp=moonPhase(dObj);
   const sp=activeSpot();
+  const k=readKoeder();
   return {
     id: Date.now(),
     erfasst_iso: new Date().toISOString(),
@@ -331,8 +341,10 @@ function buildRecord(blank){
     fischart: blank ? "" : $("f_art").value.trim(),
     groesse_cm: (!blank && $("f_groesse").value) ? +$("f_groesse").value : null,
     gewicht_g: (!blank && $("f_gewicht").value) ? +$("f_gewicht").value : null,
-    koeder: blank ? "" : $("f_koeder").value.trim(),
-    methode: blank ? "" : $("f_methode").value.trim(),
+    koeder: k.label,                 // wird auch beim Trip ohne Fang gespeichert
+    koeder_basis: k.base,
+    koeder_variante: k.variante,
+    methode: $("f_methode").value.trim(),
     notiz: $("f_notiz").value.trim(),
     gps: CURRENT_GPS,
     mondphase: { name:mp.name, alter_tage:mp.age, illumination_pct:mp.illum },
@@ -351,7 +363,8 @@ function saveCatch(opts){
   const blank = opts.blank || !$("f_art").value.trim();   // ohne Fischart => Leereintrag (Angeltag)
   const rec=buildRecord(blank);
   const arr=loadCatches(); arr.push(rec); saveCatches(arr);
-  $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_koeder").value=""; $("f_notiz").value="";
+  $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value="";
+  if($("f_koeder_base")) $("f_koeder_base").value=""; onKoederBaseChange();
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
@@ -431,7 +444,7 @@ function exportCSV(){
   const cols=[
     ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
     ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
-    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["methode",c=>c.methode],["notiz",c=>c.notiz],
+    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
     ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
     ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
     ["lufttemp_c",c=>W_(c,"lufttemperatur_c")],["gefuehlt_c",c=>W_(c,"gefuehlt_c")],["wind_kmh",c=>W_(c,"wind_kmh")],
@@ -1159,6 +1172,29 @@ function renderBaitList(){
       h+='</div>';
     }
     return h+'</div>';
+  }).join("");
+  populateKoeder();
+}
+/* Köder-Auswahl im Fangformular: Kategorie -> Varianten */
+function populateKoeder(){
+  const bsel=$("f_koeder_base"); if(!bsel) return;
+  const cats=loadBaits(), cur=bsel.value;
+  bsel.innerHTML='<option value="">— Köder —</option>'+cats.map(c=>'<option value="'+esc(c.base)+'">'+baitIcon(c.base)+' '+esc(c.base)+'</option>').join("");
+  if(cur && cats.some(c=>c.base===cur)) bsel.value=cur;
+  onKoederBaseChange();
+}
+function onKoederBaseChange(){
+  const bsel=$("f_koeder_base"), vsel=$("f_koeder_var"); if(!vsel) return;
+  const base=bsel?bsel.value:"";
+  const c=loadBaits().find(x=>x.base===base);
+  if(!base || !c || !c.variants.length){
+    vsel.innerHTML='<option value="">'+(base?'— ohne Variante —':'— erst Köder wählen —')+'</option>';
+    vsel.disabled=!base; return;
+  }
+  vsel.disabled=false;
+  vsel.innerHTML='<option value="">— ohne Variante —</option>'+c.variants.map(v=>{
+    const det=(v.size||"")+((v.size&&v.color)?", ":"")+(v.color||"");
+    return '<option value="'+esc(variantLabel(base,v))+'">'+esc(det||"(ohne Angabe)")+'</option>';
   }).join("");
 }
 /* --- Tab-Leiste (aktiver Reiter) --- */

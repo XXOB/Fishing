@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
 <header>
@@ -159,7 +159,8 @@
     <div class="fbfield"><label>Gewicht (g, optional)</label><input id="f_gewicht" type="number" min="0" step="10" inputmode="numeric"></div>
   </div>
   <div class="fbrow">
-    <div class="fbfield"><label>Köder</label><input id="f_koeder" list="koederliste" placeholder="z. B. Gummifisch 12 cm"></div>
+    <div class="fbfield"><label>Köder</label><select id="f_koeder_base" onchange="onKoederBaseChange()"></select></div>
+    <div class="fbfield"><label>Variante</label><select id="f_koeder_var"></select></div>
     <div class="fbfield"><label>Methode</label><input id="f_methode" list="methodeliste" placeholder="z. B. Spinnfischen"></div>
     <div class="fbfield"><label>Angelplatz</label><select id="f_angelplatz" onchange="onCatchSpotChange(this.value)"></select></div>
     <div class="fbfield"><label>Gewässer</label><input id="f_gewaesser" value="Rhein (Mainz/Wiesbaden)"></div>
@@ -196,7 +197,6 @@
   <option>Spinnfischen</option><option>Grundangeln</option><option>Posenangeln</option>
   <option>Feedern</option><option>Fliegenfischen</option><option>Ansitz</option>
 </datalist>
-<datalist id="koederliste"></datalist>
 
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
@@ -267,6 +267,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>
