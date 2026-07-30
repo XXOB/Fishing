@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 <header>
@@ -232,10 +232,16 @@
 </div>
 </div><!-- /mapCard -->
 
+<div id="statsView" style="display:none">
+  <div class="sect">Statistik</div>
+  <div id="statsBody"></div>
+</div>
+
 <nav class="tabbar" id="tabbar">
-  <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic">🎣</span><span class="tx">Meine Angelplätze</span></button>
+  <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic">🎣</span><span class="tx">Angelplätze</span></button>
   <button class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic">📒</span><span class="tx">Fangbücher</span></button>
   <button class="tabbtn" id="tabBait" onclick="showBaitList()"><span class="ic">🪱</span><span class="tx">Köder</span></button>
+  <button class="tabbtn" id="tabStats" onclick="showStats()"><span class="ic">📊</span><span class="tx">Statistik</span></button>
 </nav>
 
 <footer>
@@ -267,6 +273,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
