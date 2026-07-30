@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
 <header>
@@ -22,12 +22,24 @@
   </div>
 </header>
 
-<button class="navbtn" onclick="showMyFangbuch()">📒 Mein Fangbuch</button>
-<button class="navbtn" onclick="showHome()">🎣 Alle Angelplätze</button>
+<div id="fbIndexView" style="display:none">
+  <div class="sect">Fangbücher</div>
+  <div id="fbIndexList" class="spotlist"></div>
+</div>
 
-<div id="myFbView" style="display:none">
-  <div class="sect">Mein Fangbuch · alle Fänge</div>
-  <div id="myFbList"></div>
+<div id="catchListView" style="display:none">
+  <button class="backbtn" onclick="showFangbuchList()">← Fangbücher</button>
+  <div class="sect" id="catchListTitle" style="margin-top:14px">Fangbuch</div>
+  <div id="catchList"></div>
+</div>
+
+<div id="baitView" style="display:none">
+  <div class="sect">Köder</div>
+  <div class="baitadd">
+    <input id="baitInput" placeholder="Neuer Köder, z. B. Gummifisch 12 cm" onkeydown="if(event.key==='Enter'){event.preventDefault();addBait();}">
+    <button onclick="addBait()">+ Hinzufügen</button>
+  </div>
+  <div id="baitList" class="spotlist"></div>
 </div>
 
 <div id="homeView">
@@ -133,7 +145,7 @@
     <div class="fbfield"><label>Gewicht (g, optional)</label><input id="f_gewicht" type="number" min="0" step="10" inputmode="numeric"></div>
   </div>
   <div class="fbrow">
-    <div class="fbfield"><label>Köder</label><input id="f_koeder" placeholder="z. B. Gummifisch 12 cm"></div>
+    <div class="fbfield"><label>Köder</label><input id="f_koeder" list="koederliste" placeholder="z. B. Gummifisch 12 cm"></div>
     <div class="fbfield"><label>Methode</label><input id="f_methode" list="methodeliste" placeholder="z. B. Spinnfischen"></div>
     <div class="fbfield"><label>Angelplatz</label><select id="f_angelplatz" onchange="onCatchSpotChange(this.value)"></select></div>
     <div class="fbfield"><label>Gewässer</label><input id="f_gewaesser" value="Rhein (Mainz/Wiesbaden)"></div>
@@ -170,6 +182,7 @@
   <option>Spinnfischen</option><option>Grundangeln</option><option>Posenangeln</option>
   <option>Feedern</option><option>Fliegenfischen</option><option>Ansitz</option>
 </datalist>
+<datalist id="koederliste"></datalist>
 
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
@@ -205,6 +218,12 @@
 </div>
 </div><!-- /mapCard -->
 
+<nav class="tabbar" id="tabbar">
+  <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic">🎣</span><span class="tx">Meine Angelplätze</span></button>
+  <button class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic">📒</span><span class="tx">Fangbücher</span></button>
+  <button class="tabbtn" id="tabBait" onclick="showBaitList()"><span class="ic">🪱</span><span class="tx">Köder</span></button>
+</nav>
+
 <footer>
   <div><strong>Datenquellen:</strong>
     Pegel &amp; Durchfluss: <a href="https://pegelonline.wsv.de" target="_blank" rel="noopener">PEGELONLINE (WSV)</a> ·
@@ -234,6 +253,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

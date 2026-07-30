@@ -200,9 +200,40 @@ footer a{color:var(--muted)}
 .cmcanvas{position:relative;height:280px}
 #cmMeta{margin-top:10px}
 
+/* Untere Menüleiste (Tabs) */
+body{padding-bottom:82px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:flex;
+  background:rgba(12,18,27,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);
+  box-shadow:0 -6px 20px rgba(0,0,0,.45);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.tabbtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:none;border:0;color:var(--muted2);cursor:pointer;padding:8px 4px;border-radius:12px;line-height:1.15}
+.tabbtn .ic{font-size:20px;line-height:1}
+.tabbtn .tx{font-size:11px;font-weight:600;text-align:center}
+.tabbtn:hover{color:var(--muted)}
+.tabbtn.active{color:var(--water)}
+.tabbtn.active .ic{filter:drop-shadow(0 0 6px rgba(56,189,248,.55))}
+
+/* Höhere Knöpfe für Plätze & Fangbücher + Fisch-Zähler */
+.spotopen{padding:15px 15px;font-size:15.5px}
+.spotsub{display:block;color:var(--muted2);font-weight:400;font-size:12.5px;margin-top:4px}
+.countbadge{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:700;color:var(--water);
+  background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.30);border-radius:20px;
+  padding:5px 11px;white-space:nowrap;margin:0 4px}
+.countbadge .fishico{font-size:14px}
+
+/* Köder-Eingabe */
+.baitadd{display:flex;gap:8px;margin:0 0 12px}
+.baitadd input{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:11px 13px;font-size:14px;font-family:inherit}
+.baitadd input:focus{outline:none;border-color:var(--water)}
+.baitadd button{background:var(--card2);border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:11px 15px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.baitadd button:hover{background:#25344a}
+
 @media(max-width:520px){
   .tile .val{font-size:26px}
   h1{font-size:18px}
-  body{padding:12px}
+  body{padding:12px;padding-bottom:82px}
   #map{height:300px}
+  .tabbtn .tx{font-size:10px}
 }

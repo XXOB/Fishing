@@ -383,10 +383,18 @@ function renderCatches(){
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge – trag deinen ersten Fang oben ein.</div>'; return; }
   box.innerHTML = arr.map(catchCard).join("");
 }
-function renderMyFb(){
-  const box=$("myFbList"); if(!box) return;
-  const arr=loadCatches().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
-  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge erfasst.</div>'; return; }
+let CATCH_VIEW_SPOT = null;   // Name des Angelplatzes, oder null = Gesamtfangbuch
+function catchCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name).length; }
+function totalCatchCount(){ return loadCatches().length; }
+function countBadge(n){ return '<span class="countbadge"><span class="fishico">🐟</span>'+n+'</span>'; }
+function renderCatchList(){
+  const box=$("catchList"); if(!box) return;
+  const all=loadCatches();
+  const arr=(CATCH_VIEW_SPOT ? all.filter(c=>c.angelplatz===CATCH_VIEW_SPOT) : all)
+    .sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  const t=$("catchListTitle");
+  if(t) t.textContent = CATCH_VIEW_SPOT ? (CATCH_VIEW_SPOT+" Fangbuch") : "Gesamtfangbuch · alle Fänge";
+  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge'+(CATCH_VIEW_SPOT?' an diesem Angelplatz':' erfasst')+'.</div>'; return; }
   box.innerHTML = arr.map(catchCard).join("");
 }
 
@@ -574,7 +582,9 @@ function toggleList(){
 function refreshFangbuch(){
   renderCatches(); renderMarkers();
   if($("fbTable") && $("fbTable").style.display==="block") renderTable();
-  if($("myFbView") && $("myFbView").style.display==="block") renderMyFb();
+  if($("catchListView") && $("catchListView").style.display!=="none") renderCatchList();
+  if($("fbIndexView") && $("fbIndexView").style.display!=="none") renderFbIndex();
+  if($("homeView") && $("homeView").style.display!=="none") renderSpotList();
 }
 
 function initFangbuch(){
@@ -584,6 +594,7 @@ function initFangbuch(){
   populateCatchSpots();
   updateFilterBtn();
   updateFangbuchBtn();
+  renderBaitList();
   refreshFangbuch();
   initMap();
 }
@@ -929,23 +940,84 @@ function renderSpotList(){
   const box=$("spotList"); if(!box) return;
   const spots=loadSpots();
   if(!spots.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch kein Angelplatz – lege deinen ersten an (Knöpfe unten).</div>'; return; }
-  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+' <small>· Pegel '+esc(s.station||"")+(s.river?' ('+esc(s.river)+')':'')+'</small></button>'+
+  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+
+    '<span class="spotsub">Pegel '+esc(s.station||"")+(s.river?' ('+esc(s.river)+')':'')+'</span></button>'+
+    countBadge(catchCountForSpot(s.name))+
     '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
 }
 function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); }
 /* Ansichten: Start (Liste) · Angelplatz (Daten) · Mein Fangbuch (alle Fänge) */
-function hideAllViews(){ ["homeView","spotView","myFbView","mapCard"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
+function hideAllViews(){ ["homeView","spotView","mapCard","fbIndexView","catchListView","baitView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
 function showHome(){
   hideAllViews();
   const h=$("homeView"); if(h) h.style.display="block";
   const b=$("homeMapBtn"); if(b) b.textContent="🗺️ Karte anzeigen";
   renderSpotList();
+  setActiveTab("places");
 }
-function showMyFangbuch(){
+/* --- Tab 2: Fangbücher (Liste je Angelplatz + Gesamt) --- */
+function showFangbuchList(){
   hideAllViews();
-  const v=$("myFbView"); if(v) v.style.display="block";
-  renderMyFb();
+  const v=$("fbIndexView"); if(v) v.style.display="block";
+  renderFbIndex();
+  setActiveTab("fb");
   window.scrollTo({top:0, behavior:"smooth"});
+}
+function renderFbIndex(){
+  const box=$("fbIndexList"); if(!box) return;
+  const spots=loadSpots();
+  let html='<div class="spotrow"><button class="spotopen" onclick="showCatchList(null)">📚 Gesamtfangbuch'+
+    '<span class="spotsub">alle Angelplätze</span></button>'+countBadge(totalCatchCount())+'</div>';
+  if(spots.length){
+    html+=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="showCatchListBySpot('+s.id+')">📒 '+esc(s.name)+' Fangbuch'+
+      '<span class="spotsub">Pegel '+esc(s.station||"")+(s.river?' ('+esc(s.river)+')':'')+'</span></button>'+
+      countBadge(catchCountForSpot(s.name))+'</div>').join("");
+  } else {
+    html+='<div class="fbnote" style="padding:10px 4px">Noch keine Angelplätze – lege zuerst einen an.</div>';
+  }
+  box.innerHTML=html;
+}
+function showCatchListBySpot(id){ const sp=loadSpots().find(x=>String(x.id)===String(id)); showCatchList(sp?sp.name:null); }
+function showCatchList(spotName){
+  CATCH_VIEW_SPOT = spotName || null;
+  hideAllViews();
+  const v=$("catchListView"); if(v) v.style.display="block";
+  renderCatchList();
+  setActiveTab("fb");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+/* --- Tab 3: Köder-Liste --- */
+const BAIT_KEY="deepfish_koeder_v1";
+function loadBaits(){ try{ return JSON.parse(localStorage.getItem(BAIT_KEY))||[]; }catch(e){ return []; } }
+function saveBaits(a){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(a)); }catch(e){} }
+function showBaitList(){
+  hideAllViews();
+  const v=$("baitView"); if(v) v.style.display="block";
+  renderBaitList();
+  setActiveTab("bait");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function addBait(){
+  const inp=$("baitInput"); if(!inp) return;
+  const name=(inp.value||"").trim(); if(!name) return;
+  const arr=loadBaits();
+  if(!arr.some(b=>b.toLowerCase()===name.toLowerCase())) arr.push(name);
+  saveBaits(arr); inp.value=""; renderBaitList(); inp.focus();
+}
+function deleteBait(i){ const arr=loadBaits(); arr.splice(i,1); saveBaits(arr); renderBaitList(); }
+function renderBaitList(){
+  const arr=loadBaits();
+  const dl=$("koederliste"); if(dl) dl.innerHTML=arr.map(b=>'<option>'+esc(b)+'</option>').join("");
+  const box=$("baitList"); if(!box) return;
+  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Köder – füge oben deinen ersten hinzu. Sie erscheinen dann als Vorschlag im Fangbuch.</div>'; return; }
+  box.innerHTML=arr.map((b,i)=>'<div class="spotrow"><span class="spotopen" style="cursor:default">🪱 '+esc(b)+'</span>'+
+    '<button class="spotdel" title="löschen" onclick="deleteBait('+i+')">✕</button></div>').join("");
+}
+/* --- Tab-Leiste (aktiver Reiter) --- */
+function setActiveTab(which){
+  const map={places:"tabPlaces", fb:"tabFb", bait:"tabBait"};
+  Object.values(map).forEach(id=>{ const e=$(id); if(e) e.classList.remove("active"); });
+  const el=$(map[which]); if(el) el.classList.add("active");
 }
 function openSpot(id){
   if(id) activateSpotById(id);
@@ -955,6 +1027,7 @@ function openSpot(id){
   if(mc) mc.style.display="block";
   initMap();
   setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80);
+  setActiveTab("places");
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function goHome(){ showHome(); }
