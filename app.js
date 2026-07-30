@@ -986,10 +986,31 @@ function showCatchList(spotName){
   setActiveTab("fb");
   window.scrollTo({top:0, behavior:"smooth"});
 }
+/* Fang direkt aus einem Fangbuch eintragen: passenden Angelplatz öffnen + Formular aufklappen */
+function openFangbuchForm(){
+  const box=$("fangbuchBox"); if(box){ box.style.display="block"; updateFangbuchBtn(); }
+  setTimeout(()=>{ const el=$("f_art"); if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); try{ el.focus(); }catch(e){} } }, 160);
+}
+function addCatchFromList(){
+  const spots=loadSpots();
+  if(!spots.length){ alert("Lege zuerst einen Angelplatz an, dann kannst du Fänge eintragen."); showHome(); return; }
+  let sp = CATCH_VIEW_SPOT ? spots.find(s=>s.name===CATCH_VIEW_SPOT) : (activeSpot()||spots[0]);
+  if(!sp) sp=spots[0];
+  openSpot(sp.id);        // Platz aktivieren, Live-Daten laden, Datenansicht zeigen
+  openFangbuchForm();     // Fangbuch-Formular aufklappen + hinscrollen
+}
 /* --- Tab 3: Köder-Liste --- */
 const BAIT_KEY="deepfish_koeder_v1";
 function loadBaits(){ try{ return JSON.parse(localStorage.getItem(BAIT_KEY))||[]; }catch(e){ return []; } }
 function saveBaits(a){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(a)); }catch(e){} }
+const BAIT_INIT_KEY="deepfish_koeder_init_v1";
+const DEFAULT_BAITS=["Tauwurm","Rotwurm","Made","Mais","Boilie","Brot","Käse",
+  "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"];
+function ensureBaitSeed(){                         // Standardköder als Startpunkt (einmalig)
+  if(localStorage.getItem(BAIT_INIT_KEY)) return;
+  if(!loadBaits().length) saveBaits(DEFAULT_BAITS.slice());
+  localStorage.setItem(BAIT_INIT_KEY,"1");
+}
 function showBaitList(){
   hideAllViews();
   const v=$("baitView"); if(v) v.style.display="block";
@@ -1090,6 +1111,7 @@ async function boot(){
     WXPOS={lat:CUR.lat, lon:CUR.lon};
   }
   reflectStation(); renderSpots();
+  ensureBaitSeed();                           // Standardköder beim ersten Start anlegen
   initFangbuch();                             // Formular, Karte (Stationen + Angelplätze)
   showHome();                                 // Startbildschirm: nur Angelplatz-Liste
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
