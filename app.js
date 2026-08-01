@@ -243,7 +243,8 @@ function renderQuality(){
   }).join("");
   if(st){
     if(cur.source==="live"){
-      st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+" (PEGELONLINE) · Stand "+esc(cur.updated);
+      const dtxt = cur.dist>0.3 ? " · "+cur.dist.toFixed(1)+" km" : "";
+      st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+dtxt+" (PEGELONLINE) · Stand "+esc(cur.updated);
     } else {
       const sid=cur.id?String(cur.id):"";
       const surl=sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
@@ -284,33 +285,46 @@ const PO_TS_MAP = { WT:["Wassertemperatur","°C","\u{1F321}️",1], O2:["Sauerst
 window.LIVEWQ = null;
 function hhmm2(iso){ const d=new Date(iso), p=n=>String(n).padStart(2,"0");
   return p(d.getDate())+"."+p(d.getMonth()+1)+"."+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes()); }
+function histFromPO(arr){
+  const by={}; for(const p of arr){ const d=new Date(p.timestamp); d.setMinutes(0,0,0); by[d.getTime()]=+p.value; }
+  return Object.keys(by).sort((a,b)=>a-b).map(k=>({t:new Date(+k).toISOString().slice(0,16), v:Math.round(by[k]*1000)/1000}));
+}
+/* Sucht die nächste Station am selben Fluss, die Wassertemperatur (WT) liefert. */
 async function loadLiveWQ(){
   window.LIVEWQ=null;
-  if(!CUR || !CUR.uuid) return;
-  try{
-    const ts=await getJSON(PO_BASE+"/stations/"+CUR.uuid+"/timeseries.json");
-    const avail={}; (ts||[]).forEach(t=>avail[String(t.shortname||"").toUpperCase()]=true);
-    const items=[], history={};
-    for(const sh in PO_TS_MAP){
-      if(!avail[sh]) continue;
-      let m; try{ m=await getJSON(PO_BASE+"/stations/"+CUR.uuid+"/"+sh+"/measurements.json?start=P8D"); }catch(e){ continue; }
-      if(!m || !m.length) continue;
-      const [label,unit,icon,dec]=PO_TS_MAP[sh];
-      const last=m[m.length-1];
-      items.push({label, value:(+last.value).toFixed(dec).replace(".",","), unit, icon, time:hhmm2(last.timestamp)});
-      if(label==="Wassertemperatur"||label==="Trübung"||label==="Sauerstoff"){
-        const by={}; for(const p of m){ const d=new Date(p.timestamp); d.setMinutes(0,0,0); by[d.getTime()]=+p.value; }
-        history[label]=Object.keys(by).sort((a,b)=>a-b).map(k=>({t:new Date(+k).toISOString().slice(0,16), v:Math.round(by[k]*1000)/1000}));
-      }
+  const sp=activeSpot();
+  const river = (sp&&sp.river) ? sp.river : (CUR&&CUR.river) || null;
+  const cands=[];
+  if(CUR && CUR.uuid) cands.push(CUR);
+  if(river){
+    STATIONS.filter(s=>s.river===river && s.uuid)
+      .map(s=>({s, d:haversine(WXPOS.lat,WXPOS.lon,s.lat,s.lon)}))
+      .sort((a,b)=>a.d-b.d).slice(0,10)
+      .forEach(o=>{ if(!cands.some(c=>c.uuid===o.s.uuid)) cands.push(o.s); });
+  }
+  for(const stn of cands){
+    const d=haversine(WXPOS.lat,WXPOS.lon,stn.lat,stn.lon);
+    if(d>WQ_MAXKM) break;
+    let wt; try{ wt=await getJSON(PO_BASE+"/stations/"+stn.uuid+"/WT/measurements.json?start=P8D"); }catch(e){ continue; }
+    if(!wt || !wt.length) continue;
+    const last=wt[wt.length-1];
+    const items=[{label:"Wassertemperatur", value:(+last.value).toFixed(1).replace(".",","), unit:"°C", icon:"\u{1F321}️", time:hhmm2(last.timestamp)}];
+    const history={ "Wassertemperatur": histFromPO(wt) };
+    for(const sh of ["O2","LF","PH"]){    // Zusatzwerte, wenn die Station sie hat
+      try{ const m=await getJSON(PO_BASE+"/stations/"+stn.uuid+"/"+sh+"/measurements.json?start=PT6H");
+        if(m && m.length){ const def=PO_TS_MAP[sh], l=m[m.length-1];
+          items.push({label:def[0], value:(+l.value).toFixed(def[3]).replace(".",","), unit:def[1], icon:def[2], time:hhmm2(l.timestamp)}); }
+      }catch(e){}
     }
-    if(items.length) window.LIVEWQ={ station:CUR.name, items, history, updated:items[0].time };
-  }catch(e){ /* keine Live-Werte an dieser Station */ }
+    window.LIVEWQ={ station:stn.name, dist:d, items, history, updated:items[0].time };
+    return;
+  }
 }
 /* Aktuelle Wasserqualitäts-Quelle: bevorzugt Live-Pegel (frisch, am Ort), sonst Gütestation (JSON). */
 function wqCurrent(){
   const live=window.LIVEWQ;
   if(live && live.items && live.items.length)
-    return { items:live.items, history:live.history||{}, name:live.station, dist:0, source:"live",
+    return { items:live.items, history:live.history||{}, name:live.station, dist:(live.dist||0), source:"live",
              id:(CUR&&CUR.uuid)||"", updated:live.updated||"" };
   const aw=activeWQ();
   if(aw) return { items:aw.station.items||[], history:aw.station.history||{}, name:aw.station.name, dist:aw.dist,
@@ -396,7 +410,7 @@ function buildRecord(blank){
     koeder: k.label,                 // wird auch beim Trip ohne Fang gespeichert
     koeder_basis: k.base,
     koeder_variante: k.variante,
-    methode: $("f_methode").value.trim(),
+    methode: ($("f_methode") ? $("f_methode").value.trim() : ""),
     notiz: $("f_notiz").value.trim(),
     gps: CURRENT_GPS,
     mondphase: { name:mp.name, alter_tage:mp.age, illumination_pct:mp.illum },
@@ -536,7 +550,19 @@ function importJSON(ev){
 
 /* ---- Leaflet-Karte ---- */
 let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
-let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=true, SPOTS_VISIBLE=true, SPOT_PICK=false, STATION_PICK=false;
+let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=false, SPOTS_VISIBLE=true, SPOT_PICK=false, STATION_PICK=false;
+let WT_SET=null, WT_LOADING=false;
+async function ensureWT(){                       // Set der Pegel-UUIDs mit Wassertemperatur
+  if(WT_SET || WT_LOADING) return;
+  WT_LOADING=true;
+  try{
+    const arr=await getJSON(PO_BASE+"/stations.json?includeTimeseries=true");
+    const set=new Set();
+    for(const s of arr){ if((s.timeseries||[]).some(t=>String(t.shortname||"").toUpperCase()==="WT")) set.add(s.uuid); }
+    WT_SET=set;
+  }catch(e){ WT_SET=new Set(); }
+  WT_LOADING=false;
+}
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
   MAP = L.map("map",{scrollWheelZoom:false}).setView([WXPOS.lat, WXPOS.lon], 12);
@@ -570,12 +596,21 @@ function initMap(){
 function addStationDots(){
   if(!STATIONS_LAYER) return;
   STATIONS_LAYER.clearLayers();
-  let list=STATIONS;
-  try{ if(MAP){ const b=MAP.getBounds(); list=STATIONS.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
-  if(list.length>250) list=list.slice(0,250);
+  if(!STATIONS_VISIBLE) return;
+  // grau: nur Stationen mit Wassertemperatur (WT)
+  let list=STATIONS.filter(s=>WT_SET && WT_SET.has(s.uuid));
+  try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
+  if(list.length>300) list=list.slice(0,300);
   for(const s of list){
     const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:"#7f93b3",weight:1,fillColor:"#7f93b3",fillOpacity:.55});
-    mk.bindTooltip(s.name+" · "+(s.river||"")+" · km "+s.km);
+    mk.bindTooltip("🌡️ "+s.name+" · "+(s.river||"")+" · Wassertemperatur");
+    STATIONS_LAYER.addLayer(mk);
+  }
+  // blau: Wassergütestationen (RLP/Hessen/Bayern)
+  const gu=(window.WQ&&window.WQ.stations)||[];
+  for(const s of gu){ if(s.lat==null) continue;
+    const mk=L.circleMarker([s.lat,s.lon],{radius:5,color:"#3b82f6",weight:2,fillColor:"#3b82f6",fillOpacity:.85});
+    mk.bindTooltip("🔵 Gütestation "+s.name+" · "+(s.river||""));
     STATIONS_LAYER.addLayer(mk);
   }
 }
@@ -594,7 +629,14 @@ function addSpotMarkers(){
     SPOTS_LAYER.addLayer(mk);
   }
 }
-function toggleStationsLayer(){ STATIONS_VISIBLE=!STATIONS_VISIBLE; if(MAP&&STATIONS_LAYER){ if(STATIONS_VISIBLE) STATIONS_LAYER.addTo(MAP); else STATIONS_LAYER.remove(); } updateLayerBtns(); }
+function toggleStationsLayer(){
+  STATIONS_VISIBLE=!STATIONS_VISIBLE; updateLayerBtns();
+  if(!MAP || !STATIONS_LAYER) return;
+  if(STATIONS_VISIBLE){
+    const a=$("layStations"); if(a) a.textContent="… lädt";
+    ensureWT().then(()=>{ addStationDots(); STATIONS_LAYER.addTo(MAP); updateLayerBtns(); });
+  } else { STATIONS_LAYER.remove(); }
+}
 function toggleSpotsLayer(){ SPOTS_VISIBLE=!SPOTS_VISIBLE; if(MAP&&SPOTS_LAYER){ if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP); else SPOTS_LAYER.remove(); } updateLayerBtns(); }
 function updateLayerBtns(){ const a=$("layStations"), b=$("laySpots"); if(a) a.textContent=(STATIONS_VISIBLE?"◉":"○")+" Stationen"; if(b) b.textContent=(SPOTS_VISIBLE?"◉":"○")+" Angelplätze"; }
 function setSelectedLocation(lat, lon, acc, pan){
@@ -1368,13 +1410,14 @@ function populateKoeder(){
   onKoederBaseChange();
 }
 function onKoederBaseChange(){
-  const bsel=$("f_koeder_base"), vsel=$("f_koeder_var"); if(!vsel) return;
+  const bsel=$("f_koeder_base"), vsel=$("f_koeder_var"), field=$("f_var_field"); if(!vsel) return;
   const base=bsel?bsel.value:"";
   const c=loadBaits().find(x=>x.base===base);
-  if(!base || !c || !c.variants.length){
-    vsel.innerHTML='<option value="">'+(base?'— ohne Variante —':'— erst Köder wählen —')+'</option>';
-    vsel.disabled=!base; return;
+  if(!base || !c || !c.variants.length){          // ohne Köder oder ohne Varianten: Variante-Feld ausblenden
+    vsel.innerHTML='<option value="">— ohne Variante —</option>'; vsel.disabled=!base;
+    if(field) field.style.display="none"; return;
   }
+  if(field) field.style.display="";                // erst nach Köderwahl (mit Varianten) einblenden
   vsel.disabled=false;
   vsel.innerHTML='<option value="">— ohne Variante —</option>'+c.variants.map(v=>{
     const det=(v.size||"")+((v.size&&v.color)?", ":"")+(v.color||"");

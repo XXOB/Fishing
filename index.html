@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=27">
+<link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
 <header>
@@ -167,9 +167,7 @@
   </div>
   <div class="fbrow">
     <div class="fbfield"><label>Köder</label><select id="f_koeder_base" onchange="onKoederBaseChange()"></select></div>
-    <div class="fbfield"><label>Variante</label><select id="f_koeder_var"></select></div>
-    <div class="fbfield"><label>Methode</label>
-      <select id="f_methode"><option value="">— Methode —</option><option>Spinnfischen</option><option>Grundangeln</option><option>Posenangeln</option><option>Feedern</option><option>Fliegenfischen</option><option>Ansitz</option></select></div>
+    <div class="fbfield" id="f_var_field" style="display:none"><label>Variante</label><select id="f_koeder_var"></select></div>
   </div>
   <div class="fbrow">
     <div class="fbfield"><label>Datum</label><input id="f_datum" type="date"></div>
@@ -226,7 +224,7 @@
 <div class="mapcard">
   <div class="mapmeta">
     <div>
-      <div class="pos">🎣 Angelplätze · 🔵 aktive Messstation · graue Punkte: weitere Pegel-Stationen · Grün: Fänge · Gelb: Fangort. Tippen setzt den Fangort.</div>
+      <div class="pos">🎣 Angelplätze · grau: Stationen mit Wassertemperatur · blau: Wassergütestationen · grün: Fänge · gelb: Fangort. Stationen über „◉ Stationen" einblenden.</div>
     </div>
     <div class="btns">
       <button onclick="toggleStationsLayer()" id="layStations">◉ Stationen</button>
@@ -299,6 +297,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>
