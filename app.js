@@ -1332,16 +1332,57 @@ function logBlankForTrip(tr){        // fangloser Tag mit den Bedingungen des Tr
     station:{ pegel:CUR?CUR.name:"", pegel_uuid:CUR?CUR.uuid:"", km:CUR?CUR.km:null } };
   const arr=loadCatches(); arr.push(rec); saveCatches(arr);
 }
-function endTrip(){
+function endTrip(){                 // öffnet den Ja/Nein-Dialog
+  if(!activeTrip()) return;
+  const m=$("endTripModal"); if(m) m.style.display="flex"; else endTripNo();
+}
+function closeEndTrip(){ const m=$("endTripModal"); if(m) m.style.display="none"; }
+function endTripYes(){ closeEndTrip(); if(activeTrip()) tripAddCatch(); }
+function endTripNo(){
+  closeEndTrip();
   const tr=activeTrip(); if(!tr) return;
   const hadFish=loadCatches().some(c=>String(c.trip_id)===String(tr.id) && isFish(c));
-  if(confirm("Noch einen Fang eintragen, bevor der Trip endet?")){ tripAddCatch(); return; }
-  if(!hadFish) logBlankForTrip(tr);          // „Nein" ohne bisherigen Fang -> fangloser Tag
+  if(!hadFish) logBlankForTrip(tr);          // ohne Fang -> fangloser Tag
   const arr=loadTrips(); const t=arr.find(x=>String(x.id)===String(tr.id)); if(t) t.end=new Date().toISOString();
   saveTrips(arr); localStorage.removeItem(ACTIVE_TRIP_KEY);
   renderTripBanner(); renderTripList(); refreshFangbuch();
   const f=loadCatches().filter(c=>String(c.trip_id)===String(tr.id) && isFish(c)).length;
   alert(f>0 ? ("Trip beendet – "+f+" Fang"+(f===1?"":"e")+".") : "Trip beendet – als fangloser Tag gespeichert.");
+}
+/* --- Statistik-Menüpunkte: Trip-Erfolgsquote & Fisch-Anteile (Kuchendiagramm) --- */
+function toggleTripSuccess(){ const b=$("tripSuccessBox"); if(!b) return;
+  const show=(b.style.display==="none"||!b.style.display); b.style.display=show?"block":"none"; if(show) renderTripSuccess(); }
+function renderTripSuccess(){
+  const box=$("tripSuccessBox"); if(!box) return;
+  const trips=loadTrips();
+  if(!trips.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Trips gespeichert.</div>'; return; }
+  const succ=trips.filter(t=>loadCatches().some(c=>String(c.trip_id)===String(t.id) && isFish(c))).length;
+  const pct=Math.round(succ/trips.length*100);
+  const fishTotal=loadCatches().filter(c=>c.trip_id!=null && isFish(c)).length;
+  const avg=Math.round(fishTotal/trips.length*10)/10;
+  box.innerHTML='<div class="statcard"><div class="stath">📈 Trips <span class="statn">'+trips.length+' gesamt</span></div>'+
+    '<div class="statline"><span class="statk">Erfolgsquote</span><b>'+pct+' %</b> · '+succ+' von '+trips.length+' Trips mit Fang</div>'+
+    '<div class="statline"><span class="statk">Ø Fänge pro Trip</span><b>'+avg+'</b></div></div>';
+}
+let FISHPIE=null;
+function toggleFishPie(){ const b=$("fishPieBox"); if(!b) return;
+  const show=(b.style.display==="none"||!b.style.display); b.style.display=show?"block":"none"; if(show) renderFishPie(); }
+function renderFishPie(){
+  const box=$("fishPieBox"); if(!box) return;
+  const fish=loadCatches().filter(isFish);
+  const by={}; fish.forEach(c=>{ const f=(c.fischart||"").trim()||"?"; by[f]=(by[f]||0)+1; });
+  const entries=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge.</div>'; return; }
+  const total=fish.length;
+  const colors=["#38bdf8","#4ade80","#fbbf24","#f87171","#a78bfa","#2dd4bf","#fb923c","#f472b6","#60a5fa","#a3e635","#e879f9","#facc15"];
+  box.innerHTML='<div class="statcard"><div class="cmcanvas" style="height:260px;position:relative"><canvas id="fishPieCanvas"></canvas></div>'+
+    '<div class="fbnote" style="margin-top:10px;line-height:1.7">'+entries.map((e,i)=>
+      '<span style="color:'+colors[i%colors.length]+'">●</span> '+esc(e[0])+': '+e[1]+' ('+Math.round(e[1]/total*100)+' %)').join(' · ')+'</div></div>';
+  const cv=$("fishPieCanvas"); if(!cv || !window.Chart) return;
+  if(FISHPIE){ try{ FISHPIE.destroy(); }catch(e){} }
+  FISHPIE=new Chart(cv.getContext("2d"),{ type:"pie",
+    data:{ labels:entries.map(e=>e[0]), datasets:[{ data:entries.map(e=>e[1]), backgroundColor:entries.map((e,i)=>colors[i%colors.length]), borderColor:"#0a0e14", borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:"#e8eef7" } } } } });
 }
 function tripDur(startIso, endIso){
   const ms=(endIso?new Date(endIso):new Date())-new Date(startIso);
