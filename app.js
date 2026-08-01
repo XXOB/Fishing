@@ -242,7 +242,9 @@ function renderQuality(){
       '<div class="meta">'+badge+'Stand: '+(it.time||"–")+'</div></div>';
   }).join("");
   if(st){
-    const link = aw.station.id ? ' · <a href="https://geodaten-wasser.rlp-umwelt.de/gus/'+esc(aw.station.id)+'/messwerte" target="_blank" rel="noopener">amtlich ↗</a>' : '';
+    const sid = aw.station.id ? String(aw.station.id) : "";
+    const surl = sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
+    const link = surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich ↗</a>' : '';
     st.innerHTML="Gütestation "+esc(aw.station.name)+" · "+aw.dist.toFixed(1)+" km entfernt · Stand "+esc(aw.station.updated||(window.WQ&&window.WQ.updated)||"")+link;
   }
 }

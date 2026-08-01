@@ -43,6 +43,16 @@ QUALITY_STATIONS = [
 ]
 GUS_URL = "https://geodaten-wasser.rlp-umwelt.de/gus/{id}/download"
 
+# --- Hessen (HLNUG) --------------------------------------------------------
+# Kontinuierliche Guetestationen von Hessen. Der Headless-Browser oeffnet die
+# Portalseite und faengt den Datenabruf (JSON) der Seite selbst ab -> laeuft
+# serverseitig in jeder Umgebung, ohne Browser-Erweiterung. Weitere Stationen:
+# messstelle-URL aus dem HLNUG-Datenportal + Koordinaten + Fluss ergaenzen.
+HESSEN_STATIONS = [
+    {"url": "https://www.hlnug.de/messwerte/datenportal/messstelle/4/6/2101",
+     "name": "Bischofsheim (Main)", "lat": 50.0040, "lon": 8.3430, "river": "Main"},
+]
+
 BASE_DIR  = Path(__file__).resolve().parent
 JSON_FILE = BASE_DIR / "wasserwerte.json"
 CSV_DIR   = BASE_DIR / "wasserwerte_csv"
@@ -282,6 +292,137 @@ def build_history(rows):
     return out
 
 
+# --------------------------------------------------------- Hessen (HLNUG) -----
+def _safe_json(txt):
+    try: return json.loads(txt)
+    except Exception: return None
+
+def capture_hessen(url):
+    """Oeffnet die HLNUG-Portalseite und faengt alle JSON-Antworten der Seite ab."""
+    from playwright.sync_api import sync_playwright
+    payloads = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx = browser.new_context(accept_downloads=True)
+        page = ctx.new_page()
+        def on_resp(resp):
+            try:
+                ct = (resp.headers or {}).get("content-type", "").lower()
+                u  = resp.url
+                if ("json" in ct) or u.lower().endswith(".json") or \
+                   any(k in u.lower() for k in ("messwert","daten","json","chart","tabelle","werte","api")):
+                    body = resp.text()
+                    if body and body[:1] in "[{":
+                        payloads.append((u, ct, body))
+            except Exception:
+                pass
+        page.on("response", on_resp)
+        print(f"      oeffne {url}")
+        page.goto(url, wait_until="networkidle", timeout=90_000)
+        for label in ["Akzeptieren","Alle akzeptieren","Zustimmen","Einverstanden","OK","Accept","Speichern"]:
+            try:
+                b = page.get_by_role("button", name=re.compile(label, re.I))
+                if b.count() and b.first.is_visible(): b.first.click(timeout=1500); break
+            except Exception: pass
+        for sel in ["text=/Tabellarische Darstellung/i","text=/Tabelle/i","text=/Grafische/i"]:
+            try:
+                loc = page.locator(sel)
+                if loc.count(): loc.first.click(timeout=3000); page.wait_for_timeout(2500)
+            except Exception: pass
+        page.wait_for_timeout(3000)
+        browser.close()
+    print(f"      {len(payloads)} JSON-Antwort(en) erfasst:")
+    for (u, ct, body) in payloads[:15]:
+        snip = re.sub(r"\s+", " ", body[:160])
+        print(f"        - {u}  [{ct}]  {len(body)}B :: {snip}")
+    return payloads
+
+def _find_dt(d):
+    for k in d:
+        if any(x in k.lower() for x in ("datum","zeit","time","date","stamp")): return d[k]
+    return None
+def _find_val(d):
+    for k in d:
+        if any(x in k.lower() for x in ("wert","value","messwert","mw","y")): return d[k]
+    return None
+
+def hessen_extract(objs):
+    """Sucht in beliebig geschachteltem JSON nach (Parametername + Messreihe)."""
+    series = {}   # label -> {"unit":u, "icon":ic, "dec":d, "pts":[(dt,val)]}
+    def add(name, unit, data):
+        m = map_bez(str(name))
+        if not m: return
+        label, icon, dec = m
+        pts = []
+        for pt in data:
+            dt = val = None
+            if isinstance(pt, dict):
+                dt = parse_dt(str(_find_dt(pt) or "")); val = to_number(str(_find_val(pt)))
+            elif isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                dt = parse_dt(str(pt[0])); val = to_number(str(pt[1]))
+            if val is not None: pts.append((dt, val))
+        if not pts: return
+        s = series.setdefault(label, {"unit":unit or "", "icon":icon, "dec":dec, "pts":[]})
+        s["pts"].extend(pts)
+        if unit and not s["unit"]: s["unit"] = unit
+    def visit(node, ctx=None):
+        if isinstance(node, dict):
+            name = (node.get("parameter") or node.get("name") or node.get("kenngroesse")
+                    or node.get("bezeichnung") or node.get("title") or ctx)
+            unit = node.get("einheit") or node.get("unit") or node.get("uom") or ""
+            for dk in ("data","values","werte","messwerte","series","points","daten"):
+                if isinstance(node.get(dk), list) and node[dk] and isinstance(node[dk][0], (dict, list, tuple)):
+                    add(name, unit, node[dk])
+            for k, v in node.items():
+                if isinstance(v, (dict, list)): visit(v, k)
+        elif isinstance(node, list):
+            for it in node: visit(it, ctx)
+    for o in objs:
+        if o is not None:
+            try: visit(o)
+            except Exception: pass
+    return series
+
+def hessen_build(series):
+    items = []
+    for label in ORDER:
+        s = series.get(label)
+        if not s or not s["pts"]: continue
+        pts = sorted([p for p in s["pts"] if p[0] is not None], key=lambda x: x[0]) or s["pts"]
+        dt, val = pts[-1]
+        items.append({"label":label, "value":fmt_value(val, s["dec"]), "unit":s["unit"],
+                      "icon":s["icon"], "time":(dt.strftime("%d.%m.%Y %H:%M") if dt else "")})
+    cutoff = datetime.now() - timedelta(days=HIST_DAYS)
+    history = {}
+    for label in HIST_LABELS:
+        s = series.get(label)
+        if not s: continue
+        buckets = {}
+        for dt, val in s["pts"]:
+            if dt is None or dt < cutoff: continue
+            hk = dt.replace(minute=0, second=0, microsecond=0)
+            buckets[hk] = val
+        if buckets:
+            history[label] = [{"t":k.strftime("%Y-%m-%dT%H:%M"), "v":round(v,3)}
+                              for k, v in sorted(buckets.items())]
+    return items, history
+
+def process_hessen(st):
+    print(f"[Hessen] {st['name']} ...")
+    payloads = capture_hessen(st["url"])
+    series = hessen_extract([_safe_json(b) for (_u,_c,b) in payloads])
+    items, history = hessen_build(series)
+    if not items:
+        raise RuntimeError("keine Messgroessen erkannt – siehe erfasste Endpunkte oben")
+    for it in items:
+        print(f"      {it['label']}: {it['value']} {it['unit']}  (Stand {it['time']})")
+    return {
+        "id": st["url"], "name": st["name"], "lat": st["lat"], "lon": st["lon"], "river": st["river"],
+        "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+        "items": items, "history": history,
+    }
+
+
 # ------------------------------------------------------------------- Main -----
 def write_json(stations):
     payload = {
@@ -312,9 +453,14 @@ def process_station(st):
 
 def main():
     results = []
-    for st in QUALITY_STATIONS:
+    for st in QUALITY_STATIONS:            # RLP
         try:
             results.append(process_station(st))
+        except Exception as e:
+            print(f"      FEHLER bei {st['name']}: {e}")
+    for st in HESSEN_STATIONS:             # Hessen (HLNUG)
+        try:
+            results.append(process_hessen(st))
         except Exception as e:
             print(f"      FEHLER bei {st['name']}: {e}")
     if not results:
