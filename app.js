@@ -245,6 +245,10 @@ function renderQuality(){
     if(cur.source==="live"){
       const dtxt = cur.dist>0.3 ? " · "+cur.dist.toFixed(1)+" km" : "";
       st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+dtxt+" (PEGELONLINE) · Stand "+esc(cur.updated);
+    } else if(cur.src==="niz"){
+      const bet=cur.betreiber?" · "+esc(cur.betreiber):"";
+      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
+        bet+' · Daten: <a href="https://niz.baden-wuerttemberg.de/oberflaechengewaesser/gueteparameter" target="_blank" rel="noopener">LUBW/NIZ ↗</a>';
     } else {
       const sid=cur.id?String(cur.id):"";
       const surl=sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
@@ -262,6 +266,7 @@ async function loadQuality(){
       else if(j && Array.isArray(j.items)) window.WQ = { updated:j.updated||"", stations:[{ id:"2511510500", name:"Mainz-Wiesbaden", lat:50.0068, lon:8.2795, river:"Rhein", updated:j.updated||"", items:j.items, history:j.history||{} }] };
     }
   }catch(e){ /* z.B. lokal ohne Server geöffnet */ }
+  mergeNIZ();                               // BW-NIZ-Stationen anhängen (falls schon geladen)
   renderQuality();
 }
 function activeWQ(){
@@ -328,8 +333,49 @@ function wqCurrent(){
              id:(CUR&&CUR.uuid)||"", updated:live.updated||"" };
   const aw=activeWQ();
   if(aw) return { items:aw.station.items||[], history:aw.station.history||{}, name:aw.station.name, dist:aw.dist,
-                  source:"guete", id:aw.station.id||"", updated:aw.station.updated||(window.WQ&&window.WQ.updated)||"" };
+                  source:"guete", id:aw.station.id||"", src:aw.station.src||"", betreiber:aw.station.betreiber||"",
+                  updated:aw.station.updated||(window.WQ&&window.WQ.updated)||"" };
   return null;
+}
+
+/* Baden-Württemberg: Live-Wassergüte (Temperatur + O2/pH/Leitfähigkeit/Trübung) direkt vom
+   NIZ-Backend der LUBW (client-seitig, CORS offen). 133 Stationen in einem Aufruf.
+   Es wird nichts gespeichert/neu gehostet – der Browser lädt direkt bei der LUBW. */
+const NIZ_URL = "https://inovum-services.de/gmb/md/v1/gewaesser;1.0.0?page[limit]=1000";
+window.NIZBW = [];
+function nizTime(ms){ if(!ms) return ""; const d=new Date(+ms), p=n=>String(n).padStart(2,"0");
+  return p(d.getDate())+"."+p(d.getMonth()+1)+"."+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes()); }
+function mergeNIZ(){
+  if(!window.NIZBW || !window.NIZBW.length) return;
+  if(!window.WQ) window.WQ={updated:"",stations:[]};
+  if(!Array.isArray(window.WQ.stations)) window.WQ.stations=[];
+  const have=new Set(window.WQ.stations.map(s=>s.id));
+  for(const s of window.NIZBW){ if(!have.has(s.id)) window.WQ.stations.push(s); }
+}
+async function loadNizBW(){
+  if(window.NIZBW && window.NIZBW.length) return;         // nur einmal laden
+  let j; try{ const r=await fetch(NIZ_URL,{cache:"no-store"}); if(!r.ok) return; j=await r.json(); }catch(e){ return; }
+  const out=[];
+  for(const it of (j.data||[])){
+    const a=it.attributes||{}, g=a.geometry||{}; if(g.lat==null) continue;
+    const M=a.messreihen||{}, items=[];
+    const push=(mr,label,unit,icon,dec)=>{
+      if(!mr || (mr.status && mr.status!=="operational")) return;
+      const v=mr.values && mr.values.latest; if(v==null || v==="") return;
+      const num=parseFloat(String(v).replace(",",".")); if(isNaN(num)) return;
+      items.push({label, value:num.toFixed(dec).replace(".",","), unit, icon, time:nizTime(mr.values["latest-ts"])});
+    };
+    push(M.temp,"Wassertemperatur","°C","\u{1F321}️",1);
+    push(M.o2,"Sauerstoff","mg/l","\u{1FAE7}",1);
+    push(M.tr,"Trübung","FNU","\u{1F32B}️",1);
+    push(M.lf,"Leitfähigkeit","µS/cm","⚡",0);
+    push(M.pH,"pH-Wert","","⚗️",1);
+    if(!items.length) continue;
+    out.push({ id:"niz-"+(a.id||it.id), name:(a.name||a.gewaesser||""), lat:g.lat, lon:g.lon,
+               river:(a.gewaesser||""), betreiber:(a.betreiber||""), src:"niz",
+               updated:items[0].time, items, history:{} });
+  }
+  window.NIZBW=out; mergeNIZ();
 }
 
 /* ===================== Fangbuch ===================== */
@@ -1734,6 +1780,7 @@ async function boot(){
   }
   reflectStation(); renderSpots();
   ensureBaitSeed();                           // Standardköder beim ersten Start anlegen
+  loadNizBW().then(()=>{ renderQuality(); if(typeof addStationDots==="function") addStationDots(); });  // BW-Wassergüte (LUBW/NIZ)
   initFangbuch();                             // Formular, Karte (Stationen + Angelplätze)
   showHome();                                 // Startbildschirm: Angelplätze + Trips
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
