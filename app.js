@@ -398,7 +398,7 @@ function catchCard(c){
     '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
     '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
     (c.angelplatz?' · <b>'+esc(c.angelplatz)+'</b>':'')+' · '+esc(c.gewaesser||"")+
-    (c.koeder?' · '+baitIcon(c.koeder)+' '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
+    (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
     (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
     (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
 }
@@ -503,10 +503,7 @@ function initMap(){
       SPOT_PICK=false; const hb=$("markHint"); if(hb) hb.style.display="none";
       createSpotAt(e.latlng.lat, e.latlng.lng); return;
     }
-    setSelectedLocation(e.latlng.lat, e.latlng.lng, null, false);
-    MARKING=false;
-    const hb=$("markHint");
-    if(hb){ hb.innerHTML='✓ Fangort markiert. <a href="#" onclick="scrollToSave();return false;">↑ zum Speichern</a>'; hb.style.display="block"; }
+    if(MARKING){ setProvFangort(e.latlng.lat, e.latlng.lng); }
   });
   updateLayerBtns();
   renderMarkers();
@@ -556,7 +553,7 @@ function setSelectedLocation(lat, lon, acc, pan){
     ' · <a href="#" onclick="clearSelectedLocation();return false;">entfernen</a>';
 }
 function clearSelectedLocation(){
-  CURRENT_GPS=null; MARKING=false;
+  CURRENT_GPS=null; MARKING=false; removeProv();
   if(SELECT_MARKER && MAP){ MAP.removeLayer(SELECT_MARKER); SELECT_MARKER=null; }
   const gi=$("gpsInfo"); if(gi) gi.textContent="Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren\".";
   const b=$("gpsBtn"); if(b) b.textContent="📍 Handy-Standort";
@@ -578,14 +575,39 @@ function renderMarkers(){
   if(cs.length){ try{ MAP.fitBounds(L.featureGroup(CATCH_LAYER.getLayers()).getBounds().pad(0.3)); }catch(e){} }
 }
 
-let MARKING=false;
+let MARKING=false, PROV=null, PROV_MARKER=null;
 function markOnMap(){
-  MARKING=true;
+  MARKING=true; removeProv();
   if(!MAP) initMap();
   const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe auf die Karte an die Stelle deines Fangs."; hb.style.display="block"; }
   const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
 }
+function setProvFangort(lat, lon){                 // erst provisorisch – muss bestätigt werden
+  PROV={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6) };
+  if(MAP && window.L){
+    if(!PROV_MARKER){ PROV_MARKER=L.circleMarker([lat,lon],{radius:9,color:"#fbbf24",weight:2,dashArray:"4 3",fillColor:"#fbbf24",fillOpacity:.25}).addTo(MAP); }
+    else PROV_MARKER.setLatLng([lat,lon]);
+  }
+  const hb=$("markHint");
+  if(hb){ hb.innerHTML='📍 Fangort hier setzen? <button class="mhbtn" onclick="confirmFangort()">✓ Bestätigen</button><button class="mhbtn sec" onclick="cancelFangort()">✕ Abbrechen</button>'; hb.style.display="block"; }
+}
+function removeProv(){ if(PROV_MARKER && MAP){ try{ MAP.removeLayer(PROV_MARKER); }catch(e){} } PROV_MARKER=null; PROV=null; }
+function confirmFangort(){
+  if(!PROV) return;
+  setSelectedLocation(PROV.lat, PROV.lon, null, false);
+  removeProv();
+  const hb=$("markHint");
+  if(hb){ hb.innerHTML='✓ Fangort gesetzt · für einen weiteren Ort erneut tippen · <a href="#" onclick="scrollToSave();return false;">↑ Fang speichern</a> · <a href="#" onclick="stopMarking();return false;">fertig</a>'; hb.style.display="block"; }
+  // MARKING bleibt aktiv – der nächste Fangort kann direkt markiert werden
+}
+function cancelFangort(){ removeProv(); const hb=$("markHint"); if(hb){ hb.innerHTML='👆 Tippe auf die Karte an die Stelle deines Fangs.'; hb.style.display="block"; } }
+function stopMarking(){ MARKING=false; removeProv(); const hb=$("markHint"); if(hb) hb.style.display="none"; }
 function scrollToSave(){ const b=document.getElementById("fbSaveBtn"); if(b) b.scrollIntoView({behavior:"smooth", block:"center"}); }
+function centerOnActiveSpot(){
+  if(!MAP) return;
+  const sp=activeSpot(); const ll = sp ? spotLatLon(sp) : [WXPOS.lat, WXPOS.lon];
+  try{ MAP.setView(ll, Math.max(MAP.getZoom()||13, 13)); }catch(e){}
+}
 function renderTable(){
   const box=$("fbTable"); if(!box) return;
   const arr=catchesForView().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
@@ -808,7 +830,7 @@ function renderBite(){
   const rows=BITE.map(sp=>{
     const r=evalBite(sp,ctx);
     const rec=bestBaitForFish(sp.name);
-    const recHtml = rec ? '<div class="biterec">🎣 Bewährter Köder bei dir: '+baitIcon(rec.koeder)+' <b>'+esc(rec.koeder)+
+    const recHtml = rec ? '<div class="biterec">🎣 Bewährter Köder bei dir: <b>'+esc(rec.koeder)+
       '</b> <small>('+rec.count+' von '+rec.total+' '+esc(sp.name)+'-Fängen)</small></div>' : '';
     return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
       '<span class="bitedot bd-'+r.color+'"></span>'+sp.name+
@@ -957,29 +979,44 @@ function pickAuto(){
   navigator.geolocation.getCurrentPosition(p=>{ createSpotAt(p.coords.latitude, p.coords.longitude); },
     ()=>alert("Ortung fehlgeschlagen."), {enableHighAccuracy:true, timeout:10000, maximumAge:0});
 }
-function createSpotAt(lat, lon){
-  const name=(prompt("Name des Angelplatzes:","")||"").trim();
-  if(!name) return;
-  const t=(prompt("Gewässertyp?   1 = Fluss   2 = See   3 = Meer","1")||"").trim();
-  const typ = t==="2" ? "see" : t==="3" ? "meer" : "fluss";
-  const upsert=(base)=>{
-    const spots=loadSpots();
-    let sp=spots.find(x=>x.name.toLowerCase()===name.toLowerCase());
-    if(sp) Object.assign(sp, base); else spots.push(base);
-    saveSpots(spots); addSpotMarkers(); openSpot(base.id);
-  };
+let PENDING_SPOT=null;
+function createSpotAt(lat, lon){                 // öffnet den Dialog (Name + Typ-Dropdown)
+  PENDING_SPOT={lat, lon};
+  if($("as_name")) $("as_name").value="";
+  if($("as_typ")) $("as_typ").value="fluss";
+  if($("as_gw")) $("as_gw").value="";
+  asTypeChange();
+  const m=$("addSpotModal"); if(m) m.style.display="flex";
+  setTimeout(()=>{ const n=$("as_name"); if(n) n.focus(); }, 60);
+}
+function asTypeChange(){
+  const typ=$("as_typ")?$("as_typ").value:"fluss";
+  const row=$("as_gwrow"), hint=$("as_hint");
+  if(typ==="fluss"){ if(row) row.style.display="none"; if(hint) hint.textContent="Für Flüsse wählst du danach die passende Pegelstation."; }
+  else { if(row) row.style.display=""; if(hint) hint.textContent="See/Meer: kein Pegel – Wetter, Mond & Bedingungen werden gespeichert."; }
+}
+function closeAddSpot(){ const m=$("addSpotModal"); if(m) m.style.display="none"; PENDING_SPOT=null; }
+function confirmAddSpot(){
+  if(!PENDING_SPOT) return;
+  const name=($("as_name")?$("as_name").value:"").trim();
+  if(!name){ alert("Bitte einen Namen eingeben."); if($("as_name")) $("as_name").focus(); return; }
+  const typ=$("as_typ")?$("as_typ").value:"fluss";
+  const lat=PENDING_SPOT.lat, lon=PENDING_SPOT.lon;
+  const exId=()=>{ const ex=loadSpots().find(x=>x.name.toLowerCase()===name.toLowerCase()); return ex?ex.id:Date.now(); };
+  const upsert=(base)=>{ const spots=loadSpots(); let sp=spots.find(x=>x.name.toLowerCase()===name.toLowerCase());
+    if(sp) Object.assign(sp, base); else spots.push(base); saveSpots(spots); addSpotMarkers(); openSpot(base.id); };
   if(typ==="fluss"){
+    const m=$("addSpotModal"); if(m) m.style.display="none";      // Stationswahl folgt
     openStationPicker(lat, lon, function(uuid){
       const st=STATIONS.find(x=>x.uuid===uuid) || nearestStation(lat,lon);
-      const ex=loadSpots().find(x=>x.name.toLowerCase()===name.toLowerCase());
-      upsert({id: ex?ex.id:Date.now(), name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), typ:"fluss",
+      upsert({id:exId(), name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), typ:"fluss",
         uuid:st.uuid, station:st.name, river:st.river, gewaesser:st.river});
+      PENDING_SPOT=null;
     });
   } else {
-    const gw=(prompt("Name des Gewässers (z. B. Bodensee, Ostsee bei Kühlungsborn):","")||"").trim() || (typ==="see"?"See":"Meer");
-    const ex=loadSpots().find(x=>x.name.toLowerCase()===name.toLowerCase());
-    upsert({id: ex?ex.id:Date.now(), name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), typ,
-      uuid:null, station:"", river:gw, gewaesser:gw});
+    const gw=($("as_gw")?$("as_gw").value:"").trim() || (typ==="see"?"See":"Meer");
+    upsert({id:exId(), name, lat:+lat.toFixed(6), lon:+lon.toFixed(6), typ, uuid:null, station:"", river:gw, gewaesser:gw});
+    closeAddSpot();
   }
 }
 function activateSpotById(id, latlon){
@@ -988,7 +1025,7 @@ function activateSpotById(id, latlon){
   activateStationFor(sp.uuid);
   const ll = latlon || spotLatLon(sp);
   WXPOS={ lat:ll[0], lon:ll[1] };
-  reflectStation(); updateStationMarker(); populateCatchSpots(); renderSpots();
+  reflectStation(); updateStationMarker(); centerOnActiveSpot(); populateCatchSpots(); renderSpots();
   updateFilterBtn(); updateFangbuchBtn(); refreshFangbuch();
   loadAll();
 }
@@ -1009,10 +1046,15 @@ function renderSpots(){
   }
   renderSpotList();
 }
+const PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
 function renderSpotList(){
   const box=$("spotList"); if(!box) return;
   const spots=loadSpots();
-  if(!spots.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch kein Angelplatz – lege deinen ersten an (Knöpfe unten).</div>'; return; }
+  if(!spots.length){ box.innerHTML=
+    '<div class="emptycard"><div class="emptyicon">'+PIN_SVG+'</div>'+
+    '<div class="emptytitle">Noch kein Angelplatz gespeichert</div>'+
+    '<div class="emptydesc">Wähle deinen Platz auf der Karte aus, wenn du ihn hinzufügen möchtest. Eine Standortfreigabe ist nicht nötig.</div>'+
+    '<button class="btn-primary" onclick="newSpotOnMap()">Angelplatz hinzufügen</button></div>'; return; }
   box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span></button>'+
     countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+
@@ -1161,7 +1203,7 @@ function renderBaitList(){
     const open=!!BAIT_OPEN[c.base.toLowerCase()];
     let h='<div class="baitcat"><div class="baitcatrow">'+
       '<button class="baitcathead" onclick="toggleBaitCat('+i+')"><span class="tw">'+(open?'▾':'▸')+'</span> '+
-        baitIcon(c.base)+' '+esc(c.base)+' <small>'+c.variants.length+' Variante'+(c.variants.length===1?'':'n')+'</small></button>'+
+        esc(c.base)+' <small>'+c.variants.length+' Variante'+(c.variants.length===1?'':'n')+'</small></button>'+
       countBadgeFish(koederCatchCount(c.base,true))+
       '<button class="spotdel" title="Köder löschen" onclick="deleteBaitCat('+i+')">✕</button></div>';
     if(open){
@@ -1183,7 +1225,7 @@ function renderBaitList(){
 function populateKoeder(){
   const bsel=$("f_koeder_base"); if(!bsel) return;
   const cats=loadBaits(), cur=bsel.value;
-  bsel.innerHTML='<option value="">— Köder —</option>'+cats.map(c=>'<option value="'+esc(c.base)+'">'+baitIcon(c.base)+' '+esc(c.base)+'</option>').join("");
+  bsel.innerHTML='<option value="">— Köder —</option>'+cats.map(c=>'<option value="'+esc(c.base)+'">'+esc(c.base)+'</option>').join("");
   if(cur && cats.some(c=>c.base===cur)) bsel.value=cur;
   onKoederBaseChange();
 }
@@ -1239,7 +1281,7 @@ function showStats(){
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function statLine(k, arr, withIcon){
-  const body = arr.length ? arr.map(s=>(withIcon?baitIcon(s.key)+' ':'')+esc(s.key)+' <b>'+s.count+'</b>').join(" · ") : "–";
+  const body = arr.length ? arr.map(s=>esc(s.key)+' <b>'+s.count+'</b>').join(" · ") : "–";
   return '<div class="statline"><span class="statk">'+k+'</span>'+body+'</div>';
 }
 function renderStats(){
@@ -1262,7 +1304,7 @@ function openSpot(id){
   if(sv) sv.style.display="block";
   if(mc) mc.style.display="block";
   initMap();
-  setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80);
+  setTimeout(()=>{ try{ if(MAP){ MAP.invalidateSize(); centerOnActiveSpot(); } }catch(e){} }, 90);
   setActiveTab("places");
   window.scrollTo({top:0, behavior:"smooth"});
 }

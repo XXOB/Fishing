@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 <header>
@@ -13,12 +13,8 @@
     <div class="logo">🎣</div>
     <div>
       <h1>DeepFish</h1>
-      <div class="sub">Angelplätze an deutschen Gewässern · Live-Bedingungen</div>
+      <div class="sub">Angelplätze &amp; Live-Bedingungen an deutschen Gewässern</div>
     </div>
-  </div>
-  <div>
-    <div class="updated" id="updated">lädt …</div>
-    <button class="refresh" onclick="loadAll()">↻ Aktualisieren</button>
   </div>
 </header>
 
@@ -51,16 +47,19 @@
 </div>
 
 <div id="homeView">
-  <div class="sect">Deine Angelplätze</div>
+  <div class="pagelabel">Meine Angelplätze</div>
+  <h2 class="pagetitle">Angelplätze verwalten</h2>
+  <p class="pagedesc">Erstelle deine Spots und lege fest, welche Messstellen verwendet werden.</p>
+  <button class="btn-primary block" onclick="newSpotOnMap()">+ Angelplatz hinzufügen</button>
   <div id="spotList" class="spotlist"></div>
-  <div class="homebtns">
-    <button onclick="pickAuto()">📍 Platz hier anlegen</button>
-    <button onclick="newSpotOnMap()">🗺️ Platz auf Karte anlegen</button>
-    <button onclick="toggleHomeMap()" id="homeMapBtn">🗺️ Karte anzeigen</button>
-  </div>
+  <button onclick="toggleHomeMap()" id="homeMapBtn" style="display:none"></button>
 </div>
 
 <div id="spotView" style="display:none">
+<div class="datatop">
+  <div class="updated" id="updated">lädt …</div>
+  <button class="refresh" onclick="loadAll()">↻ Aktualisieren</button>
+</div>
 <div class="stabar">
   <div class="staleft">
     <div class="starow">
@@ -271,8 +270,28 @@
   </div>
 </div>
 
+<div id="addSpotModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeAddSpot()">
+  <div class="cmbox">
+    <div class="cmhead"><span>Angelplatz hinzufügen</span><button class="cmx" onclick="closeAddSpot()" aria-label="Schließen">✕</button></div>
+    <div class="fbfield"><label>Name</label><input id="as_name" placeholder="z. B. Buhne bei Bodenheim"></div>
+    <div class="fbfield" style="margin-top:10px"><label>Gewässertyp</label>
+      <select id="as_typ" onchange="asTypeChange()">
+        <option value="fluss">Fluss</option>
+        <option value="see">See</option>
+        <option value="meer">Meer</option>
+      </select>
+    </div>
+    <div class="fbfield" id="as_gwrow" style="margin-top:10px;display:none"><label>Gewässername</label><input id="as_gw" placeholder="z. B. Bodensee"></div>
+    <div class="fbnote" id="as_hint" style="margin-top:10px">Für Flüsse wählst du danach die passende Pegelstation.</div>
+    <div class="fbactions" style="margin-top:14px">
+      <button class="btn-primary" onclick="confirmAddSpot()">Weiter</button>
+      <button class="backbtn" onclick="closeAddSpot()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>
