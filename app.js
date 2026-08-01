@@ -223,29 +223,33 @@ function classifyWQ(label, num){
 function renderQuality(){
   const box=$("quality"); if(!box) return;
   const st=$("qStamp");
-  const aw=activeWQ();
-  if(!aw){
+  const cur=wqCurrent();
+  if(!cur){
     box.innerHTML='<div class="qtile"><div class="lbl">🌊 Wasserqualität</div>'+
-      '<div class="hint">Für dieses Gewässer gibt es (noch) keine unterstützte Gütestation in der Nähe. Weitere Stationen folgen (Phase 2). Pegel &amp; Wetter passen aber zum Angelplatz.</div></div>';
+      '<div class="hint">Für dieses Gewässer liegen (noch) keine Wasserwerte vor. Pegel &amp; Wetter passen aber zum Angelplatz.</div></div>';
     if(st) st.textContent="";
     return;
   }
-  const items=(aw.station.items||[]).filter(it=> it.label!=="pH-Wert" && it.label!=="Leitfähigkeit");
-  const CHARTABLE={"Wassertemperatur":1,"O₂-Sättigung":1,"Trübung":1};
+  const items=(cur.items||[]).filter(it=> it.label!=="pH-Wert" && it.label!=="Leitfähigkeit");
+  const CHARTABLE={"Wassertemperatur":1,"O₂-Sättigung":1,"Trübung":1,"Sauerstoff":1};
   box.innerHTML = items.map(it=>{
     const cls=classifyWQ(it.label, deNum(it.value));
     const badge = cls ? '<span class="pgbadge '+cls.c+'">'+cls.t+'</span>' : '';
     const stripe = cls ? stripeColor(cls.c) : "var(--water)";
-    const clk = CHARTABLE[it.label] ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
+    const clk = (CHARTABLE[it.label] && (cur.history||{})[it.label]) ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
     return '<div class="tile'+clk+'" style="border-top-color:'+stripe+'"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
       '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
       '<div class="meta">'+badge+'Stand: '+(it.time||"–")+'</div></div>';
   }).join("");
   if(st){
-    const sid = aw.station.id ? String(aw.station.id) : "";
-    const surl = sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
-    const link = surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich ↗</a>' : '';
-    st.innerHTML="Gütestation "+esc(aw.station.name)+" · "+aw.dist.toFixed(1)+" km entfernt · Stand "+esc(aw.station.updated||(window.WQ&&window.WQ.updated)||"")+link;
+    if(cur.source==="live"){
+      st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+" (PEGELONLINE) · Stand "+esc(cur.updated);
+    } else {
+      const sid=cur.id?String(cur.id):"";
+      const surl=sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
+      const link=surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich ↗</a>' : '';
+      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+link;
+    }
   }
 }
 
@@ -271,6 +275,47 @@ function activeWQ(){
   for(const s of cand){ if(s.lat==null) continue; const d=haversine(WXPOS.lat,WXPOS.lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
   if(!best || bd>WQ_MAXKM) return null;
   return { station:best, dist:bd };
+}
+
+/* Live-Wasserwerte direkt vom Pegel des Angelplatzes (PEGELONLINE, ganz Deutschland).
+   Viele WSV-Stationen liefern Wassertemperatur (WT), einige auch O2/Leitfähigkeit/pH – im 15-Min-Takt. */
+const PO_TS_MAP = { WT:["Wassertemperatur","°C","\u{1F321}️",1], O2:["Sauerstoff","mg/l","\u{1FAE7}",1],
+                    LF:["Leitfähigkeit","µS/cm","⚡",0], PH:["pH-Wert","","⚗️",2] };
+window.LIVEWQ = null;
+function hhmm2(iso){ const d=new Date(iso), p=n=>String(n).padStart(2,"0");
+  return p(d.getDate())+"."+p(d.getMonth()+1)+"."+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes()); }
+async function loadLiveWQ(){
+  window.LIVEWQ=null;
+  if(!CUR || !CUR.uuid) return;
+  try{
+    const ts=await getJSON(PO_BASE+"/stations/"+CUR.uuid+"/timeseries.json");
+    const avail={}; (ts||[]).forEach(t=>avail[String(t.shortname||"").toUpperCase()]=true);
+    const items=[], history={};
+    for(const sh in PO_TS_MAP){
+      if(!avail[sh]) continue;
+      let m; try{ m=await getJSON(PO_BASE+"/stations/"+CUR.uuid+"/"+sh+"/measurements.json?start=P8D"); }catch(e){ continue; }
+      if(!m || !m.length) continue;
+      const [label,unit,icon,dec]=PO_TS_MAP[sh];
+      const last=m[m.length-1];
+      items.push({label, value:(+last.value).toFixed(dec).replace(".",","), unit, icon, time:hhmm2(last.timestamp)});
+      if(label==="Wassertemperatur"||label==="Trübung"||label==="Sauerstoff"){
+        const by={}; for(const p of m){ const d=new Date(p.timestamp); d.setMinutes(0,0,0); by[d.getTime()]=+p.value; }
+        history[label]=Object.keys(by).sort((a,b)=>a-b).map(k=>({t:new Date(+k).toISOString().slice(0,16), v:Math.round(by[k]*1000)/1000}));
+      }
+    }
+    if(items.length) window.LIVEWQ={ station:CUR.name, items, history, updated:items[0].time };
+  }catch(e){ /* keine Live-Werte an dieser Station */ }
+}
+/* Aktuelle Wasserqualitäts-Quelle: bevorzugt Live-Pegel (frisch, am Ort), sonst Gütestation (JSON). */
+function wqCurrent(){
+  const live=window.LIVEWQ;
+  if(live && live.items && live.items.length)
+    return { items:live.items, history:live.history||{}, name:live.station, dist:0, source:"live",
+             id:(CUR&&CUR.uuid)||"", updated:live.updated||"" };
+  const aw=activeWQ();
+  if(aw) return { items:aw.station.items||[], history:aw.station.history||{}, name:aw.station.name, dist:aw.dist,
+                  source:"guete", id:aw.station.id||"", updated:aw.station.updated||(window.WQ&&window.WQ.updated)||"" };
+  return null;
 }
 
 /* ===================== Fangbuch ===================== */
@@ -302,8 +347,9 @@ function moonPhase(date){
 function waterQualitySnap(){
   const M={ "Wassertemperatur":"wassertemperatur_c","Sauerstoff":"sauerstoff_mgl",
     "O₂-Sättigung":"o2_saettigung_pct","Trübung":"truebung","pH-Wert":"ph","Leitfähigkeit":"leitfaehigkeit_uScm" };
-  const aw=activeWQ(); const items=aw?aw.station.items:[];
-  const out={ stand:(aw&&aw.station.updated)||"", station:(aw&&aw.station.name)||"", entfernung_km:(aw? Math.round(aw.dist*10)/10 : null) };
+  const cur=wqCurrent(); const items=cur?cur.items:[];
+  const out={ stand:(cur&&cur.updated)||"", station:(cur&&cur.name)||"", quelle:(cur&&cur.source)||"",
+    entfernung_km:(cur? Math.round(cur.dist*10)/10 : null) };
   items.forEach(it=>{ const k=M[it.label]; if(k) out[k]=deNum(it.value); });
   return out;
 }
@@ -713,7 +759,7 @@ async function getSeries(def, range){
   let pts=null;
   if(def.src==="pegel"||def.src==="durchfluss") pts=await histPegel(def.src==="pegel"?"W":"Q");
   else if(def.src.indexOf("wx:")===0){ const v=def.src.slice(3), wx=await histWx(); pts=wx.times.map((t,i)=>({t, v:wx.h[v]?wx.h[v][i]:null})); }
-  else if(def.src.indexOf("wq:")===0){ const l=def.src.slice(3), aw=activeWQ(), hi=aw&&aw.station.history&&aw.station.history[l]; if(!hi) return null; pts=hi.map(p=>({t:new Date(p.t), v:p.v})); }
+  else if(def.src.indexOf("wq:")===0){ const l=def.src.slice(3), cur=wqCurrent(), hi=cur&&cur.history&&cur.history[l]; if(!hi) return null; pts=hi.map(p=>({t:new Date(p.t), v:p.v})); }
   if(!pts) return null;
   return toHourly(pts).filter(p=>p.t.getTime()>=cutoff);
 }
@@ -769,7 +815,7 @@ const BITE = [
   {name:"Brasse",  temp:[14,25], tol:[8,29],  light:"twi",  turbid:"slightlike"}
 ];
 function qNum(label){
-  const aw=activeWQ(); const items=aw?aw.station.items:[];
+  const cur=wqCurrent(); const items=cur?cur.items:[];
   const it=items.find(x=>x.label===label);
   if(!it) return null; const n=deNum(it.value); return (typeof n==="number")? n : null;
 }
@@ -1458,11 +1504,12 @@ async function loadAll(){
   const typ = spotType(activeSpot());
   if(typ==="fluss"){
     snap.marineTemp=null;
-    await Promise.allSettled([loadPegel(), loadWeather(), loadQuality()]);
+    await Promise.allSettled([loadPegel(), loadWeather(), loadQuality(), loadLiveWQ()]);
+    renderQuality();                    // Live-Pegelwerte bevorzugen, sonst Gütestation
     updateAmpel();
     if($("biteBox") && $("biteBox").style.display==="block") renderBite();
   } else {
-    snap.pegel=null; snap.q=null;
+    snap.pegel=null; snap.q=null; window.LIVEWQ=null;
     await Promise.allSettled([loadWeather(), loadMarine()]);
   }
   $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
