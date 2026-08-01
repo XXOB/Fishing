@@ -31,6 +31,10 @@ h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
 .btn-primary:hover{filter:brightness(1.09)}
 .btn-primary:active{transform:scale(.99)}
 .btn-primary.block{width:100%;margin-bottom:18px}
+.btn-trip{background:#1f8a4c;box-shadow:0 4px 14px rgba(31,138,76,.35)}
+.tripbanner{background:linear-gradient(135deg,#12351f,#173a24);border:1px solid #2b6b45;border-radius:14px;
+  padding:12px 14px;margin:0 0 16px;font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--text)}
+.tripbanner b{color:#8ff0b6}
 .emptycard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:44px 22px;text-align:center;box-shadow:var(--shadow)}
 .emptyicon{margin:0 auto 14px;width:60px;height:60px;color:var(--primary2)}
 .emptyicon svg{width:60px;height:60px;display:block;stroke:var(--primary2)}

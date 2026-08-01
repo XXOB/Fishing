@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=28">
+<link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
 <header>
@@ -18,13 +18,15 @@
   </div>
 </header>
 
+<div id="tripBanner" class="tripbanner" style="display:none"></div>
+
 <div id="fbIndexView" style="display:none">
   <div class="sect">Fangbücher</div>
   <div id="fbIndexList" class="spotlist"></div>
 </div>
 
 <div id="catchListView" style="display:none">
-  <button class="backbtn" onclick="showFangbuchList()">← Fangbücher</button>
+  <button class="backbtn" id="catchBackBtn" onclick="catchListBack()">← Fangbücher</button>
   <div class="sect" id="catchListTitle" style="margin-top:14px">Fangbuch</div>
   <button type="button" class="navbtn" onclick="addCatchFromList()">🎣 Fang eintragen</button>
   <div id="catchList"></div>
@@ -56,7 +58,10 @@
   <h2 class="pagetitle">Angelplätze verwalten</h2>
   <p class="pagedesc">Erstelle deine Spots und lege fest, welche Messstellen verwendet werden.</p>
   <button class="btn-primary block" onclick="newSpotOnMap()">+ Angelplatz hinzufügen</button>
+  <button class="btn-primary block btn-trip" onclick="openTripModal()">▶ Angeltrip starten</button>
   <div id="spotList" class="spotlist"></div>
+  <div class="sect" id="tripSect" style="display:none">Meine Trips</div>
+  <div id="tripList" class="spotlist"></div>
   <button onclick="toggleHomeMap()" id="homeMapBtn" style="display:none"></button>
 </div>
 
@@ -295,8 +300,20 @@
   </div>
 </div>
 
+<div id="tripModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripModal()">
+  <div class="cmbox">
+    <div class="cmhead"><span>Angeltrip starten</span><button class="cmx" onclick="closeTripModal()" aria-label="Schließen">✕</button></div>
+    <div class="fbfield"><label>Angelplatz</label><select id="trip_spot"></select></div>
+    <div class="fbnote" style="margin-top:10px">Während des Trips gespeicherte Fänge landen automatisch im Fangbuch dieses Platzes.</div>
+    <div class="fbactions" style="margin-top:14px">
+      <button class="btn-primary" onclick="confirmStartTrip()">▶ Starten</button>
+      <button class="backbtn" onclick="closeTripModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=28"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>

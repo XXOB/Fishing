@@ -402,6 +402,7 @@ function buildRecord(blank){
     gewaesser: sp ? (sp.gewaesser||sp.river||"") : "",
     gewaessertyp: spotType(sp),
     angelplatz: sp ? sp.name : "",
+    trip_id: (activeTrip() ? activeTrip().id : null),
     datum, uhrzeit: zeit,
     fischart: blank ? "" : $("f_art").value.trim(),
     groesse_cm: (!blank && $("f_groesse").value) ? +$("f_groesse").value : null,
@@ -483,6 +484,7 @@ function renderCatches(){
   box.innerHTML = arr.map(catchCard).join("");
 }
 let CATCH_VIEW_SPOT = null;   // Name des Angelplatzes, oder null = Gesamtfangbuch
+let CATCH_VIEW_TRIP = null;   // Trip-ID, wenn Fänge eines Trips gezeigt werden
 function isFish(c){ return !c.kein_fang && !!c.fischart; }
 function fishCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name && isFish(c)).length; }
 function tripCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name).length; }
@@ -495,13 +497,19 @@ function countBadge(fish, trips){
 function renderCatchList(){
   const box=$("catchList"); if(!box) return;
   const all=loadCatches();
-  const arr=(CATCH_VIEW_SPOT ? all.filter(c=>c.angelplatz===CATCH_VIEW_SPOT) : all)
-    .sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
+  let arr;
+  if(CATCH_VIEW_TRIP){ arr=all.filter(c=>String(c.trip_id)===String(CATCH_VIEW_TRIP)); }
+  else arr = CATCH_VIEW_SPOT ? all.filter(c=>c.angelplatz===CATCH_VIEW_SPOT) : all;
+  arr=arr.sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
   const t=$("catchListTitle");
-  if(t) t.textContent = CATCH_VIEW_SPOT ? (CATCH_VIEW_SPOT+" Fangbuch") : "Gesamtfangbuch · alle Fänge";
-  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge'+(CATCH_VIEW_SPOT?' an diesem Angelplatz':' erfasst')+'.</div>'; return; }
+  if(t){
+    if(CATCH_VIEW_TRIP){ const tr=loadTrips().find(x=>String(x.id)===String(CATCH_VIEW_TRIP)); t.textContent = tr ? ("Trip · "+tr.spotName) : "Trip"; }
+    else t.textContent = CATCH_VIEW_SPOT ? (CATCH_VIEW_SPOT+" Fangbuch") : "Gesamtfangbuch · alle Fänge";
+  }
+  if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge'+(CATCH_VIEW_SPOT||CATCH_VIEW_TRIP?' hier':' erfasst')+'.</div>'; return; }
   box.innerHTML = arr.map(catchCard).join("");
 }
+function catchListBack(){ if(CATCH_VIEW_TRIP){ showHome(); } else { showFangbuchList(); } }
 
 /* ---- Export / Import ---- */
 function download(name,text,type){
@@ -740,8 +748,9 @@ function refreshFangbuch(){
   if($("fbTable") && $("fbTable").style.display==="block") renderTable();
   if($("catchListView") && $("catchListView").style.display!=="none") renderCatchList();
   if($("fbIndexView") && $("fbIndexView").style.display!=="none") renderFbIndex();
-  if($("homeView") && $("homeView").style.display!=="none") renderSpotList();
+  if($("homeView") && $("homeView").style.display!=="none"){ renderSpotList(); renderTripList(); }
   if($("statsView") && $("statsView").style.display!=="none") renderStats();
+  renderTripBanner();
 }
 
 function initFangbuch(){
@@ -1218,6 +1227,7 @@ function showHome(){
   const h=$("homeView"); if(h) h.style.display="block";
   const b=$("homeMapBtn"); if(b) b.textContent="🗺️ Karte anzeigen";
   renderSpotList();
+  renderTripBanner(); renderTripList();
   setActiveTab("places");
 }
 /* --- Tab 2: Fangbücher (Liste je Angelplatz + Gesamt) --- */
@@ -1244,12 +1254,87 @@ function renderFbIndex(){
 }
 function showCatchListBySpot(id){ const sp=loadSpots().find(x=>String(x.id)===String(id)); showCatchList(sp?sp.name:null); }
 function showCatchList(spotName){
-  CATCH_VIEW_SPOT = spotName || null;
+  CATCH_VIEW_SPOT = spotName || null; CATCH_VIEW_TRIP=null;
+  const bb=$("catchBackBtn"); if(bb) bb.textContent="← Fangbücher";
   hideAllViews();
   const v=$("catchListView"); if(v) v.style.display="block";
   renderCatchList();
   setActiveTab("fb");
   window.scrollTo({top:0, behavior:"smooth"});
+}
+function showTripCatches(tripId){
+  CATCH_VIEW_TRIP=String(tripId); CATCH_VIEW_SPOT=null;
+  const bb=$("catchBackBtn"); if(bb) bb.textContent="← Start";
+  hideAllViews();
+  const v=$("catchListView"); if(v) v.style.display="block";
+  renderCatchList();
+  setActiveTab("places");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+/* ===================== Angeltrips ===================== */
+const TRIPS_KEY="deepfish_trips_v1", ACTIVE_TRIP_KEY="deepfish_active_trip_v1";
+function loadTrips(){ try{ return JSON.parse(localStorage.getItem(TRIPS_KEY))||[]; }catch(e){ return []; } }
+function saveTrips(a){ try{ localStorage.setItem(TRIPS_KEY, JSON.stringify(a)); }catch(e){} }
+function activeTrip(){ const id=localStorage.getItem(ACTIVE_TRIP_KEY); if(!id) return null;
+  return loadTrips().find(t=>String(t.id)===String(id) && !t.end) || null; }
+function openTripModal(){
+  if(activeTrip()){ alert("Es läuft bereits ein Trip. Beende ihn zuerst."); return; }
+  const spots=loadSpots(); if(!spots.length){ alert("Lege zuerst einen Angelplatz an."); return; }
+  const sel=$("trip_spot");
+  if(sel){ const active=localStorage.getItem(ACTIVE_KEY);
+    sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+    if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active; }
+  const m=$("tripModal"); if(m) m.style.display="flex";
+}
+function closeTripModal(){ const m=$("tripModal"); if(m) m.style.display="none"; }
+function confirmStartTrip(){
+  const sel=$("trip_spot"); const sp=loadSpots().find(x=>String(x.id)===String(sel?sel.value:""));
+  if(!sp){ alert("Bitte einen Angelplatz wählen."); return; }
+  const trip={ id:Date.now(), spotId:sp.id, spotName:sp.name, gewaesser:(sp.gewaesser||sp.river||""), start:new Date().toISOString(), end:null };
+  const arr=loadTrips(); arr.push(trip); saveTrips(arr);
+  localStorage.setItem(ACTIVE_TRIP_KEY, trip.id);
+  closeTripModal();
+  openSpot(sp.id);                 // Platz aktivieren + Live-Daten laden
+  renderTripBanner();
+}
+function tripAddCatch(){ const tr=activeTrip(); if(!tr) return; openSpot(tr.spotId); openFangbuchForm(); }
+function endTrip(){
+  const tr=activeTrip(); if(!tr) return;
+  if(confirm("Noch einen Fang eintragen, bevor der Trip endet?")){ tripAddCatch(); return; }
+  const arr=loadTrips(); const t=arr.find(x=>String(x.id)===String(tr.id)); if(t) t.end=new Date().toISOString();
+  saveTrips(arr); localStorage.removeItem(ACTIVE_TRIP_KEY);
+  renderTripBanner(); renderTripList();
+  const f=loadCatches().filter(c=>String(c.trip_id)===String(tr.id) && isFish(c)).length;
+  alert("Trip beendet – "+f+" Fang"+(f===1?"":"e")+" gespeichert.");
+}
+function tripDur(startIso, endIso){
+  const ms=(endIso?new Date(endIso):new Date())-new Date(startIso);
+  const m=Math.max(0, Math.round(ms/60000));
+  return m<60 ? m+" Min" : Math.floor(m/60)+" h "+(m%60)+" Min";
+}
+function deDateTime(iso){ try{ return new Date(iso).toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}); }catch(e){ return ""; } }
+function renderTripBanner(){
+  const b=$("tripBanner"); if(!b) return;
+  const tr=activeTrip();
+  if(!tr){ b.style.display="none"; b.innerHTML=""; return; }
+  b.style.display="";
+  b.innerHTML='🎣 Trip läuft · <b>'+esc(tr.spotName)+'</b> · seit '+hhmm(tr.start)+' ('+tripDur(tr.start,null)+') '+
+    '<button class="mhbtn" onclick="tripAddCatch()">🐟 Fang</button>'+
+    '<button class="mhbtn sec" onclick="endTrip()">⏹ Beenden</button>';
+}
+function renderTripList(){
+  const box=$("tripList"), sect=$("tripSect"); if(!box) return;
+  const trips=loadTrips().slice().sort((a,b)=>(b.start||"").localeCompare(a.start||""));
+  if(!trips.length){ if(sect) sect.style.display="none"; box.innerHTML=""; return; }
+  if(sect) sect.style.display="";
+  box.innerHTML=trips.map(t=>{
+    const f=loadCatches().filter(c=>String(c.trip_id)===String(t.id) && isFish(c)).length;
+    const running=!t.end;
+    return '<div class="spotrow"><button class="spotopen" onclick="showTripCatches('+t.id+')">'+(running?'🔴 ':'🎣 ')+esc(t.spotName)+
+      '<span class="spotsub">'+deDateTime(t.start)+' · '+(running?'läuft':tripDur(t.start,t.end))+'</span></button>'+
+      countBadgeFish(f)+'</div>';
+  }).join("");
 }
 /* Fang direkt aus einem Fangbuch eintragen: passenden Angelplatz öffnen + Formular aufklappen */
 function openFangbuchForm(){
@@ -1574,7 +1659,8 @@ async function boot(){
   reflectStation(); renderSpots();
   ensureBaitSeed();                           // Standardköder beim ersten Start anlegen
   initFangbuch();                             // Formular, Karte (Stationen + Angelplätze)
-  showHome();                                 // Startbildschirm: nur Angelplatz-Liste
+  showHome();                                 // Startbildschirm: Angelplätze + Trips
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
+  setInterval(renderTripBanner, 60*1000);     // laufende Trip-Dauer aktualisieren
 }
 boot();
