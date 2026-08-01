@@ -509,7 +509,7 @@ function renderCatchList(){
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge'+(CATCH_VIEW_SPOT||CATCH_VIEW_TRIP?' hier':' erfasst')+'.</div>'; return; }
   box.innerHTML = arr.map(catchCard).join("");
 }
-function catchListBack(){ if(CATCH_VIEW_TRIP){ showHome(); } else { showFangbuchList(); } }
+function catchListBack(){ if(CATCH_VIEW_TRIP){ showTrips(); } else { showFangbuchList(); } }
 
 /* ---- Export / Import ---- */
 function download(name,text,type){
@@ -559,18 +559,27 @@ function importJSON(ev){
 /* ---- Leaflet-Karte ---- */
 let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
 let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=false, SPOTS_VISIBLE=true, SPOT_PICK=false, STATION_PICK=false;
-let WT_SET=null, WT_LOADING=false;
-async function ensureWT(){                       // Set der Pegel-UUIDs mit Wassertemperatur
-  if(WT_SET || WT_LOADING) return;
-  WT_LOADING=true;
+let PO_PARAMS=null, PO_LOADING=false;            // uuid -> {wt,o2,tr}
+async function ensureStationParams(){
+  if(PO_PARAMS || PO_LOADING) return;
+  PO_LOADING=true;
   try{
     const arr=await getJSON(PO_BASE+"/stations.json?includeTimeseries=true");
-    const set=new Set();
-    for(const s of arr){ if((s.timeseries||[]).some(t=>String(t.shortname||"").toUpperCase()==="WT")) set.add(s.uuid); }
-    WT_SET=set;
-  }catch(e){ WT_SET=new Set(); }
-  WT_LOADING=false;
+    const m={};
+    for(const s of arr){
+      const sh=(s.timeseries||[]).map(t=>String(t.shortname||"").toUpperCase());
+      const wt=sh.includes("WT");
+      if(!wt) continue;
+      m[s.uuid]={ wt:true, o2:sh.includes("O2"), tr:sh.some(x=>x==="TR"||x.indexOf("TRUEB")===0||x==="TB") };
+    }
+    PO_PARAMS=m;
+  }catch(e){ PO_PARAMS={}; }
+  PO_LOADING=false;
 }
+/* Farblogik: rot=nur Temp, blau=Temp+Sauerstoff, braun=Temp+Sauerstoff+Trübung */
+function paramColor(p){ if(!p||!p.wt) return null; if(p.o2&&p.tr) return "#8a5a2b"; if(p.o2) return "#3b82f6"; return "#e0483b"; }
+function guteParams(st){ const L=(st.items||[]).map(i=>i.label);
+  return { wt:L.includes("Wassertemperatur"), o2:L.some(l=>l==="Sauerstoff"||l==="O₂-Sättigung"), tr:L.includes("Trübung") }; }
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
   MAP = L.map("map",{scrollWheelZoom:false}).setView([WXPOS.lat, WXPOS.lon], 12);
@@ -605,20 +614,22 @@ function addStationDots(){
   if(!STATIONS_LAYER) return;
   STATIONS_LAYER.clearLayers();
   if(!STATIONS_VISIBLE) return;
-  // grau: nur Stationen mit Wassertemperatur (WT)
-  let list=STATIONS.filter(s=>WT_SET && WT_SET.has(s.uuid));
+  const lbl=p=> p.o2&&p.tr ? "Temp+Sauerstoff+Trübung" : p.o2 ? "Temp+Sauerstoff" : "nur Temperatur";
+  // PEGELONLINE-Stationen, eingefärbt nach verfügbaren Parametern
+  let list=STATIONS.filter(s=> PO_PARAMS && PO_PARAMS[s.uuid]);
   try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
-  if(list.length>300) list=list.slice(0,300);
+  if(list.length>400) list=list.slice(0,400);
   for(const s of list){
-    const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:"#7f93b3",weight:1,fillColor:"#7f93b3",fillOpacity:.55});
-    mk.bindTooltip("🌡️ "+s.name+" · "+(s.river||"")+" · Wassertemperatur");
+    const p=PO_PARAMS[s.uuid], col=paramColor(p); if(!col) continue;
+    const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:col,weight:1,fillColor:col,fillOpacity:.75});
+    mk.bindTooltip(s.name+" · "+(s.river||"")+" · "+lbl(p));
     STATIONS_LAYER.addLayer(mk);
   }
-  // blau: Wassergütestationen (RLP/Hessen/Bayern)
+  // Gütestationen (RLP/Hessen/Bayern) – gleiche Farblogik nach ihren Werten
   const gu=(window.WQ&&window.WQ.stations)||[];
-  for(const s of gu){ if(s.lat==null) continue;
-    const mk=L.circleMarker([s.lat,s.lon],{radius:5,color:"#3b82f6",weight:2,fillColor:"#3b82f6",fillOpacity:.85});
-    mk.bindTooltip("🔵 Gütestation "+s.name+" · "+(s.river||""));
+  for(const s of gu){ if(s.lat==null) continue; const p=guteParams(s), col=paramColor(p); if(!col) continue;
+    const mk=L.circleMarker([s.lat,s.lon],{radius:5,color:col,weight:2,fillColor:col,fillOpacity:.95});
+    mk.bindTooltip("Gütestation "+s.name+" · "+(s.river||"")+" · "+lbl(p));
     STATIONS_LAYER.addLayer(mk);
   }
 }
@@ -642,7 +653,7 @@ function toggleStationsLayer(){
   if(!MAP || !STATIONS_LAYER) return;
   if(STATIONS_VISIBLE){
     const a=$("layStations"); if(a) a.textContent="… lädt";
-    ensureWT().then(()=>{ addStationDots(); STATIONS_LAYER.addTo(MAP); updateLayerBtns(); });
+    ensureStationParams().then(()=>{ addStationDots(); STATIONS_LAYER.addTo(MAP); updateLayerBtns(); });
   } else { STATIONS_LAYER.remove(); }
 }
 function toggleSpotsLayer(){ SPOTS_VISIBLE=!SPOTS_VISIBLE; if(MAP&&SPOTS_LAYER){ if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP); else SPOTS_LAYER.remove(); } updateLayerBtns(); }
@@ -748,7 +759,8 @@ function refreshFangbuch(){
   if($("fbTable") && $("fbTable").style.display==="block") renderTable();
   if($("catchListView") && $("catchListView").style.display!=="none") renderCatchList();
   if($("fbIndexView") && $("fbIndexView").style.display!=="none") renderFbIndex();
-  if($("homeView") && $("homeView").style.display!=="none"){ renderSpotList(); renderTripList(); }
+  if($("homeView") && $("homeView").style.display!=="none") renderSpotList();
+  if($("tripsView") && $("tripsView").style.display!=="none") renderTripList();
   if($("statsView") && $("statsView").style.display!=="none") renderStats();
   renderTripBanner();
 }
@@ -1221,13 +1233,20 @@ async function loadSpotConditions(){
   }));
 }
 /* Ansichten: Start (Liste) · Angelplatz (Daten) · Mein Fangbuch (alle Fänge) */
-function hideAllViews(){ ["homeView","spotView","mapCard","fbIndexView","catchListView","baitView","statsView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
+function hideAllViews(){ ["homeView","spotView","mapCard","fbIndexView","catchListView","baitView","statsView","tripsView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
+function showTrips(){
+  hideAllViews();
+  const v=$("tripsView"); if(v) v.style.display="block";
+  renderTripBanner(); renderTripList();
+  setActiveTab("trips");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
 function showHome(){
   hideAllViews();
   const h=$("homeView"); if(h) h.style.display="block";
   const b=$("homeMapBtn"); if(b) b.textContent="🗺️ Karte anzeigen";
   renderSpotList();
-  renderTripBanner(); renderTripList();
+  renderTripBanner();
   setActiveTab("places");
 }
 /* --- Tab 2: Fangbücher (Liste je Angelplatz + Gesamt) --- */
@@ -1264,11 +1283,11 @@ function showCatchList(spotName){
 }
 function showTripCatches(tripId){
   CATCH_VIEW_TRIP=String(tripId); CATCH_VIEW_SPOT=null;
-  const bb=$("catchBackBtn"); if(bb) bb.textContent="← Start";
+  const bb=$("catchBackBtn"); if(bb) bb.textContent="← Trips";
   hideAllViews();
   const v=$("catchListView"); if(v) v.style.display="block";
   renderCatchList();
-  setActiveTab("places");
+  setActiveTab("trips");
   window.scrollTo({top:0, behavior:"smooth"});
 }
 
@@ -1299,14 +1318,30 @@ function confirmStartTrip(){
   renderTripBanner();
 }
 function tripAddCatch(){ const tr=activeTrip(); if(!tr) return; openSpot(tr.spotId); openFangbuchForm(); }
+function logBlankForTrip(tr){        // fangloser Tag mit den Bedingungen des Trips
+  const sp=loadSpots().find(x=>String(x.id)===String(tr.spotId));
+  const now=new Date(), pad=n=>String(n).padStart(2,"0"), mp=moonPhase(now);
+  const rec={ id:Date.now(), erfasst_iso:now.toISOString(), kein_fang:true, trip_id:tr.id,
+    gewaesser: sp?(sp.gewaesser||sp.river||""):"", gewaessertyp:spotType(sp), angelplatz: sp?sp.name:tr.spotName,
+    datum: now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate()), uhrzeit: pad(now.getHours())+":"+pad(now.getMinutes()),
+    fischart:"", groesse_cm:null, gewicht_kg:null, verwertung:"", koeder:"", koeder_basis:"", koeder_variante:"", methode:"",
+    notiz:"", gps:null, mondphase:{name:mp.name, alter_tage:mp.age, illumination_pct:mp.illum},
+    wetter: snap.weather,
+    wasser: Object.assign({ pegelstand_cm: snap.pegel?snap.pegel.pegelstand_cm:null, pegel_stufe: snap.pegel?snap.pegel.stufe:null,
+      durchfluss_m3s: snap.q, wassertemperatur_modell_c:(snap.marineTemp!=null?snap.marineTemp:null) }, waterQualitySnap()),
+    station:{ pegel:CUR?CUR.name:"", pegel_uuid:CUR?CUR.uuid:"", km:CUR?CUR.km:null } };
+  const arr=loadCatches(); arr.push(rec); saveCatches(arr);
+}
 function endTrip(){
   const tr=activeTrip(); if(!tr) return;
+  const hadFish=loadCatches().some(c=>String(c.trip_id)===String(tr.id) && isFish(c));
   if(confirm("Noch einen Fang eintragen, bevor der Trip endet?")){ tripAddCatch(); return; }
+  if(!hadFish) logBlankForTrip(tr);          // „Nein" ohne bisherigen Fang -> fangloser Tag
   const arr=loadTrips(); const t=arr.find(x=>String(x.id)===String(tr.id)); if(t) t.end=new Date().toISOString();
   saveTrips(arr); localStorage.removeItem(ACTIVE_TRIP_KEY);
-  renderTripBanner(); renderTripList();
+  renderTripBanner(); renderTripList(); refreshFangbuch();
   const f=loadCatches().filter(c=>String(c.trip_id)===String(tr.id) && isFish(c)).length;
-  alert("Trip beendet – "+f+" Fang"+(f===1?"":"e")+" gespeichert.");
+  alert(f>0 ? ("Trip beendet – "+f+" Fang"+(f===1?"":"e")+".") : "Trip beendet – als fangloser Tag gespeichert.");
 }
 function tripDur(startIso, endIso){
   const ms=(endIso?new Date(endIso):new Date())-new Date(startIso);
@@ -1511,7 +1546,7 @@ function onKoederBaseChange(){
 }
 /* --- Tab-Leiste (aktiver Reiter) --- */
 function setActiveTab(which){
-  const map={places:"tabPlaces", fb:"tabFb", bait:"tabBait", stats:"tabStats"};
+  const map={places:"tabPlaces", trips:"tabTrips", fb:"tabFb", bait:"tabBait", stats:"tabStats"};
   Object.values(map).forEach(id=>{ const e=$(id); if(e) e.classList.remove("active"); });
   const el=$(map[which]); if(el) el.classList.add("active");
 }

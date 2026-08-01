@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=29">
+<link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
 <header>
@@ -58,11 +58,17 @@
   <h2 class="pagetitle">Angelplätze verwalten</h2>
   <p class="pagedesc">Erstelle deine Spots und lege fest, welche Messstellen verwendet werden.</p>
   <button class="btn-primary block" onclick="newSpotOnMap()">+ Angelplatz hinzufügen</button>
-  <button class="btn-primary block btn-trip" onclick="openTripModal()">▶ Angeltrip starten</button>
   <div id="spotList" class="spotlist"></div>
+  <button onclick="toggleHomeMap()" id="homeMapBtn" style="display:none"></button>
+</div>
+
+<div id="tripsView" style="display:none">
+  <div class="pagelabel">Angeltrips</div>
+  <h2 class="pagetitle">Trips</h2>
+  <p class="pagedesc">Starte einen Trip, trag deine Fänge direkt ein – beim Beenden wird ohne Fang automatisch ein fangloser Tag gespeichert.</p>
+  <button class="btn-primary block btn-trip" onclick="openTripModal()">▶ Angeltrip starten</button>
   <div class="sect" id="tripSect" style="display:none">Meine Trips</div>
   <div id="tripList" class="spotlist"></div>
-  <button onclick="toggleHomeMap()" id="homeMapBtn" style="display:none"></button>
 </div>
 
 <div id="spotView" style="display:none">
@@ -229,7 +235,7 @@
 <div class="mapcard">
   <div class="mapmeta">
     <div>
-      <div class="pos">🎣 Angelplätze · grau: Stationen mit Wassertemperatur · blau: Wassergütestationen · grün: Fänge · gelb: Fangort. Stationen über „◉ Stationen" einblenden.</div>
+      <div class="pos">🎣 Angelplätze · Messstationen (Knopf „◉ Stationen"): <span style="color:#e0483b">rot = nur Temperatur</span>, <span style="color:#3b82f6">blau = + Sauerstoff</span>, <span style="color:#8a5a2b">braun = + Trübung</span> · grün: Fänge · gelb: Fangort.</div>
     </div>
     <div class="btns">
       <button onclick="toggleStationsLayer()" id="layStations">◉ Stationen</button>
@@ -248,6 +254,7 @@
 
 <nav class="tabbar" id="tabbar">
   <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic">🎣</span><span class="tx">Angelplätze</span></button>
+  <button class="tabbtn" id="tabTrips" onclick="showTrips()"><span class="ic">🗓️</span><span class="tx">Trips</span></button>
   <button class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic">📒</span><span class="tx">Fangbücher</span></button>
   <button class="tabbtn" id="tabBait" onclick="showBaitList()"><span class="ic">🪱</span><span class="tx">Köder</span></button>
   <button class="tabbtn" id="tabStats" onclick="showStats()"><span class="ic">📊</span><span class="tx">Statistik</span></button>
@@ -314,6 +321,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=29"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>
