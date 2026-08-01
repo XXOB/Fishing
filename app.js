@@ -189,13 +189,16 @@ function updateAmpel(){
     if(diff>6){ score-=1; reasons.push("Pegel steigt schnell (+"+fmt(diff)+" cm/3h) – Wasser wird trüb"); }
     else if(Math.abs(diff)<=4){ reasons.push("Pegel stabil"); }
   }
-  let cls,txt,ico;
-  if(score>=2){ cls="lg-green"; txt="Gute Bedingungen"; ico="👍"; }
-  else if(score<=-1){ cls="lg-red"; txt="Schwierige Bedingungen"; ico="⚠️"; }
-  else { cls="lg-amber"; txt="Mittelmäßige Bedingungen"; ico="≈"; }
-  $("condDot").className="dot "+cls; $("condDot").textContent=ico;
-  $("condLvl").textContent=txt;
+  const lv=ampelLevel(score);
+  $("condDot").className="dot "+lv.cls; $("condDot").textContent=lv.ico;
+  $("condLvl").textContent=lv.long;
   $("condWhy").textContent = reasons.length ? reasons.join(" · ") : "Keine auffälligen Faktoren.";
+}
+/* gemeinsame Einstufung (gleiche Wörter/Icons wie im Angelplatz) */
+function ampelLevel(score){
+  if(score>=2)  return {cls:"lg-green", ico:"👍", word:"Gut",       long:"Gute Bedingungen"};
+  if(score<=-1) return {cls:"lg-red",   ico:"⚠️", word:"Schwierig", long:"Schwierige Bedingungen"};
+  return              {cls:"lg-amber", ico:"≈",  word:"Mittel",    long:"Mittelmäßige Bedingungen"};
 }
 
 function copyCoords(){
@@ -334,13 +337,14 @@ function buildRecord(blank){
     id: Date.now(),
     erfasst_iso: new Date().toISOString(),
     kein_fang: !!blank,
-    gewaesser: $("f_gewaesser").value.trim() || (sp? (sp.gewaesser||sp.river||"") : ""),
+    gewaesser: sp ? (sp.gewaesser||sp.river||"") : "",
     gewaessertyp: spotType(sp),
-    angelplatz: (loadSpots().find(x=>String(x.id)===String($("f_angelplatz").value))||{}).name || (sp?sp.name:""),
+    angelplatz: sp ? sp.name : "",
     datum, uhrzeit: zeit,
     fischart: blank ? "" : $("f_art").value.trim(),
     groesse_cm: (!blank && $("f_groesse").value) ? +$("f_groesse").value : null,
     gewicht_kg: (!blank && $("f_gewicht").value) ? +$("f_gewicht").value : null,
+    verwertung: blank ? "" : ($("f_verwertung")?$("f_verwertung").value:""),
     koeder: k.label,                 // wird auch beim Trip ohne Fang gespeichert
     koeder_basis: k.base,
     koeder_variante: k.variante,
@@ -365,6 +369,7 @@ function saveCatch(opts){
   const arr=loadCatches(); arr.push(rec); saveCatches(arr);
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value="";
   if($("f_koeder_base")) $("f_koeder_base").value=""; onKoederBaseChange();
+  if($("f_methode")) $("f_methode").value=""; if($("f_verwertung")) $("f_verwertung").value="";
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
@@ -403,7 +408,8 @@ function catchCard(c){
     '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
     '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
     (c.angelplatz?' · <b>'+esc(c.angelplatz)+'</b>':'')+' · '+esc(c.gewaesser||"")+
-    (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+(c.gps?' · 📍':'')+'</div>'+
+    (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+
+    (c.verwertung?' · '+(c.verwertung==="entnommen"?"🪣 entnommen":"↩︎ freigelassen"):'')+(c.gps?' · 📍':'')+'</div>'+
     (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
     (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
 }
@@ -449,7 +455,7 @@ function exportCSV(){
   const cols=[
     ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
     ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
-    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
+    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["methode",c=>c.methode],["verwertung",c=>c.verwertung||""],["notiz",c=>c.notiz],
     ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
     ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
     ["lufttemp_c",c=>W_(c,"lufttemperatur_c")],["gefuehlt_c",c=>W_(c,"gefuehlt_c")],["wind_kmh",c=>W_(c,"wind_kmh")],
@@ -1074,8 +1080,9 @@ function renderSpotList(){
     '<button class="btn-primary" onclick="newSpotOnMap()">Angelplatz hinzufügen</button></div>'; return; }
   box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span>'+
-    '<span class="spotcond" id="cond_'+s.id+'"><span class="cdot ca"></span>Bedingungen …</span></button>'+
-    countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+
+    '<span class="spotcond" id="cond_'+s.id+'">Bedingungen …</span></button>'+
+    '<div class="spotbadges">'+countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+
+    '<span class="ampelbadge lg-amber" id="amp_'+s.id+'">≈ …</span></div>'+
     '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
   loadSpotConditions();
 }
@@ -1093,22 +1100,24 @@ async function spotCondition(s){
   try{ const now=new Date(cur.time), times=d.hourly.time.map(t=>new Date(t));
     let i=times.findIndex(t=>t>=now); if(i<1) i=times.length-1;
     pt=d.hourly.pressure_msl[i]-d.hourly.pressure_msl[Math.max(0,i-3)]; }catch(_){}
+  // gleiche Logik wie updateAmpel (Wetter-Anteil)
   let sc=0;
-  if(pt!=null){ if(pt<=-1.5) sc++; else if(pt<=0.8) sc++; else if(pt>=2.5) sc--; }
-  if(cur.wind_gusts_10m!=null){ if(cur.wind_gusts_10m>=12 && cur.wind_gusts_10m<45) sc++; else if(cur.wind_gusts_10m>=55) sc--; }
-  if(cur.precipitation!=null && cur.precipitation>5) sc--;
-  if([95,96,99].includes(cur.weather_code)) sc--;
-  const cls=sc>=2?"cg":sc<=-1?"cr":"ca";
+  if(pt!=null){ if(pt<-3) sc--; else if(pt<=0.8) sc++; else if(pt>3) sc--; }
+  if(cur.wind_gusts_10m!=null){ if(cur.wind_gusts_10m>=45) sc--; else if(cur.wind_gusts_10m>=12 && cur.wind_gusts_10m<35) sc++; }
+  if((cur.precipitation!=null && cur.precipitation>=2) || [82,95,96,99].includes(cur.weather_code)) sc--;
   const wc=WMO[cur.weather_code]||["",""];
   const text=Math.round(cur.temperature_2m)+"° "+(wc[1]||"")+" · Wind "+Math.round(cur.wind_speed_10m)+" km/h";
-  const res={ts:Date.now(), cls, text}; COND_CACHE[key]=res; return res;
+  const res={ts:Date.now(), lvl:ampelLevel(sc), text}; COND_CACHE[key]=res; return res;
 }
 async function loadSpotConditions(){
   const spots=loadSpots(); if(!spots.length) return;
   await Promise.allSettled(spots.map(async s=>{
-    const el=$("cond_"+s.id); if(!el) return;
-    try{ const c=await spotCondition(s); el.innerHTML='<span class="cdot '+c.cls+'"></span>'+esc(c.text); }
-    catch(e){ el.innerHTML='<span class="cdot ca"></span>Bedingungen n/v'; }
+    const el=$("cond_"+s.id), amp=$("amp_"+s.id);
+    try{
+      const c=await spotCondition(s);
+      if(amp){ amp.className="ampelbadge "+c.lvl.cls; amp.innerHTML=c.lvl.ico+" "+c.lvl.word; }
+      if(el) el.textContent=c.text;
+    }catch(e){ if(amp){ amp.className="ampelbadge lg-amber"; amp.textContent="≈ n/v"; } if(el) el.textContent="Bedingungen n/v"; }
   }));
 }
 /* Ansichten: Start (Liste) · Angelplatz (Daten) · Mein Fangbuch (alle Fänge) */
@@ -1419,14 +1428,9 @@ function currentSpotName(){
   const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
   return sp ? sp.name : "";
 }
-function populateCatchSpots(){
-  const sel=$("f_angelplatz"); if(!sel) return;
-  const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
-  if(!spots.length){ sel.innerHTML='<option value="">— kein Angelplatz gespeichert —</option>'; return; }
-  sel.innerHTML='<option value="">— keiner —</option>'+spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
-  if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active;
-  const asp=spots.find(x=>String(x.id)===String(active));
-  const gw=$("f_gewaesser"); if(gw && asp) gw.value = asp.gewaesser || asp.river || "";
+function populateCatchSpots(){                 // zeigt, für welchen Angelplatz der Fang gilt
+  const sp=activeSpot(), l=$("f_ort_label");
+  if(l) l.textContent = sp ? ("Fang für: "+sp.name+" · "+(sp.gewaesser||sp.river||"")) : "Kein Angelplatz gewählt.";
 }
 function onCatchSpotChange(id){ if(id) loadSpot(id); }
 
