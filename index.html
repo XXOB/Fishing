@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
 <header>
@@ -33,10 +33,15 @@
 <div id="baitView" style="display:none">
   <div class="sect">Köder</div>
   <div class="baitadd">
-    <input id="baitCatInput" list="baitBaseList" placeholder="Neue Köder-Kategorie, z. B. Gummifisch" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory();}">
-    <button onclick="addCategory()">+ Kategorie</button>
+    <input id="baitCatInput" list="baitBaseList" placeholder="Neuer Köder, z. B. Gummifisch" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory();}">
+    <select id="baitCatGroup">
+      <option value="kunst">Kunstköder</option>
+      <option value="natur">Naturköder</option>
+      <option value="sonstige">Sonstige</option>
+    </select>
+    <button onclick="addCategory()">+ Köder</button>
   </div>
-  <div class="fbnote" style="margin:0 0 10px 2px">Tippe auf einen Köder, um Varianten (Größe, Farbe) hinzuzufügen. Die 🐟-Zahl zeigt die Fänge je Köder.</div>
+  <div class="fbnote" style="margin:0 0 10px 2px">Köder sind in Kunst-/Naturköder &amp; Sonstige gruppiert. Tippe einen Köder an, um Varianten (Größe, Farbe) anzulegen. Die 🐟-Zahl zeigt die Fänge je Köder.</div>
   <div id="baitList" class="spotlist"></div>
   <datalist id="baitBaseList">
     <option>Tauwurm</option><option>Rotwurm</option><option>Made</option><option>Mais</option>
@@ -155,7 +160,7 @@
   <div class="fbrow">
     <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht"></div>
     <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
-    <div class="fbfield"><label>Gewicht (g, optional)</label><input id="f_gewicht" type="number" min="0" step="10" inputmode="numeric"></div>
+    <div class="fbfield"><label>Gewicht (kg, optional)</label><input id="f_gewicht" type="number" min="0" step="0.1" inputmode="decimal"></div>
   </div>
   <div class="fbrow">
     <div class="fbfield"><label>Köder</label><select id="f_koeder_base" onchange="onKoederBaseChange()"></select></div>
@@ -292,6 +297,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>
