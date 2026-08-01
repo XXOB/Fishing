@@ -45,12 +45,13 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain wasserwerte.json)" ]; then
-            git add wasserwerte.json
+          git add wasserwerte.json
+          [ -f gkd_coords.json ] && git add gkd_coords.json || true
+          if git diff --cached --quiet; then
+            echo "Keine Aenderung."
+          else
             git commit -m "Wasserwerte aktualisiert ($(date -u +'%Y-%m-%d %H:%MZ'))"
             git push
-          else
-            echo "Keine Aenderung an wasserwerte.json."
           fi
 
       - name: Pages konfigurieren

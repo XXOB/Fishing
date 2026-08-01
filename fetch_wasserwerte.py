@@ -22,6 +22,7 @@ import re
 import sys
 import csv
 import io
+import math
 import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -55,22 +56,20 @@ HESSEN_STATIONS = [
 ]
 
 # --- Bayern (GKD) ----------------------------------------------------------
-# Die GKD-Tabellenseite ist serverseitig gerendert -> direkter HTTP-Abruf, kein
-# Browser noetig. Liefert Wassertemperatur (Fluesse UND Seen). Weitere Station:
-# messwerte/tabelle-URL aus gkd.bayern.de + Koordinaten + Fluss/See ergaenzen.
-GKD_STATIONS = [
-    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/main_unten/kahl-a-main-messstation-24078008/messwerte/tabelle",
-     "name": "Kahl a. Main", "lat": 50.0706, "lon": 8.9960, "river": "Main"},
-    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/bayern/mainleus-24003009/messwerte/tabelle",
-     "name": "Mainleus", "lat": 50.1130, "lon": 11.3600, "river": "Main"},
-    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/kelheim/muenchen-16005701/messwerte/tabelle",
-     "name": "München", "lat": 48.1177, "lon": 11.5730, "river": "Isar"},
-    {"url": "https://www.gkd.bayern.de/de/seen/wassertemperatur/isar/ammerseeboje-16601050/messwerte/tabelle",
-     "name": "Ammersee (Boje)", "lat": 48.0000, "lon": 11.1300, "river": "Ammersee"},
+# GKD hat je eine serverseitig gerenderte Gesamttabelle (Fluesse + Seen) mit ALLEN
+# Wassertemperatur-Stationen inkl. aktuellem Wert. Der Scraper liest daraus ALLE
+# Stationen (eine Anfrage je Uebersicht) und loest die Koordinaten je Station
+# einmalig aus der Stammdatenseite (ETRS89/UTM32 -> WGS84) auf und cacht sie.
+GKD_OVERVIEWS = [
+    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/tabellen", "typ": "fluss"},
+    {"url": "https://www.gkd.bayern.de/de/seen/wassertemperatur/tabellen",    "typ": "see"},
 ]
+GKD_MAX_NEW_COORDS = 60    # neue Koordinaten je Lauf aufloesen (danach gecacht)
+GKD_MAX_AGE_DAYS   = 4     # nur Stationen mit halbwegs aktuellem Wert
 
 BASE_DIR  = Path(__file__).resolve().parent
 JSON_FILE = BASE_DIR / "wasserwerte.json"
+GKD_COORDS_FILE = BASE_DIR / "gkd_coords.json"   # Cache: Stations-ID -> lat/lon
 CSV_DIR   = BASE_DIR / "wasserwerte_csv"
 CSV_DIR.mkdir(exist_ok=True)
 
@@ -445,41 +444,86 @@ def fetch_gkd_html(url):
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode("utf-8", "replace")
 
-def parse_gkd_temp(html):
-    """Serverseitig gerenderte GKD-Tabelle: 'DD.MM.YYYY HH:MM Uhr <wert>'."""
-    text = re.sub(r"<[^>]+>", " ", html)          # Tags entfernen -> Klartext
-    text = text.replace("&nbsp;", " ").replace("\xa0", " ")
-    pts = []
-    for dt_s, val_s in re.findall(r"(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})\s*Uhr[\s|]*([-]?\d+(?:,\d+)?)", text):
-        dt = parse_dt(dt_s); v = to_number(val_s)
-        if dt is not None and v is not None:
-            pts.append((dt, v))
-    return pts
+def utm32_to_wgs84(E, N):
+    """ETRS89 / UTM Zone 32N -> WGS84 (lat, lon), GRS80."""
+    a=6378137.0; f=1/298.257222101; k0=0.9996
+    e2=f*(2-f); E0=500000.0; lon0=math.radians(9.0)
+    x=E-E0; M=N/k0
+    mu=M/(a*(1-e2/4-3*e2**2/64-5*e2**3/256))
+    e1=(1-math.sqrt(1-e2))/(1+math.sqrt(1-e2))
+    phi1=(mu+(3*e1/2-27*e1**3/32)*math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*math.sin(4*mu)
+            +(151*e1**3/96)*math.sin(6*mu)+(1097*e1**4/512)*math.sin(8*mu))
+    ep2=e2/(1-e2); C1=ep2*math.cos(phi1)**2; T1=math.tan(phi1)**2
+    N1=a/math.sqrt(1-e2*math.sin(phi1)**2); R1=a*(1-e2)/(1-e2*math.sin(phi1)**2)**1.5
+    D=x/(N1*k0)
+    lat=phi1-(N1*math.tan(phi1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*ep2)*D**4/24
+        +(61+90*T1+298*C1+45*T1**2-252*ep2-3*C1**2)*D**6/720)
+    lon=lon0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*ep2+24*T1**2)*D**5/120)/math.cos(phi1)
+    return math.degrees(lat), math.degrees(lon)
 
-def process_gkd(st):
-    print(f"[Bayern] {st['name']} ...")
-    html = fetch_gkd_html(st["url"])
-    pts = parse_gkd_temp(html)
-    if not pts:
-        print("      keine Wassertemperatur-Zeilen erkannt (HTML-Aufbau evtl. geaendert).")
-        raise RuntimeError("keine Messwerte")
-    pts.sort(key=lambda x: x[0])
-    dt, val = pts[-1]
-    items = [{"label":"Wassertemperatur", "value":fmt_value(val,1), "unit":"°C",
-              "icon":"\U0001F321️", "time":dt.strftime("%d.%m.%Y %H:%M")}]
-    print(f"      Wassertemperatur: {items[0]['value']} °C  (Stand {items[0]['time']})")
-    cutoff = datetime.now() - timedelta(days=HIST_DAYS)
-    buckets = {}
-    for d, v in pts:
-        if d < cutoff: continue
-        hk = d.replace(minute=0, second=0, microsecond=0); buckets[hk] = v
-    history = {"Wassertemperatur":[{"t":k.strftime("%Y-%m-%dT%H:%M"), "v":round(v,3)}
-                                   for k, v in sorted(buckets.items())]}
-    return {
-        "id": st["url"], "name": st["name"], "lat": st["lat"], "lon": st["lon"], "river": st["river"],
-        "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
-        "items": items, "history": history,
-    }
+def gkd_id(url):
+    m=re.search(r"-(\d+)(?:[/?]|$)", url); return m.group(1) if m else url
+
+def parse_gkd_overview(html):
+    """Zerlegt die GKD-Gesamttabelle je Zeile: Name, Stations-URL, Gewaesser, Datum, Wert."""
+    out=[]
+    for row in re.split(r"<tr", html):
+        m=re.search(r'href="([^"]*?/wassertemperatur/[^"]*?)/messwerte', row)
+        if not m: continue
+        href=m.group(1); base = href if href.startswith("http") else "https://www.gkd.bayern.de"+href
+        cells=[re.sub(r"<[^>]+>"," ",c).replace("&nbsp;"," ").strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
+        if len(cells)<2: continue
+        name=cells[0]; river=cells[1]
+        joined=" ".join(cells)
+        mm=re.search(r"(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})\s*Uhr[\s|]*([-]?\d+(?:,\d+)?)", joined)
+        dt=parse_dt(mm.group(1)) if mm else None
+        val=to_number(mm.group(2)) if mm else None
+        out.append({"base":base, "id":gkd_id(base), "name":name, "river":river, "dt":dt, "val":val})
+    return out
+
+def load_gkd_coords():
+    try: return json.loads(GKD_COORDS_FILE.read_text(encoding="utf-8"))
+    except Exception: return {}
+def save_gkd_coords(d):
+    try: GKD_COORDS_FILE.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+    except Exception: pass
+
+def resolve_gkd_coords(base, cache):
+    sid=gkd_id(base)
+    if sid in cache: return cache[sid]
+    html=fetch_gkd_html(base)   # Stammdatenseite
+    e=re.search(r"Ostwert[\s\S]{0,120}?([0-9]{6,7})", html)
+    n=re.search(r"Nordwert[\s\S]{0,120}?([0-9]{6,7})", html)
+    if not e or not n: return None
+    lat,lon=utm32_to_wgs84(float(e.group(1)), float(n.group(1)))
+    cache[sid]={"lat":round(lat,5), "lon":round(lon,5)}
+    return cache[sid]
+
+def process_gkd_all():
+    cache=load_gkd_coords(); results=[]; new=0; now=datetime.now()
+    for ov in GKD_OVERVIEWS:
+        try: html=fetch_gkd_html(ov["url"])
+        except Exception as ex: print(f"      GKD-Uebersicht Fehler ({ov['typ']}): {ex}"); continue
+        rows=parse_gkd_overview(html)
+        print(f"[Bayern/GKD] {ov['typ']}: {len(rows)} Stationen in Uebersicht")
+        for r in rows:
+            if r["val"] is None or r["dt"] is None: continue
+            if (now - r["dt"]).days > GKD_MAX_AGE_DAYS: continue     # veraltet/offline
+            coords=cache.get(r["id"])
+            if not coords and new < GKD_MAX_NEW_COORDS:
+                try: coords=resolve_gkd_coords(r["base"], cache); new+=1
+                except Exception: coords=None
+            if not coords: continue
+            results.append({
+                "id": r["base"], "name": r["name"], "lat": coords["lat"], "lon": coords["lon"], "river": r["river"],
+                "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+                "items": [{"label":"Wassertemperatur", "value":fmt_value(r["val"],1), "unit":"°C",
+                           "icon":"\U0001F321️", "time":r["dt"].strftime("%d.%m.%Y %H:%M")}],
+                "history": {},
+            })
+    save_gkd_coords(cache)
+    print(f"[Bayern/GKD] {len(results)} Stationen mit Werten (+{new} neue Koordinaten aufgeloest, {len(cache)} gecacht)")
+    return results
 
 
 # ------------------------------------------------------------------- Main -----
@@ -522,11 +566,10 @@ def main():
             results.append(process_hessen(st))
         except Exception as e:
             print(f"      FEHLER bei {st['name']}: {e}")
-    for st in GKD_STATIONS:                # Bayern (GKD)
-        try:
-            results.append(process_gkd(st))
-        except Exception as e:
-            print(f"      FEHLER bei {st['name']}: {e}")
+    try:                                   # Bayern (GKD) – alle Stationen aus der Gesamttabelle
+        results.extend(process_gkd_all())
+    except Exception as e:
+        print(f"      FEHLER GKD: {e}")
     if not results:
         print("Keine Station erfolgreich abgerufen.")
         sys.exit(2)
