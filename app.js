@@ -985,7 +985,8 @@ function pegPickMap(){
 }
 function applyWaterType(sp){
   const isRiver = spotType(sp)==="fluss";
-  ["pegelSect","pegelGrid","qSect","quality","qStamp","cond"].forEach(id=>{ const e=$(id); if(e) e.style.display = isRiver ? "" : "none"; });
+  ["pegelSect","pegelGrid","cond"].forEach(id=>{ const e=$(id); if(e) e.style.display = isRiver ? "" : "none"; });
+  ["qSect","quality","qStamp"].forEach(id=>{ const e=$(id); if(e) e.style.display=""; });  // Wasserqualität auch für Seen (z. B. Ammersee)
   const bt=$("biteBtn"); if(bt) bt.style.display = isRiver ? "" : "none";
   if(!isRiver){ const bb=$("biteBox"); if(bb) bb.style.display="none"; }
   const wt=$("waterTempTile"); if(wt) wt.style.display = isRiver ? "none" : "";
@@ -1510,7 +1511,8 @@ async function loadAll(){
     if($("biteBox") && $("biteBox").style.display==="block") renderBite();
   } else {
     snap.pegel=null; snap.q=null; window.LIVEWQ=null;
-    await Promise.allSettled([loadWeather(), loadMarine()]);
+    await Promise.allSettled([loadWeather(), loadMarine(), loadQuality()]);  // Güte auch für Seen (z. B. Ammersee)
+    renderQuality();
   }
   $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
 }

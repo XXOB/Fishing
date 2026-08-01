@@ -22,6 +22,7 @@ import re
 import sys
 import csv
 import io
+import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -51,6 +52,21 @@ GUS_URL = "https://geodaten-wasser.rlp-umwelt.de/gus/{id}/download"
 HESSEN_STATIONS = [
     {"url": "https://www.hlnug.de/messwerte/datenportal/messstelle/4/6/2101",
      "name": "Bischofsheim (Main)", "lat": 50.0040, "lon": 8.3430, "river": "Main"},
+]
+
+# --- Bayern (GKD) ----------------------------------------------------------
+# Die GKD-Tabellenseite ist serverseitig gerendert -> direkter HTTP-Abruf, kein
+# Browser noetig. Liefert Wassertemperatur (Fluesse UND Seen). Weitere Station:
+# messwerte/tabelle-URL aus gkd.bayern.de + Koordinaten + Fluss/See ergaenzen.
+GKD_STATIONS = [
+    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/main_unten/kahl-a-main-messstation-24078008/messwerte/tabelle",
+     "name": "Kahl a. Main", "lat": 50.0706, "lon": 8.9960, "river": "Main"},
+    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/bayern/mainleus-24003009/messwerte/tabelle",
+     "name": "Mainleus", "lat": 50.1130, "lon": 11.3600, "river": "Main"},
+    {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/kelheim/muenchen-16005701/messwerte/tabelle",
+     "name": "München", "lat": 48.1177, "lon": 11.5730, "river": "Isar"},
+    {"url": "https://www.gkd.bayern.de/de/seen/wassertemperatur/isar/ammerseeboje-16601050/messwerte/tabelle",
+     "name": "Ammersee (Boje)", "lat": 48.0000, "lon": 11.1300, "river": "Ammersee"},
 ]
 
 BASE_DIR  = Path(__file__).resolve().parent
@@ -423,6 +439,49 @@ def process_hessen(st):
     }
 
 
+# ------------------------------------------------------------ Bayern (GKD) ----
+def fetch_gkd_html(url):
+    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (DeepFish Wasserwerte)"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.read().decode("utf-8", "replace")
+
+def parse_gkd_temp(html):
+    """Serverseitig gerenderte GKD-Tabelle: 'DD.MM.YYYY HH:MM Uhr <wert>'."""
+    text = re.sub(r"<[^>]+>", " ", html)          # Tags entfernen -> Klartext
+    text = text.replace("&nbsp;", " ").replace("\xa0", " ")
+    pts = []
+    for dt_s, val_s in re.findall(r"(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})\s*Uhr[\s|]*([-]?\d+(?:,\d+)?)", text):
+        dt = parse_dt(dt_s); v = to_number(val_s)
+        if dt is not None and v is not None:
+            pts.append((dt, v))
+    return pts
+
+def process_gkd(st):
+    print(f"[Bayern] {st['name']} ...")
+    html = fetch_gkd_html(st["url"])
+    pts = parse_gkd_temp(html)
+    if not pts:
+        print("      keine Wassertemperatur-Zeilen erkannt (HTML-Aufbau evtl. geaendert).")
+        raise RuntimeError("keine Messwerte")
+    pts.sort(key=lambda x: x[0])
+    dt, val = pts[-1]
+    items = [{"label":"Wassertemperatur", "value":fmt_value(val,1), "unit":"°C",
+              "icon":"\U0001F321️", "time":dt.strftime("%d.%m.%Y %H:%M")}]
+    print(f"      Wassertemperatur: {items[0]['value']} °C  (Stand {items[0]['time']})")
+    cutoff = datetime.now() - timedelta(days=HIST_DAYS)
+    buckets = {}
+    for d, v in pts:
+        if d < cutoff: continue
+        hk = d.replace(minute=0, second=0, microsecond=0); buckets[hk] = v
+    history = {"Wassertemperatur":[{"t":k.strftime("%Y-%m-%dT%H:%M"), "v":round(v,3)}
+                                   for k, v in sorted(buckets.items())]}
+    return {
+        "id": st["url"], "name": st["name"], "lat": st["lat"], "lon": st["lon"], "river": st["river"],
+        "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+        "items": items, "history": history,
+    }
+
+
 # ------------------------------------------------------------------- Main -----
 def write_json(stations):
     payload = {
@@ -461,6 +520,11 @@ def main():
     for st in HESSEN_STATIONS:             # Hessen (HLNUG)
         try:
             results.append(process_hessen(st))
+        except Exception as e:
+            print(f"      FEHLER bei {st['name']}: {e}")
+    for st in GKD_STATIONS:                # Bayern (GKD)
+        try:
+            results.append(process_gkd(st))
         except Exception as e:
             print(f"      FEHLER bei {st['name']}: {e}")
     if not results:
