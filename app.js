@@ -275,6 +275,9 @@ async function loadQuality(){
   mergeNIZ();                               // BW-NIZ-Stationen anhängen (falls schon geladen)
   mergeHessen();                            // Hessen-HLNUG-Stationen anhängen
   renderQuality();
+  // Die Ebene kann schon vor wasserwerte.json gezeichnet worden sein. Danach
+  // neu zeichnen, damit GKD-/NID-Werte (z. B. Ingolstadt) sofort sichtbar sind.
+  if(STATIONS_VISIBLE && typeof addStationDots === "function") addStationDots();
 }
 function activeWQ(){
   const st=(window.WQ&&window.WQ.stations)||[]; if(!st.length) return null;

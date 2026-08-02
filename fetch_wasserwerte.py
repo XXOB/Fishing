@@ -535,6 +535,51 @@ def process_gkd_all():
     return results
 
 
+# ------------------------------------------------ Bayern (NID Sauerstoff) ----
+# Die automatischen Gütestationen an Donau, Main und Regnitz veröffentlichen
+# im NID ein aktuelles Sauerstoff-Tagesminimum. Über die gemeinsame
+# Stationsnummer wird es mit der jeweiligen GKD-Temperaturstation vereinigt.
+NID_O2_URL = "https://www.nid.bayern.de/sauerstoff/bayern/tabellen"
+NID_MAX_AGE_DAYS = 3
+
+def enrich_gkd_with_nid_oxygen(stations):
+    html = fetch_gkd_html(NID_O2_URL)
+    by_sid = {gkd_id(str(s.get("id", ""))): s for s in stations}
+    now = datetime.now()
+    added = 0
+    for row in re.split(r"<tr", html):
+        mh = re.search(r'href="([^"]*/sauerstoff/[^"]*?-(\d+)(?:/[^"]*)?)"', row)
+        if not mh:
+            continue
+        sid = mh.group(2)
+        cells = [re.sub(r"<[^>]+>", " ", c).replace("&nbsp;", " ").strip()
+                 for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
+        joined = " ".join(cells).replace("\xa0", " ")
+        dm = re.search(r"(\d{2}\.\d{2}\.\d{4})", joined)
+        vm = re.search(r"Sauerstoffminimum\s*\[?mg/l\]?\s*:\s*([-]?\d+(?:,\d+)?)",
+                       joined, re.I)
+        if vm:
+            val = to_number(vm.group(1))
+        else:
+            tail = joined[dm.end():] if dm else ""
+            nums = re.findall(r"(?<!\d)(\d{1,2},\d{1,2})(?!\d)", tail)
+            val = to_number(nums[0]) if nums else None
+        dt = parse_dt(dm.group(1)) if dm else None
+        if val is None or dt is None or (now - dt).days > NID_MAX_AGE_DAYS:
+            continue
+        st = by_sid.get(sid)
+        if st is None or any("sauerstoff" in i.get("label", "").lower()
+                             for i in st.get("items", [])):
+            continue
+        st.setdefault("items", []).append({
+            "label": "Sauerstoff (Tagesminimum)", "value": fmt_value(val, 2),
+            "unit": "mg/l", "icon": "🫧", "time": dt.strftime("%d.%m.%Y")
+        })
+        added += 1
+    print(f"[Bayern/NID] {added} automatische Gütestationen mit Sauerstoff ergänzt")
+    return stations
+
+
 # ---------------------------------------------------------- Berlin (Wasserportal) ----
 # CORS ist geschlossen -> serverseitig. Koordinaten stehen als m.Point([E,N],pkz,name,gewaesser)
 # (ETRS89/UTM33N) in der Kartenseite; aktuelle Temperaturwerte in der Tabellen-Seite.
@@ -790,8 +835,13 @@ def main():
     #         results.append(process_hessen(st))
     #     except Exception as e:
     #         print(f"      FEHLER bei {st['name']}: {e}")
-    try:                                   # Bayern (GKD) – alle Stationen aus der Gesamttabelle
-        results.extend(process_gkd_all())
+    try:                                   # Bayern: Temperatur (GKD) + Sauerstoff (NID)
+        bayern = process_gkd_all()
+        try:
+            bayern = enrich_gkd_with_nid_oxygen(bayern)
+        except Exception as e:
+            print(f"      FEHLER Bayern/NID Sauerstoff: {e}")
+        results.extend(bayern)
     except Exception as e:
         print(f"      FEHLER GKD: {e}")
     try:                                   # Berlin (Wasserportal) – Oberflächen-Wassertemperatur
