@@ -160,6 +160,7 @@ footer a{color:var(--muted)}
 .leaflet-popup-content{font-size:13px;line-height:1.5}
 .spot-ic{background:none;border:0;font-size:20px;line-height:26px;text-align:center;
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
+.pie-ic{background:none;border:0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
 
 /* Fangbuch */
 .fbcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;box-shadow:var(--shadow)}

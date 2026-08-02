@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
 <header>
@@ -174,7 +174,7 @@
     <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
     <div class="fbfield"><label>Gewicht (kg, optional)</label><input id="f_gewicht" type="number" min="0" step="0.1" inputmode="decimal"></div>
     <div class="fbfield"><label>Verwertung</label>
-      <select id="f_verwertung"><option value="">—</option><option value="entnommen">entnommen</option><option value="freigelassen">freigelassen</option></select></div>
+      <select id="f_verwertung"><option value="">—</option><option value="entnommen">entnommen</option><option value="freigelassen">freigelassen</option><option value="abgegangen">abgegangen</option></select></div>
   </div>
   <div class="fbrow">
     <div class="fbfield"><label>Köder</label><select id="f_koeder_base" onchange="onKoederBaseChange()"></select></div>
@@ -235,10 +235,11 @@
 <div class="mapcard">
   <div class="mapmeta">
     <div>
-      <div class="pos">🎣 Angelplätze · Messstationen (Knopf „◉ Stationen"): <span style="color:#e0483b">rot = nur Temperatur</span>, <span style="color:#3b82f6">blau = + Sauerstoff</span>, <span style="color:#8a5a2b">braun = + Trübung</span> · grün: Fänge · gelb: Fangort.</div>
+      <div class="pos">🎣 Angelplätze · Messstationen (Knopf „◉ Stationen") als Kuchen-Symbol: <span style="color:#9aa3ab">grau = Pegel</span>, <span style="color:#e0483b">rot = Temperatur</span>, <span style="color:#3b82f6">blau = Sauerstoff</span>, <span style="color:#8a5a2b">braun = Trübung</span> · grün: Fänge · gelb: Fangort.</div>
     </div>
     <div class="btns">
       <button onclick="toggleStationsLayer()" id="layStations">◉ Stationen</button>
+      <button onclick="toggleStationMode()" id="layMode" style="display:none">alle</button>
       <button onclick="toggleSpotsLayer()" id="laySpots">◉ Angelplätze</button>
     </div>
   </div>
@@ -336,6 +337,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=32"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>

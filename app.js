@@ -605,6 +605,7 @@ function importJSON(ev){
 /* ---- Leaflet-Karte ---- */
 let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
 let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=false, SPOTS_VISIBLE=true, SPOT_PICK=false, STATION_PICK=false;
+let STATION_MINWERTE=false;   // false = alle Stationen, true = nur mit >= 2 Werten
 let PO_PARAMS=null, PO_LOADING=false;            // uuid -> {wt,o2,tr}
 async function ensureStationParams(){
   if(PO_PARAMS || PO_LOADING) return;
@@ -614,9 +615,10 @@ async function ensureStationParams(){
     const m={};
     for(const s of arr){
       const sh=(s.timeseries||[]).map(t=>String(t.shortname||"").toUpperCase());
+      const pegel=sh.includes("W")||sh.includes("Q");   // Wasserstand/Abfluss = Pegel (grau)
       const wt=sh.includes("WT");
-      if(!wt) continue;
-      m[s.uuid]={ wt:true, o2:sh.includes("O2"), tr:sh.some(x=>x==="TR"||x.indexOf("TRUEB")===0||x==="TB") };
+      if(!pegel && !wt) continue;
+      m[s.uuid]={ pegel, wt, o2:sh.includes("O2"), tr:sh.some(x=>x==="TR"||x.indexOf("TRUEB")===0||x==="TB") };
     }
     PO_PARAMS=m;
   }catch(e){ PO_PARAMS={}; }
@@ -656,28 +658,54 @@ function initMap(){
   updateLayerBtns();
   renderMarkers();
 }
+/* Kuchen-Symbol: gleich große Segmente je vorhandenem Parameter.
+   Reihenfolge/Farben: grau=Pegel, rot=Temperatur, blau=Sauerstoff, braun=Trübung. */
+const SEG_DEF=[["pegel","#9aa3ab","Pegel"],["wt","#e0483b","Temperatur"],["o2","#3b82f6","Sauerstoff"],["tr","#8a5a2b","Trübung"]];
+function segList(p){ return SEG_DEF.filter(d=>p&&p[d[0]]); }
+function pieIcon(segs, r){
+  r=r||7; const pad=2, c=r+pad, size=c*2, n=segs.length;
+  let inner="";
+  if(n<=1){ const col=n?segs[0][1]:"#9aa3ab";
+    inner='<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="'+col+'" stroke="#fff" stroke-width="1"/>'; }
+  else { for(let i=0;i<n;i++){
+      const a0=(i/n)*2*Math.PI - Math.PI/2, a1=((i+1)/n)*2*Math.PI - Math.PI/2;
+      const x0=(c+r*Math.cos(a0)).toFixed(2), y0=(c+r*Math.sin(a0)).toFixed(2);
+      const x1=(c+r*Math.cos(a1)).toFixed(2), y1=(c+r*Math.sin(a1)).toFixed(2);
+      const large=(a1-a0)>Math.PI?1:0;
+      inner+='<path d="M'+c+','+c+' L'+x0+','+y0+' A'+r+','+r+' 0 '+large+' 1 '+x1+','+y1+' Z" fill="'+segs[i][1]+'" stroke="#fff" stroke-width="0.8"/>';
+    }
+    inner+='<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="#fff" stroke-width="1"/>';
+  }
+  const svg='<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';
+  return L.divIcon({className:"pie-ic", html:svg, iconSize:[size,size], iconAnchor:[c,c]});
+}
 function addStationDots(){
   if(!STATIONS_LAYER) return;
   STATIONS_LAYER.clearLayers();
   if(!STATIONS_VISIBLE) return;
-  const lbl=p=> p.o2&&p.tr ? "Temp+Sauerstoff+Trübung" : p.o2 ? "Temp+Sauerstoff" : "nur Temperatur";
-  // PEGELONLINE-Stationen, eingefärbt nach verfügbaren Parametern
-  let list=STATIONS.filter(s=> PO_PARAMS && PO_PARAMS[s.uuid]);
-  try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
-  if(list.length>400) list=list.slice(0,400);
-  for(const s of list){
-    const p=PO_PARAMS[s.uuid], col=paramColor(p); if(!col) continue;
-    const mk=L.circleMarker([s.lat,s.lon],{radius:4,color:col,weight:1,fillColor:col,fillOpacity:.75});
-    mk.bindTooltip(s.name+" · "+(s.river||"")+" · "+lbl(p));
-    STATIONS_LAYER.addLayer(mk);
-  }
-  // Gütestationen (RLP/Hessen/Bayern) – gleiche Farblogik nach ihren Werten
+  // Alle Punkte einsammeln: PEGELONLINE (mit grauem Pegel-Segment) + Güte/NIZ-Stationen
+  const pts=[];
+  for(const s of STATIONS){ const p=PO_PARAMS&&PO_PARAMS[s.uuid]; if(!p) continue;
+    pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, r:5, p}); }
   const gu=(window.WQ&&window.WQ.stations)||[];
-  for(const s of gu){ if(s.lat==null) continue; const p=guteParams(s), col=paramColor(p); if(!col) continue;
-    const mk=L.circleMarker([s.lat,s.lon],{radius:5,color:col,weight:2,fillColor:col,fillOpacity:.95});
-    mk.bindTooltip("Gütestation "+s.name+" · "+(s.river||"")+" · "+lbl(p));
+  for(const s of gu){ if(s.lat==null) continue; const g=guteParams(s);
+    pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, r:6, p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
+  // Filter: sichtbarer Ausschnitt + optional nur Stationen mit >= 2 Werten
+  let list=pts;
+  try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
+  list=list.map(s=>({s, segs:segList(s.p)})).filter(o=>o.segs.length>0);
+  if(STATION_MINWERTE) list=list.filter(o=>o.segs.length>=2);
+  if(list.length>500) list=list.slice(0,500);
+  for(const o of list){
+    const names=o.segs.map(d=>d[2]).join("+");
+    const mk=L.marker([o.s.lat,o.s.lon],{icon:pieIcon(o.segs, o.s.r)});
+    mk.bindTooltip((o.s.guete?"Gütestation ":"Pegel ")+o.s.name+" · "+(o.s.river||"")+" · "+names);
     STATIONS_LAYER.addLayer(mk);
   }
+}
+function toggleStationMode(){
+  STATION_MINWERTE=!STATION_MINWERTE; updateLayerBtns();
+  if(STATIONS_VISIBLE) addStationDots();
 }
 function spotLatLon(sp){
   if(sp.lat!=null && sp.lon!=null) return [sp.lat, sp.lon];
@@ -703,7 +731,9 @@ function toggleStationsLayer(){
   } else { STATIONS_LAYER.remove(); }
 }
 function toggleSpotsLayer(){ SPOTS_VISIBLE=!SPOTS_VISIBLE; if(MAP&&SPOTS_LAYER){ if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP); else SPOTS_LAYER.remove(); } updateLayerBtns(); }
-function updateLayerBtns(){ const a=$("layStations"), b=$("laySpots"); if(a) a.textContent=(STATIONS_VISIBLE?"◉":"○")+" Stationen"; if(b) b.textContent=(SPOTS_VISIBLE?"◉":"○")+" Angelplätze"; }
+function updateLayerBtns(){ const a=$("layStations"), b=$("laySpots"), m=$("layMode");
+  if(a) a.textContent=(STATIONS_VISIBLE?"◉":"○")+" Stationen"; if(b) b.textContent=(SPOTS_VISIBLE?"◉":"○")+" Angelplätze";
+  if(m){ m.textContent=STATION_MINWERTE?"≥2 Werte":"alle"; m.style.display=STATIONS_VISIBLE?"":"none"; } }
 function setSelectedLocation(lat, lon, acc, pan){
   CURRENT_GPS={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6), genauigkeit_m: (acc==null? null : Math.round(acc)) };
   if(MAP && window.L){
