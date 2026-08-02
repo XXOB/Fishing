@@ -252,6 +252,9 @@ function renderQuality(){
     } else if(cur.src==="hlnug"){
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
         ' · Daten: <a href="https://www.hlnug.de/messwerte/datenportal" target="_blank" rel="noopener">HLNUG ↗</a>';
+    } else if(cur.src==="undine" || String(cur.id||"").indexOf("undine-")===0){
+      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
+        ' · Daten: <a href="https://undine.bafg.de" target="_blank" rel="noopener">BfG/Undine ↗</a>';
     } else {
       const sid=cur.id?String(cur.id):"";
       const surl=sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
@@ -734,11 +737,22 @@ function addStationDots(){
     pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, r:5, p}); }
   const gu=(window.WQ&&window.WQ.stations)||[];
   for(const s of gu){ if(s.lat==null) continue; const g=guteParams(s);
-    pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, r:6, p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
+    pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, id:s.id, r:6, p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
+  let list=pts.map(s=>({s, segs:segList(s.p)})).filter(o=>o.segs.length>0);
+  // Dubletten entfernen: Undine-Punkte, die eine bereits vorhandene Station (anderes Netz) doppeln
+  { const norm=x=>String(x||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"");
+    const isU=o=>String(o.s.id||"").indexOf("undine-")===0;
+    const others=list.filter(o=>!isU(o));
+    list=list.filter(o=>{ if(!isU(o)) return true;
+      const nr=norm(o.s.river), nn=norm(o.s.name);
+      for(const x of others){
+        if(nn && norm(x.s.name)===nn) return false;                                   // gleicher Name
+        if(nr && norm(x.s.river)===nr && haversine(o.s.lat,o.s.lon,x.s.lat,x.s.lon)<6) return false;  // gleicher Fluss + <6 km
+      }
+      return true; });
+  }
   // Filter: sichtbarer Ausschnitt + optional nur Stationen mit >= 2 Werten
-  let list=pts;
-  try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(s=>b.contains([s.lat,s.lon])); } }catch(e){}
-  list=list.map(s=>({s, segs:segList(s.p)})).filter(o=>o.segs.length>0);
+  try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(o=>b.contains([o.s.lat,o.s.lon])); } }catch(e){}
   if(STATION_MINWERTE) list=list.filter(o=>o.segs.length>=2);
   if(list.length>500) list=list.slice(0,500);
   for(const o of list){

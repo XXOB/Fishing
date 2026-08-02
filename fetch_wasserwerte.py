@@ -526,6 +526,219 @@ def process_gkd_all():
     return results
 
 
+# ---------------------------------------------------------- Berlin (Wasserportal) ----
+# CORS ist geschlossen -> serverseitig. Koordinaten stehen als m.Point([E,N],pkz,name,gewaesser)
+# (ETRS89/UTM33N) in der Kartenseite; aktuelle Temperaturwerte in der Tabellen-Seite.
+BERLIN_KARTE   = "https://wasserportal.berlin.de/messwerte.php?anzeige=karte&thema=owt"
+BERLIN_TABELLE = "https://wasserportal.berlin.de/messwerte.php?anzeige=tabelle&thema=owt"
+BERLIN_MAX_AGE_H = 24
+
+def utm33_to_wgs84(E, N):
+    """ETRS89 / UTM Zone 33N -> WGS84 (lat, lon), GRS80."""
+    a=6378137.0; f=1/298.257222101; k0=0.9996
+    e2=f*(2-f); E0=500000.0; lon0=math.radians(15.0)
+    x=E-E0; M=N/k0
+    mu=M/(a*(1-e2/4-3*e2**2/64-5*e2**3/256))
+    e1=(1-math.sqrt(1-e2))/(1+math.sqrt(1-e2))
+    phi1=(mu+(3*e1/2-27*e1**3/32)*math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*math.sin(4*mu)
+            +(151*e1**3/96)*math.sin(6*mu)+(1097*e1**4/512)*math.sin(8*mu))
+    ep2=e2/(1-e2); C1=ep2*math.cos(phi1)**2; T1=math.tan(phi1)**2
+    N1=a/math.sqrt(1-e2*math.sin(phi1)**2); R1=a*(1-e2)/(1-e2*math.sin(phi1)**2)**1.5
+    D=x/(N1*k0)
+    lat=phi1-(N1*math.tan(phi1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*ep2)*D**4/24
+        +(61+90*T1+298*C1+45*T1**2-252*ep2-3*C1**2)*D**6/720)
+    lon=lon0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*ep2+24*T1**2)*D**5/120)/math.cos(phi1)
+    return math.degrees(lat), math.degrees(lon)
+
+BERLIN_PT = re.compile(
+    r"m\.Point\(\[\s*([\d.]+)\s*,\s*([\d.]+)\s*\]\)"
+    r"[\s\S]{0,200}?pkz:\s*'([^']+)'"
+    r"[\s\S]{0,120}?name:\s*'([^']*)'"
+    r"[\s\S]{0,160}?gewaesser:\s*'([^']*)'")
+
+def berlin_coords():
+    """{pkz: {lat,lon,name,river}} aus der Kartenseite."""
+    html=fetch_gkd_html(BERLIN_KARTE)
+    coords={}
+    for m in BERLIN_PT.finditer(html):
+        pkz=m.group(3)
+        if pkz in coords: continue
+        try: lat,lon=utm33_to_wgs84(float(m.group(1)), float(m.group(2)))
+        except Exception: continue
+        coords[pkz]={"lat":round(lat,5), "lon":round(lon,5), "name":m.group(4), "river":m.group(5)}
+    return coords
+
+def process_berlin():
+    coords=berlin_coords()
+    html=fetch_gkd_html(BERLIN_TABELLE)
+    now=datetime.now(); results=[]
+    for row in re.split(r"<tr", html):
+        mp=re.search(r"<td[^>]*>\s*<a[^>]*>\s*([0-9A-Za-z_]+)\s*</a>", row)
+        if not mp: continue
+        pkz=mp.group(1)
+        cells=[re.sub(r"<[^>]+>"," ",c).replace("&nbsp;"," ").strip()
+               for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
+        joined=" ".join(cells)
+        md=re.search(r"(\d{2}\.\d{2}\.\d{4})\s+(\d{2}:\d{2})", joined)
+        mt=re.search(r"(-?\d+[.,]\d+)\s*°C", joined)          # Temperaturwert vor der Einheit
+        if not md or not mt: continue
+        dt=parse_dt(md.group(1)+" "+md.group(2))
+        if not dt or (now-dt).total_seconds() > BERLIN_MAX_AGE_H*3600: continue
+        c=coords.get(pkz)
+        if not c: continue
+        val=to_number(mt.group(1))
+        if val is None: continue
+        results.append({
+            "id":"be-"+pkz, "name":(c["name"] or pkz), "lat":c["lat"], "lon":c["lon"], "river":c["river"],
+            "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+            "items":[{"label":"Wassertemperatur", "value":fmt_value(val,1), "unit":"°C",
+                      "icon":"\U0001F321️", "time":dt.strftime("%d.%m.%Y %H:%M")}],
+            "history":{},
+        })
+    print(f"[Berlin] {len(results)} Stationen mit Wassertemperatur ({len(coords)} Koordinaten)")
+    return results
+
+
+# ------------------------------------------------------------------- NRW (LANUK/HYWIS) ----
+# KISTERS-Portal (hydrologie.nrw.de). Layer 20 = Wassertemperatur: ein JSON-Array mit
+# aktuellem Wert + WGS84-Koordinaten je Station. CORS geschlossen -> serverseitig.
+NRW_URL = "https://www.hydrologie.nrw.de/data/internet/layers/20/index.json"
+NRW_MAX_AGE_H = 24
+
+def _iso_dt(s):
+    try: return datetime.fromisoformat(str(s))
+    except Exception: return None
+
+def process_nrw():
+    data = json.loads(fetch_gkd_html(NRW_URL))
+    if not isinstance(data, list): return []
+    now = datetime.now(timezone.utc); results = []
+    for o in data:
+        try:
+            lat = float(o.get("station_latitude")); lon = float(o.get("station_longitude"))
+        except Exception:
+            continue
+        val = to_number(str(o.get("ts_value")))
+        if val is None or not lat or not lon: continue
+        dt = _iso_dt(o.get("timestamp"))
+        if dt is not None:
+            age = (now - dt.astimezone(timezone.utc)).total_seconds()
+            if age > NRW_MAX_AGE_H*3600 or age < -6*3600: continue
+        river = (o.get("WTO_OBJECT") or o.get("catchment_name") or "").strip()
+        name  = (o.get("station_name") or o.get("station_longname") or "").strip()
+        sid   = str(o.get("station_no") or o.get("station_id") or name)
+        results.append({
+            "id": "nrw-"+sid, "name": name or sid, "lat": round(lat,5), "lon": round(lon,5), "river": river,
+            "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+            "items": [{"label":"Wassertemperatur", "value":fmt_value(val,1), "unit":"°C",
+                       "icon":"\U0001F321️", "time": dt.strftime("%d.%m.%Y %H:%M") if dt else ""}],
+            "history": {},
+        })
+    print(f"[NRW] {len(results)} Stationen mit Wassertemperatur")
+    return results
+
+
+# ------------------------------------------------------------ Undine (BfG) ----
+# BfG-Informationsplattform Undine: aktuelle Güte-Wassertemperatur an den großen Bundeswasser-
+# straßen (Rhein, Ems, Weser, Elbe, Oder, Donau). Werte je Flussgebiet in einer JS-Datei;
+# Koordinaten (Gauß-Krüger/Bessel) auf den Stationsseiten -> WGS84. Dubletten mit bereits
+# vorhandenen Netzen werden client-seitig beim Zeichnen entfernt.
+UNDINE_REGIONS = ["rhein", "ems", "weser", "elbe", "oder", "donau"]
+UNDINE_COORDS_FILE = Path("undine_coords.json")
+UNDINE_MAX_AGE_H = 30
+
+def gk_bessel_to_wgs84(R, H):
+    """Gauß-Krüger (Bessel/Potsdam, Zone aus 1. Ziffer des Rechtswerts) -> WGS84 (lat, lon)."""
+    a=6377397.155; f=1/299.1528128; e2=f*(2-f)
+    zone=int(R//1_000_000); lon0=math.radians(zone*3.0)
+    y=R-zone*1_000_000-500000.0; x=H
+    bar=x/(a*(1-e2/4-3*e2**2/64-5*e2**3/256))
+    e1=(1-math.sqrt(1-e2))/(1+math.sqrt(1-e2))
+    phi=(bar+(3*e1/2-27*e1**3/32)*math.sin(2*bar)+(21*e1**2/16-55*e1**4/32)*math.sin(4*bar)
+         +(151*e1**3/96)*math.sin(6*bar))
+    ep2=e2/(1-e2); C=ep2*math.cos(phi)**2; T=math.tan(phi)**2
+    N=a/math.sqrt(1-e2*math.sin(phi)**2); R1=a*(1-e2)/(1-e2*math.sin(phi)**2)**1.5; D=y/N
+    lat=phi-(N*math.tan(phi)/R1)*(D**2/2-(5+3*T+10*C-4*C*C-9*ep2)*D**4/24
+        +(61+90*T+298*C+45*T*T-252*ep2-3*C*C)*D**6/720)
+    lon=lon0+(D-(1+2*T+C)*D**3/6+(5-2*C+28*T-3*C*C+8*ep2+24*T*T)*D**5/120)/math.cos(phi)
+    lat=math.degrees(lat); lon=math.degrees(lon)
+    # Bessel/Potsdam -> WGS84 (3-Parameter-Helmert über ECEF, ~100 m genau)
+    dx=-598.1; dy=-73.7; dz=-418.2
+    la=math.radians(lat); lo=math.radians(lon); Nn=a/math.sqrt(1-e2*math.sin(la)**2)
+    X=Nn*math.cos(la)*math.cos(lo)+dx; Y=Nn*math.cos(la)*math.sin(lo)+dy; Z=Nn*(1-e2)*math.sin(la)+dz
+    aW=6378137.0; fW=1/298.257223563; e2W=fW*(2-fW); p=math.hypot(X,Y); l2=math.atan2(Z,p*(1-e2W))
+    for _ in range(5):
+        Nw=aW/math.sqrt(1-e2W*math.sin(l2)**2); l2=math.atan2(Z+e2W*Nw*math.sin(l2), p)
+    return round(math.degrees(l2),5), round(math.degrees(math.atan2(Y,X)),5)
+
+def undine_wt(region):
+    """{key: {'t':temp, 'd':'dd.mm.yyyy HH:MM'}} aus der Flussgebiets-JS-Datei."""
+    urls=[f"https://undine.bafg.de/bilder/undine/{region}/aktuell_wt_o2_{region}.js",
+          f"https://undine.bafg.de/bilder/undine/aktuell_wt_o2_{region}.js"]
+    t=""
+    for u in urls:
+        try:
+            t=fetch_gkd_html(u)
+            if "wt_" in t: break
+        except Exception: continue
+    out={}
+    for m in re.finditer(r'(wt_[a-z0-9_]+)\s*=\s*"([^"]*)"', t):
+        key=m.group(1)[3:]; v=m.group(2)
+        mt=re.search(r"Wassertemperatur:\s*([\-\d.,]+)", v)
+        md=re.search(r"Datum:\s*([\d.]+),?\s*([\d:]+)", v)
+        if not mt: continue
+        out[key]={"t":to_number(mt.group(1)), "d":(md.group(1)+" "+md.group(2)) if md else ""}
+    return out
+
+def undine_station_coords(region, key, cache):
+    ck=region+"/"+key
+    if ck in cache: return cache[ck]
+    try:
+        html=fetch_gkd_html(f"https://undine.bafg.de/{region}/guetemessstellen/{region}_mst_{key}.html")
+    except Exception:
+        cache[ck]=None; return None
+    txt=re.sub(r"<[^>]+>"," ",html).replace("&nbsp;"," ")
+    mrh=re.search(r"Rechtswert\s*/\s*Hochwert:\s*(\d{6,7})\s*/\s*(\d{6,7})", txt)
+    name=key; river=""
+    mt=re.search(r"<title>([^<]+)</title>", html)
+    if mt:
+        nm=re.sub(r"^\s*Messstation\s+","",mt.group(1).split("|")[0].strip())
+        if "," in nm: river=nm.rsplit(",",1)[1].strip(); name=nm.rsplit(",",1)[0].strip()
+        else: name=nm
+    if not mrh:
+        cache[ck]=None; return None
+    lat,lon=gk_bessel_to_wgs84(float(mrh.group(1)), float(mrh.group(2)))
+    if not (47.0<=lat<=55.2 and 5.5<=lon<=15.6):
+        cache[ck]=None; return None
+    cache[ck]={"lat":lat, "lon":lon, "name":name, "river":river}
+    return cache[ck]
+
+def process_undine():
+    try: cache=json.loads(UNDINE_COORDS_FILE.read_text(encoding="utf-8"))
+    except Exception: cache={}
+    now=datetime.now(); results=[]
+    for region in UNDINE_REGIONS:
+        try: wt=undine_wt(region)
+        except Exception as ex: print(f"      Undine {region}: {ex}"); continue
+        for key,d in wt.items():
+            if d["t"] is None: continue
+            dt=parse_dt(d["d"]) if d["d"] else None
+            if dt and (now-dt).total_seconds() > UNDINE_MAX_AGE_H*3600: continue
+            c=undine_station_coords(region, key, cache)
+            if not c: continue
+            results.append({
+                "id":"undine-"+region+"-"+key, "name":c["name"], "lat":c["lat"], "lon":c["lon"], "river":c["river"], "src":"undine",
+                "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
+                "items":[{"label":"Wassertemperatur", "value":fmt_value(d["t"],1), "unit":"°C",
+                          "icon":"\U0001F321️", "time": dt.strftime("%d.%m.%Y %H:%M") if dt else d["d"]}],
+                "history":{},
+            })
+    try: UNDINE_COORDS_FILE.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+    except Exception: pass
+    print(f"[Undine/BfG] {len(results)} Gütestationen (Wassertemperatur)")
+    return results
+
+
 # ------------------------------------------------------------------- Main -----
 def write_json(stations):
     payload = {
@@ -572,6 +785,18 @@ def main():
         results.extend(process_gkd_all())
     except Exception as e:
         print(f"      FEHLER GKD: {e}")
+    try:                                   # Berlin (Wasserportal) – Oberflächen-Wassertemperatur
+        results.extend(process_berlin())
+    except Exception as e:
+        print(f"      FEHLER Berlin: {e}")
+    try:                                   # NRW (LANUK/HYWIS) – Wassertemperatur
+        results.extend(process_nrw())
+    except Exception as e:
+        print(f"      FEHLER NRW: {e}")
+    try:                                   # Undine (BfG) – Güte-Wassertemperatur Bundeswasserstraßen
+        results.extend(process_undine())
+    except Exception as e:
+        print(f"      FEHLER Undine: {e}")
     if not results:
         print("Keine Station erfolgreich abgerufen.")
         sys.exit(2)
