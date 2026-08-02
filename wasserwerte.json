@@ -1,5 +1,5 @@
 {
-  "updated": "02.08.2026 15:38",
+  "updated": "02.08.2026 15:51",
   "stations": [
     {
       "id": "2511510500",
@@ -7,7 +7,7 @@
       "lat": 50.0068,
       "lon": 8.2795,
       "river": "Rhein",
-      "updated": "02.08.2026 15:33",
+      "updated": "02.08.2026 15:47",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -1939,7 +1939,7 @@
       "lat": 49.6353,
       "lon": 8.3838,
       "river": "Rhein",
-      "updated": "02.08.2026 15:33",
+      "updated": "02.08.2026 15:47",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -4311,7 +4311,7 @@
       "lat": 50.1647,
       "lon": 7.2017,
       "river": "Mosel",
-      "updated": "02.08.2026 15:33",
+      "updated": "02.08.2026 15:47",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -5802,7 +5802,7 @@
       "lat": 49.5033,
       "lon": 6.4517,
       "river": "Mosel",
-      "updated": "02.08.2026 15:33",
+      "updated": "02.08.2026 15:47",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -7293,7 +7293,7 @@
       "lat": 49.6533,
       "lon": 6.5828,
       "river": "Saar",
-      "updated": "02.08.2026 15:33",
+      "updated": "02.08.2026 15:47",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -8784,7 +8784,7 @@
       "lat": 49.9686,
       "lon": 7.8956,
       "river": "Nahe",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:48",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10275,7 +10275,7 @@
       "lat": 48.00392,
       "lon": 12.53199,
       "river": "Alz",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:48",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10293,7 +10293,7 @@
       "lat": 49.44815,
       "lon": 11.85486,
       "river": "Vils",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:48",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10311,7 +10311,7 @@
       "lat": 49.97546,
       "lon": 9.96279,
       "river": "Wern",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10329,7 +10329,7 @@
       "lat": 47.7806,
       "lon": 12.32378,
       "river": "Prien",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10347,7 +10347,7 @@
       "lat": 47.99302,
       "lon": 12.01054,
       "river": "Attel",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10365,7 +10365,7 @@
       "lat": 49.85839,
       "lon": 10.21769,
       "river": "Main",
-      "updated": "02.08.2026 15:34",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10383,7 +10383,7 @@
       "lat": 47.79691,
       "lon": 11.97275,
       "river": "Aubach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10401,7 +10401,7 @@
       "lat": 48.34393,
       "lon": 10.93527,
       "river": "Lech",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10419,7 +10419,7 @@
       "lat": 48.8162,
       "lon": 11.83029,
       "river": "Abens",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10437,7 +10437,7 @@
       "lat": 48.54741,
       "lon": 10.31851,
       "river": "Brenz",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10455,7 +10455,7 @@
       "lat": 47.85794,
       "lon": 11.99408,
       "river": "Mangfall",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10473,7 +10473,7 @@
       "lat": 50.3077,
       "lon": 9.78897,
       "river": "Sinn",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10491,7 +10491,7 @@
       "lat": 50.19745,
       "lon": 10.07448,
       "river": "Fränkische Saale",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10509,7 +10509,7 @@
       "lat": 47.75414,
       "lon": 11.556,
       "river": "Isar",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10527,7 +10527,7 @@
       "lat": 47.70505,
       "lon": 11.73618,
       "river": "Söllbach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10545,7 +10545,7 @@
       "lat": 49.94907,
       "lon": 11.56619,
       "river": "Roter Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10563,7 +10563,7 @@
       "lat": 49.02846,
       "lon": 11.47831,
       "river": "Altmühl",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10581,7 +10581,7 @@
       "lat": 47.64577,
       "lon": 13.03232,
       "river": "Berchtesgadener Ache",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10599,7 +10599,7 @@
       "lat": 47.81817,
       "lon": 12.3836,
       "river": "Bernauer Ache",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10617,7 +10617,7 @@
       "lat": 47.8353,
       "lon": 11.41489,
       "river": "Loisach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10635,7 +10635,7 @@
       "lat": 49.90846,
       "lon": 10.29875,
       "river": "Volkach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10653,7 +10653,7 @@
       "lat": 48.17156,
       "lon": 12.73113,
       "river": "Alz",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10671,7 +10671,7 @@
       "lat": 48.8258,
       "lon": 12.96065,
       "river": "Donau",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10689,7 +10689,7 @@
       "lat": 48.4958,
       "lon": 12.34416,
       "river": "kleine Vils",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10707,7 +10707,7 @@
       "lat": 48.71072,
       "lon": 10.80149,
       "river": "Donau",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10725,7 +10725,7 @@
       "lat": 48.88306,
       "lon": 11.20037,
       "river": "Altmühl",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10743,7 +10743,7 @@
       "lat": 47.72674,
       "lon": 10.89181,
       "river": "Illach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10761,7 +10761,7 @@
       "lat": 48.28106,
       "lon": 12.61273,
       "river": "Isen",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10779,7 +10779,7 @@
       "lat": 49.83558,
       "lon": 12.06288,
       "river": "Fichtelnaab",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10797,7 +10797,7 @@
       "lat": 50.27815,
       "lon": 11.43093,
       "river": "Rodach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10815,7 +10815,7 @@
       "lat": 49.85513,
       "lon": 9.85374,
       "river": "Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10833,7 +10833,7 @@
       "lat": 47.59749,
       "lon": 11.18692,
       "river": "Loisach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10851,7 +10851,7 @@
       "lat": 47.89263,
       "lon": 11.85263,
       "river": "Mangfall",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10869,7 +10869,7 @@
       "lat": 48.40809,
       "lon": 11.77816,
       "river": "Moosach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10887,7 +10887,7 @@
       "lat": 50.2773,
       "lon": 11.15941,
       "river": "Steinach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10905,7 +10905,7 @@
       "lat": 50.13141,
       "lon": 9.72842,
       "river": "Schondra",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10923,7 +10923,7 @@
       "lat": 48.61081,
       "lon": 13.14533,
       "river": "Vils",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10941,7 +10941,7 @@
       "lat": 49.60559,
       "lon": 11.50494,
       "river": "Pegnitz",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10959,7 +10959,7 @@
       "lat": 49.84133,
       "lon": 9.05124,
       "river": "Mümling",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10977,7 +10977,7 @@
       "lat": 49.75916,
       "lon": 10.98407,
       "river": "Aisch",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -10995,7 +10995,7 @@
       "lat": 49.0386,
       "lon": 12.25243,
       "river": "Otterbach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11013,7 +11013,7 @@
       "lat": 50.13233,
       "lon": 8.94626,
       "river": "Kinzig",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11031,7 +11031,7 @@
       "lat": 49.97368,
       "lon": 8.98419,
       "river": "Gesprenz",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11049,7 +11049,7 @@
       "lat": 47.62095,
       "lon": 10.4616,
       "river": "Wertach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11067,7 +11067,7 @@
       "lat": 49.68767,
       "lon": 11.04608,
       "river": "Regnitz",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11085,7 +11085,7 @@
       "lat": 49.11825,
       "lon": 11.93639,
       "river": "Naab",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11103,7 +11103,7 @@
       "lat": 50.32401,
       "lon": 11.91453,
       "river": "Sächsische Saale",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11121,7 +11121,7 @@
       "lat": 47.83543,
       "lon": 12.0898,
       "river": "Kaltenbach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11139,7 +11139,7 @@
       "lat": 49.93516,
       "lon": 11.29062,
       "river": "Wiesent",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11157,7 +11157,7 @@
       "lat": 48.75662,
       "lon": 11.42534,
       "river": "Donau",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11175,7 +11175,7 @@
       "lat": 48.52077,
       "lon": 13.70227,
       "river": "Donau",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11193,7 +11193,7 @@
       "lat": 50.0639,
       "lon": 8.99033,
       "river": "Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11211,7 +11211,7 @@
       "lat": 48.68886,
       "lon": 13.45192,
       "river": "Ilz",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11229,7 +11229,7 @@
       "lat": 48.91659,
       "lon": 11.86433,
       "river": "Donau",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11247,7 +11247,7 @@
       "lat": 49.95096,
       "lon": 10.8741,
       "river": "Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11265,7 +11265,7 @@
       "lat": 47.73043,
       "lon": 10.3168,
       "river": "Iller",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11283,7 +11283,7 @@
       "lat": 49.7164,
       "lon": 9.22462,
       "river": "Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11301,7 +11301,7 @@
       "lat": 50.09419,
       "lon": 11.52526,
       "river": "Weißer Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11319,7 +11319,7 @@
       "lat": 50.2979,
       "lon": 10.92435,
       "river": "Sulzbach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11337,7 +11337,7 @@
       "lat": 48.67528,
       "lon": 12.69261,
       "river": "Isar",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11355,7 +11355,7 @@
       "lat": 48.52751,
       "lon": 12.13321,
       "river": "Isar",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11373,7 +11373,7 @@
       "lat": 47.93963,
       "lon": 12.93284,
       "river": "Salzach",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11391,7 +11391,7 @@
       "lat": 47.68399,
       "lon": 11.57205,
       "river": "Isar",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11409,7 +11409,7 @@
       "lat": 48.02918,
       "lon": 11.36315,
       "river": "Würm",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11427,7 +11427,7 @@
       "lat": 48.64258,
       "lon": 11.78413,
       "river": "Abens",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11445,7 +11445,7 @@
       "lat": 50.09943,
       "lon": 11.37274,
       "river": "Main",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11463,7 +11463,7 @@
       "lat": 48.71763,
       "lon": 11.49365,
       "river": "Paar",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11481,7 +11481,7 @@
       "lat": 48.72811,
       "lon": 11.50132,
       "river": "Paar",
-      "updated": "02.08.2026 15:35",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11499,7 +11499,7 @@
       "lat": 49.2228,
       "lon": 12.1747,
       "river": "Regen",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11517,7 +11517,7 @@
       "lat": 50.12988,
       "lon": 11.99481,
       "river": "Eger",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11535,7 +11535,7 @@
       "lat": 49.02986,
       "lon": 11.36544,
       "river": "Schwarzach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11553,7 +11553,7 @@
       "lat": 47.78915,
       "lon": 11.82922,
       "river": "Schlierach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11571,7 +11571,7 @@
       "lat": 50.20087,
       "lon": 9.61647,
       "river": "Sinn",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11589,7 +11589,7 @@
       "lat": 47.44332,
       "lon": 11.27088,
       "river": "Isar",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11607,7 +11607,7 @@
       "lat": 49.80314,
       "lon": 11.25839,
       "river": "Wiesent",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11625,7 +11625,7 @@
       "lat": 49.15338,
       "lon": 11.01295,
       "river": "Schwäbische Rezat",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11643,7 +11643,7 @@
       "lat": 48.14549,
       "lon": 11.59697,
       "river": "Isar",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11661,7 +11661,7 @@
       "lat": 48.1467,
       "lon": 11.59092,
       "river": "Eisbach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11679,7 +11679,7 @@
       "lat": 48.15114,
       "lon": 11.58735,
       "river": "Schwabinger Bach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11697,7 +11697,7 @@
       "lat": 50.25216,
       "lon": 10.19653,
       "river": "Lauer",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11715,7 +11715,7 @@
       "lat": 48.38909,
       "lon": 9.98659,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11733,7 +11733,7 @@
       "lat": 48.46617,
       "lon": 11.91321,
       "river": "Amper",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11751,7 +11751,7 @@
       "lat": 48.8184,
       "lon": 11.74568,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11769,7 +11769,7 @@
       "lat": 47.67529,
       "lon": 11.76688,
       "river": "Weißach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11787,7 +11787,7 @@
       "lat": 47.64402,
       "lon": 12.19646,
       "river": "Inn",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11805,7 +11805,7 @@
       "lat": 48.94695,
       "lon": 12.01499,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11823,7 +11823,7 @@
       "lat": 48.48536,
       "lon": 10.38021,
       "river": "Mindel",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11841,7 +11841,7 @@
       "lat": 48.5615,
       "lon": 13.44418,
       "river": "Inn",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11859,7 +11859,7 @@
       "lat": 48.57334,
       "lon": 13.46524,
       "river": "Inn",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11877,7 +11877,7 @@
       "lat": 48.57633,
       "lon": 13.45869,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11895,7 +11895,7 @@
       "lat": 47.77826,
       "lon": 11.05733,
       "river": "Ammer",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11913,7 +11913,7 @@
       "lat": 49.83418,
       "lon": 10.94132,
       "river": "Regnitz",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11931,7 +11931,7 @@
       "lat": 48.87991,
       "lon": 12.74735,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11949,7 +11949,7 @@
       "lat": 49.15706,
       "lon": 12.82156,
       "river": "Regen",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11967,7 +11967,7 @@
       "lat": 47.91615,
       "lon": 11.44611,
       "river": "Isar",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -11985,7 +11985,7 @@
       "lat": 49.62131,
       "lon": 10.67202,
       "river": "Aisch",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12003,7 +12003,7 @@
       "lat": 49.02781,
       "lon": 12.07671,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12021,7 +12021,7 @@
       "lat": 47.51803,
       "lon": 11.44228,
       "river": "Rißbach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:49",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12039,7 +12039,7 @@
       "lat": 49.79996,
       "lon": 10.92644,
       "river": "Reiche Ebrach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12057,7 +12057,7 @@
       "lat": 50.0761,
       "lon": 10.51854,
       "river": "Nassach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12075,7 +12075,7 @@
       "lat": 47.85005,
       "lon": 12.1206,
       "river": "Hammerbach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12093,7 +12093,7 @@
       "lat": 47.85445,
       "lon": 12.14335,
       "river": "Inn",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12111,7 +12111,7 @@
       "lat": 49.24118,
       "lon": 11.05351,
       "river": "Aurach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12129,7 +12129,7 @@
       "lat": 48.60632,
       "lon": 12.69395,
       "river": "Vils",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12147,7 +12147,7 @@
       "lat": 48.42845,
       "lon": 13.33413,
       "river": "Rott",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12165,7 +12165,7 @@
       "lat": 50.02729,
       "lon": 9.74879,
       "river": "Wern",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12183,7 +12183,7 @@
       "lat": 50.31025,
       "lon": 10.19304,
       "river": "Fränkische Saale",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12201,7 +12201,7 @@
       "lat": 49.6604,
       "lon": 10.46595,
       "river": "Scheine",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12219,7 +12219,7 @@
       "lat": 50.12939,
       "lon": 10.87126,
       "river": "Itz",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12237,7 +12237,7 @@
       "lat": 49.26517,
       "lon": 11.92575,
       "river": "Vils",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12255,7 +12255,7 @@
       "lat": 49.02357,
       "lon": 12.13874,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12273,7 +12273,7 @@
       "lat": 50.03116,
       "lon": 10.22079,
       "river": "Main",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12291,7 +12291,7 @@
       "lat": 50.16493,
       "lon": 11.15126,
       "river": "Main",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12309,7 +12309,7 @@
       "lat": 47.93453,
       "lon": 12.4807,
       "river": "Alz",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12327,7 +12327,7 @@
       "lat": 47.52417,
       "lon": 10.26026,
       "river": "Iller",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12345,7 +12345,7 @@
       "lat": 47.97535,
       "lon": 12.44767,
       "river": "Tiroler Achen",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12363,7 +12363,7 @@
       "lat": 47.70919,
       "lon": 11.93385,
       "river": "Leitzach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12381,7 +12381,7 @@
       "lat": 50.00994,
       "lon": 9.60376,
       "river": "Main",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12399,7 +12399,7 @@
       "lat": 50.29207,
       "lon": 11.36781,
       "river": "Kronach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12417,7 +12417,7 @@
       "lat": 49.29218,
       "lon": 11.81411,
       "river": "Lauterach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12435,7 +12435,7 @@
       "lat": 48.88557,
       "lon": 12.57373,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12453,7 +12453,7 @@
       "lat": 48.93803,
       "lon": 13.41254,
       "river": "Große Ohe",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12471,7 +12471,7 @@
       "lat": 49.04226,
       "lon": 12.99934,
       "river": "Schw. Regen",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12489,7 +12489,7 @@
       "lat": 49.92952,
       "lon": 10.7551,
       "river": "Main",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12507,7 +12507,7 @@
       "lat": 50.37229,
       "lon": 10.26031,
       "river": "Streu",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12525,7 +12525,7 @@
       "lat": 47.68114,
       "lon": 12.82263,
       "river": "Saalach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12543,7 +12543,7 @@
       "lat": 49.5356,
       "lon": 12.15399,
       "river": "Naab",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12561,7 +12561,7 @@
       "lat": 47.77503,
       "lon": 10.50823,
       "river": "Kirnach",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12579,7 +12579,7 @@
       "lat": 48.45322,
       "lon": 12.36566,
       "river": "große Vils",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12597,7 +12597,7 @@
       "lat": 48.63521,
       "lon": 13.18659,
       "river": "Donau",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12615,7 +12615,7 @@
       "lat": 48.35234,
       "lon": 10.30212,
       "river": "Günz",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12633,7 +12633,7 @@
       "lat": 48.05929,
       "lon": 12.2343,
       "river": "Inn",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12651,7 +12651,7 @@
       "lat": 47.84712,
       "lon": 11.13504,
       "river": "Ammer",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12669,7 +12669,7 @@
       "lat": 50.09049,
       "lon": 11.23823,
       "river": "Weismain",
-      "updated": "02.08.2026 15:36",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12687,7 +12687,7 @@
       "lat": 49.19538,
       "lon": 10.88739,
       "river": "Fränkische Rezat",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12705,7 +12705,7 @@
       "lat": 48.37082,
       "lon": 9.98747,
       "river": "Iller",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12723,7 +12723,7 @@
       "lat": 49.60834,
       "lon": 12.12828,
       "river": "Haidenaab",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12741,7 +12741,7 @@
       "lat": 49.79754,
       "lon": 12.16496,
       "river": "Waldnaab",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12759,7 +12759,7 @@
       "lat": 50.08767,
       "lon": 9.73563,
       "river": "Fränkische Saale",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12777,7 +12777,7 @@
       "lat": 48.60376,
       "lon": 11.62229,
       "river": "Wolnzach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12795,7 +12795,7 @@
       "lat": 48.27752,
       "lon": 12.28108,
       "river": "Isen",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12813,7 +12813,7 @@
       "lat": 49.79608,
       "lon": 9.92583,
       "river": "Main",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12831,7 +12831,7 @@
       "lat": 49.01847,
       "lon": 13.23019,
       "river": "Großer Regen",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12849,7 +12849,7 @@
       "lat": 49.12477,
       "lon": 10.73977,
       "river": "Altmühlsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12867,7 +12867,7 @@
       "lat": 49.13896,
       "lon": 10.89413,
       "river": "Kleiner Brombachsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12885,7 +12885,7 @@
       "lat": 47.93183,
       "lon": 12.77722,
       "river": "Waginger See",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12903,7 +12903,7 @@
       "lat": 50.15085,
       "lon": 10.38162,
       "river": "Ellertshäuser See",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12921,7 +12921,7 @@
       "lat": 47.74777,
       "lon": 11.73538,
       "river": "Tegernsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12939,7 +12939,7 @@
       "lat": 47.58717,
       "lon": 12.99024,
       "river": "Königssee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12957,7 +12957,7 @@
       "lat": 47.54457,
       "lon": 9.68501,
       "river": "Bodensee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12975,7 +12975,7 @@
       "lat": 48.02825,
       "lon": 11.19663,
       "river": "Pilsensee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -12993,7 +12993,7 @@
       "lat": 47.63289,
       "lon": 10.36434,
       "river": "Rottachsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13011,7 +13011,7 @@
       "lat": 47.73056,
       "lon": 11.86797,
       "river": "Schliersee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13029,7 +13029,7 @@
       "lat": 47.68697,
       "lon": 12.56878,
       "river": "Weitsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13047,7 +13047,7 @@
       "lat": 47.97535,
       "lon": 12.44767,
       "river": "Klostersee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13065,7 +13065,7 @@
       "lat": 47.91199,
       "lon": 12.91037,
       "river": "Abtsdorfer See",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13083,7 +13083,7 @@
       "lat": 47.9973,
       "lon": 11.34934,
       "river": "Starnberger See",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13101,7 +13101,7 @@
       "lat": 48.07639,
       "lon": 11.13092,
       "river": "Ammersee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13119,7 +13119,7 @@
       "lat": 47.86121,
       "lon": 12.36575,
       "river": "Chiemsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13137,7 +13137,7 @@
       "lat": 48.05116,
       "lon": 11.16169,
       "river": "Wörthsee",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13155,7 +13155,7 @@
       "lat": 50.91072,
       "lon": 7.19318,
       "river": "Sülz",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13173,7 +13173,7 @@
       "lat": 51.25637,
       "lon": 8.47054,
       "river": "Neger",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13191,7 +13191,7 @@
       "lat": 51.87553,
       "lon": 7.56995,
       "river": "Emmerbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13209,7 +13209,7 @@
       "lat": 50.97442,
       "lon": 6.59579,
       "river": "Erft",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13227,7 +13227,7 @@
       "lat": 51.28522,
       "lon": 8.03395,
       "river": "Waldbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13245,7 +13245,7 @@
       "lat": 51.85323,
       "lon": 9.02444,
       "river": "Heubach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13263,7 +13263,7 @@
       "lat": 52.35342,
       "lon": 8.55834,
       "river": "Große Aue",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13281,7 +13281,7 @@
       "lat": 51.76863,
       "lon": 9.18369,
       "river": "Brucht",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13299,7 +13299,7 @@
       "lat": 51.65651,
       "lon": 8.60244,
       "river": "Heder",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13317,7 +13317,7 @@
       "lat": 51.66338,
       "lon": 8.71834,
       "river": "Altenau",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13335,7 +13335,7 @@
       "lat": 51.46897,
       "lon": 7.73363,
       "river": "Ruhr",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13353,7 +13353,7 @@
       "lat": 50.93877,
       "lon": 8.32506,
       "river": "Lahn",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13371,7 +13371,7 @@
       "lat": 51.04991,
       "lon": 8.31714,
       "river": "Preisdorf",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13389,7 +13389,7 @@
       "lat": 51.25569,
       "lon": 7.15859,
       "river": "Wupper",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13407,7 +13407,7 @@
       "lat": 51.40088,
       "lon": 7.34185,
       "river": "Elbsche",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13425,7 +13425,7 @@
       "lat": 51.04952,
       "lon": 8.28395,
       "river": "Eder",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13443,7 +13443,7 @@
       "lat": 51.03825,
       "lon": 7.00737,
       "river": "Dhünn",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13461,7 +13461,7 @@
       "lat": 51.36587,
       "lon": 7.14206,
       "river": "Felderbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13479,7 +13479,7 @@
       "lat": 52.09599,
       "lon": 7.21925,
       "river": "Vechte",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13497,7 +13497,7 @@
       "lat": 52.24602,
       "lon": 8.92105,
       "river": "Weser",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13515,7 +13515,7 @@
       "lat": 51.46002,
       "lon": 8.62445,
       "river": "Alme",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13533,7 +13533,7 @@
       "lat": 51.8525,
       "lon": 8.29612,
       "river": "Ems",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13551,7 +13551,7 @@
       "lat": 51.45364,
       "lon": 9.11545,
       "river": "Twiste",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13569,7 +13569,7 @@
       "lat": 51.16929,
       "lon": 8.67168,
       "river": "Orke",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13587,7 +13587,7 @@
       "lat": 50.77698,
       "lon": 7.44269,
       "river": "Sieg",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13605,7 +13605,7 @@
       "lat": 50.69271,
       "lon": 6.45254,
       "river": "Rur",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13623,7 +13623,7 @@
       "lat": 52.41107,
       "lon": 8.44403,
       "river": "Großer Dieckfluß",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13641,7 +13641,7 @@
       "lat": 51.29074,
       "lon": 8.50204,
       "river": "Ruhr",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13659,7 +13659,7 @@
       "lat": 51.32067,
       "lon": 7.08385,
       "river": "Hardenberger Bach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13677,7 +13677,7 @@
       "lat": 51.00137,
       "lon": 7.27827,
       "river": "Sülz",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13695,7 +13695,7 @@
       "lat": 51.16768,
       "lon": 7.6164,
       "river": "Jubach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13713,7 +13713,7 @@
       "lat": 50.48262,
       "lon": 6.43302,
       "river": "Platißbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13731,7 +13731,7 @@
       "lat": 51.28946,
       "lon": 7.67611,
       "river": "Lenne",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13749,7 +13749,7 @@
       "lat": 51.31077,
       "lon": 6.25253,
       "river": "Nette",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13767,7 +13767,7 @@
       "lat": 51.5495,
       "lon": 8.56438,
       "river": "Afte",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13785,7 +13785,7 @@
       "lat": 52.1319,
       "lon": 6.87357,
       "river": "Ahauser Aa",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13803,7 +13803,7 @@
       "lat": 51.34478,
       "lon": 7.87861,
       "river": "Hönne",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13821,7 +13821,7 @@
       "lat": 51.86002,
       "lon": 6.06702,
       "river": "Rhein",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13839,7 +13839,7 @@
       "lat": 50.98073,
       "lon": 6.27489,
       "river": "Rur",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13857,7 +13857,7 @@
       "lat": 51.91049,
       "lon": 8.49674,
       "river": "Dalkebach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13875,7 +13875,7 @@
       "lat": 50.89567,
       "lon": 8.02318,
       "river": "Ferndorfbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13893,7 +13893,7 @@
       "lat": 51.6704,
       "lon": 8.91578,
       "river": "Schmittwasser",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13911,7 +13911,7 @@
       "lat": 50.77912,
       "lon": 6.82577,
       "river": "Erft",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13929,7 +13929,7 @@
       "lat": 51.51871,
       "lon": 6.30999,
       "river": "Nierskanal",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13947,7 +13947,7 @@
       "lat": 50.77447,
       "lon": 6.8353,
       "river": "Liblarer Mühlengraben",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13965,7 +13965,7 @@
       "lat": 51.06006,
       "lon": 7.13427,
       "river": "Dhünn",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -13983,7 +13983,7 @@
       "lat": 51.54202,
       "lon": 8.5257,
       "river": "Alme",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14001,7 +14001,7 @@
       "lat": 51.70844,
       "lon": 9.32157,
       "river": "Nethe",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14019,7 +14019,7 @@
       "lat": 51.22382,
       "lon": 6.97621,
       "river": "Düssel",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14037,7 +14037,7 @@
       "lat": 51.81832,
       "lon": 8.53374,
       "river": "Ems",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14055,7 +14055,7 @@
       "lat": 51.95516,
       "lon": 8.01397,
       "river": "Ems",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14073,7 +14073,7 @@
       "lat": 50.84157,
       "lon": 7.20133,
       "river": "Agger",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14091,7 +14091,7 @@
       "lat": 51.63171,
       "lon": 8.09908,
       "river": "Ahse",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14109,7 +14109,7 @@
       "lat": 51.98387,
       "lon": 8.30754,
       "river": "Abrooksbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14127,7 +14127,7 @@
       "lat": 51.49052,
       "lon": 8.59375,
       "river": "Alme",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14145,7 +14145,7 @@
       "lat": 52.28241,
       "lon": 7.47896,
       "river": "Hemelter Bach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14163,7 +14163,7 @@
       "lat": 51.83995,
       "lon": 7.46571,
       "river": "Stever",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14181,7 +14181,7 @@
       "lat": 51.29893,
       "lon": 7.36289,
       "river": "Ennepe",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14199,7 +14199,7 @@
       "lat": 51.07068,
       "lon": 6.99453,
       "river": "Wupper",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14217,7 +14217,7 @@
       "lat": 51.46988,
       "lon": 7.9436,
       "river": "Ruhr",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14235,7 +14235,7 @@
       "lat": 51.98403,
       "lon": 7.22137,
       "river": "Berkel",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14253,7 +14253,7 @@
       "lat": 51.85917,
       "lon": 8.55993,
       "river": "Wapelbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14271,7 +14271,7 @@
       "lat": 51.49069,
       "lon": 8.32526,
       "river": "Mühlengraben",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14289,7 +14289,7 @@
       "lat": 51.76163,
       "lon": 8.68517,
       "river": "Boker Kanal",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14307,7 +14307,7 @@
       "lat": 52.19788,
       "lon": 8.71016,
       "river": "Werre",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14325,7 +14325,7 @@
       "lat": 51.13217,
       "lon": 6.64883,
       "river": "Erft",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14343,7 +14343,7 @@
       "lat": 50.78257,
       "lon": 6.11179,
       "river": "Wurm",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14361,7 +14361,7 @@
       "lat": 51.57008,
       "lon": 6.35952,
       "river": "Issumer Fleuth",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14379,7 +14379,7 @@
       "lat": 51.13576,
       "lon": 6.29169,
       "river": "Beeckbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14397,7 +14397,7 @@
       "lat": 50.49032,
       "lon": 6.63478,
       "river": "Genfbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14415,7 +14415,7 @@
       "lat": 51.63167,
       "lon": 7.93233,
       "river": "Salzbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14433,7 +14433,7 @@
       "lat": 51.29426,
       "lon": 8.17489,
       "river": "Wenne",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14451,7 +14451,7 @@
       "lat": 51.16187,
       "lon": 6.27328,
       "river": "Schwalm",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14469,7 +14469,7 @@
       "lat": 50.76599,
       "lon": 7.30004,
       "river": "Hanfbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14487,7 +14487,7 @@
       "lat": 52.0167,
       "lon": 8.75032,
       "river": "Werre",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14505,7 +14505,7 @@
       "lat": 52.09433,
       "lon": 7.60279,
       "river": "Ems",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14523,7 +14523,7 @@
       "lat": 51.76113,
       "lon": 8.91826,
       "river": "Beke",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14541,7 +14541,7 @@
       "lat": 51.3514,
       "lon": 8.48802,
       "river": "Ruhr",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14559,7 +14559,7 @@
       "lat": 51.39796,
       "lon": 7.16234,
       "river": "Ruhr",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14577,7 +14577,7 @@
       "lat": 51.16048,
       "lon": 7.79687,
       "river": "Oester",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14595,7 +14595,7 @@
       "lat": 50.92488,
       "lon": 6.34935,
       "river": "Rur",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14613,7 +14613,7 @@
       "lat": 50.86652,
       "lon": 6.09484,
       "river": "Wurm",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14631,7 +14631,7 @@
       "lat": 51.71429,
       "lon": 8.26407,
       "river": "Liese",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14649,11 +14649,11 @@
       "lat": 51.42237,
       "lon": 6.87563,
       "river": "Ruhr",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
-          "value": "24,2",
+          "value": "24,1",
           "unit": "°C",
           "icon": "🌡️",
           "time": "02.08.2026 16:00"
@@ -14667,7 +14667,7 @@
       "lat": 51.73412,
       "lon": 8.70935,
       "river": "Alme",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14685,7 +14685,7 @@
       "lat": 51.70648,
       "lon": 9.13455,
       "river": "Aa",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14703,7 +14703,7 @@
       "lat": 51.3989,
       "lon": 7.84222,
       "river": "Hönne",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14721,7 +14721,7 @@
       "lat": 51.51572,
       "lon": 6.31456,
       "river": "Niers",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14739,7 +14739,7 @@
       "lat": 51.74884,
       "lon": 8.63053,
       "river": "Lippe",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14757,7 +14757,7 @@
       "lat": 51.65969,
       "lon": 8.14416,
       "river": "Lippe",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14775,7 +14775,7 @@
       "lat": 51.88736,
       "lon": 8.49961,
       "river": "Ölbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14793,7 +14793,7 @@
       "lat": 52.01621,
       "lon": 8.95963,
       "river": "Bega",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14811,7 +14811,7 @@
       "lat": 51.91101,
       "lon": 9.13001,
       "river": "Emmer",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14829,7 +14829,7 @@
       "lat": 51.93855,
       "lon": 7.07225,
       "river": "Berkel",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14847,7 +14847,7 @@
       "lat": 51.74489,
       "lon": 8.73124,
       "river": "Lippe",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14865,7 +14865,7 @@
       "lat": 50.81495,
       "lon": 6.28785,
       "river": "Inde",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14883,7 +14883,7 @@
       "lat": 51.91404,
       "lon": 9.14485,
       "river": "Niese",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14901,7 +14901,7 @@
       "lat": 51.67393,
       "lon": 8.33618,
       "river": "Lippe",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14919,7 +14919,7 @@
       "lat": 51.92934,
       "lon": 8.10237,
       "river": "Axtbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14937,7 +14937,7 @@
       "lat": 51.88391,
       "lon": 7.72816,
       "river": "Werse",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14955,7 +14955,7 @@
       "lat": 51.78657,
       "lon": 8.65165,
       "river": "Haustenbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14973,7 +14973,7 @@
       "lat": 52.14293,
       "lon": 7.66176,
       "river": "Glane",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -14991,7 +14991,7 @@
       "lat": 51.20058,
       "lon": 7.18511,
       "river": "Morsbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15009,7 +15009,7 @@
       "lat": 50.95875,
       "lon": 7.99516,
       "river": "Ferndorfbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15027,7 +15027,7 @@
       "lat": 50.90144,
       "lon": 8.1153,
       "river": "Sieg",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15045,7 +15045,7 @@
       "lat": 51.35462,
       "lon": 7.12188,
       "river": "Deilbach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15063,7 +15063,7 @@
       "lat": 51.19945,
       "lon": 6.22986,
       "river": "Schwalm",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15081,7 +15081,7 @@
       "lat": 51.7134,
       "lon": 9.19069,
       "river": "Brucht",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15099,7 +15099,7 @@
       "lat": 50.78604,
       "lon": 7.31994,
       "river": "Bröl",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15117,7 +15117,7 @@
       "lat": 51.79089,
       "lon": 7.81635,
       "river": "Werse",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15135,7 +15135,7 @@
       "lat": 52.01198,
       "lon": 8.16074,
       "river": "Hessel",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15153,7 +15153,7 @@
       "lat": 50.49261,
       "lon": 6.6302,
       "river": "Urft",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15171,7 +15171,7 @@
       "lat": 51.82905,
       "lon": 7.14214,
       "river": "Heubach",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15190,7 +15190,7 @@
       "lon": 7.90469,
       "river": "Nahe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15209,7 +15209,7 @@
       "lon": 7.22703,
       "river": "Mosel",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15228,7 +15228,7 @@
       "lon": 8.11237,
       "river": "Rhein",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15247,7 +15247,7 @@
       "lon": 8.99163,
       "river": "Main",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15266,7 +15266,7 @@
       "lon": 6.57546,
       "river": "Saar",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15285,7 +15285,7 @@
       "lon": 8.29925,
       "river": "Rhein",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15304,7 +15304,7 @@
       "lon": 8.47232,
       "river": "Neckar",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15323,7 +15323,7 @@
       "lon": 6.3663,
       "river": "Mosel",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15342,7 +15342,7 @@
       "lon": 8.3786,
       "river": "Rhein",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15361,7 +15361,7 @@
       "lon": 7.39711,
       "river": "Ems",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15380,7 +15380,7 @@
       "lon": 9.38724,
       "river": "Weser",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15399,7 +15399,7 @@
       "lon": 8.48745,
       "river": "Weser",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15418,7 +15418,7 @@
       "lon": 9.21185,
       "river": "Weser",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15437,7 +15437,7 @@
       "lon": 9.61426,
       "river": "Weser",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15456,7 +15456,7 @@
       "lon": 9.25018,
       "river": "Weser",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15475,7 +15475,7 @@
       "lon": 9.22615,
       "river": "Aller",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15494,7 +15494,7 @@
       "lon": 9.54836,
       "river": "Fulda",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15513,7 +15513,7 @@
       "lon": 9.79737,
       "river": "Werra",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15532,7 +15532,7 @@
       "lon": 12.56738,
       "river": "Mulde",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15551,7 +15551,7 @@
       "lon": 9.80716,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15570,7 +15570,7 @@
       "lon": 10.06587,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15589,7 +15589,7 @@
       "lon": 11.63867,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15608,7 +15608,7 @@
       "lon": 12.25231,
       "river": "Mulde",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:50",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15627,7 +15627,7 @@
       "lon": 11.88296,
       "river": "Saale",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15646,7 +15646,7 @@
       "lon": 9.8824,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15665,7 +15665,7 @@
       "lon": 14.23307,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15684,7 +15684,7 @@
       "lon": 13.40672,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15703,7 +15703,7 @@
       "lon": 9.49638,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15722,7 +15722,7 @@
       "lon": 11.98582,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15741,7 +15741,7 @@
       "lon": 12.65368,
       "river": "Elbe",
       "src": "undine",
-      "updated": "02.08.2026 15:37",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15760,7 +15760,7 @@
       "lon": 14.98349,
       "river": "Lausitzer Neiße",
       "src": "undine",
-      "updated": "02.08.2026 15:38",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15779,7 +15779,7 @@
       "lon": 14.75648,
       "river": "Lausitzer Neiße",
       "src": "undine",
-      "updated": "02.08.2026 15:38",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15798,7 +15798,7 @@
       "lon": 10.80334,
       "river": "Donau",
       "src": "undine",
-      "updated": "02.08.2026 15:38",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15817,7 +15817,7 @@
       "lon": 13.70486,
       "river": "Donau",
       "src": "undine",
-      "updated": "02.08.2026 15:38",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15836,7 +15836,7 @@
       "lon": 12.74966,
       "river": "Donau",
       "src": "undine",
-      "updated": "02.08.2026 15:38",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
@@ -15855,7 +15855,7 @@
       "lon": 12.07984,
       "river": "Donau",
       "src": "undine",
-      "updated": "02.08.2026 15:38",
+      "updated": "02.08.2026 15:51",
       "items": [
         {
           "label": "Wassertemperatur",
