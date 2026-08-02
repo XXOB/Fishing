@@ -17,8 +17,9 @@ body{
 a{color:var(--water);text-decoration:none}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:13px}
-.logo{width:46px;height:46px;border-radius:14px;background:var(--primary);
+.logo{width:46px;height:46px;border-radius:14px;background:var(--primary);color:#fff;
   display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 14px rgba(47,75,214,.4)}
+.logo svg{width:26px;height:26px}
 h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
 .sub{color:var(--muted);font-size:13px;margin-top:2px}
 
@@ -234,7 +235,8 @@ body{padding-bottom:82px}
   box-shadow:0 -6px 20px rgba(0,0,0,.45);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
 .tabbtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   background:none;border:0;color:var(--muted2);cursor:pointer;padding:8px 4px;border-radius:12px;line-height:1.15}
-.tabbtn .ic{font-size:20px;line-height:1}
+.tabbtn .ic{font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
+.tabbtn .ic svg{width:23px;height:23px}
 .tabbtn .tx{font-size:11px;font-weight:600;text-align:center}
 .tabbtn:hover{color:var(--muted)}
 .tabbtn.active{color:var(--primary2)}

@@ -714,7 +714,9 @@ function spotLatLon(sp){
 function addSpotMarkers(){
   if(!SPOTS_LAYER || !window.L) return;
   SPOTS_LAYER.clearLayers();
-  const icon=L.divIcon({className:"spot-ic", html:"🎣", iconSize:[26,26], iconAnchor:[13,13]});
+  const icon=L.divIcon({className:"spot-ic",
+    html:'<svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(15,23,42,.55)" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 22s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6" fill="none"/></svg>',
+    iconSize:[26,26], iconAnchor:[13,26]});
   for(const sp of loadSpots()){
     const ll=spotLatLon(sp);
     const mk=L.marker(ll,{icon}).bindTooltip("🎣 "+sp.name);
