@@ -64,7 +64,7 @@ GKD_OVERVIEWS = [
     {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/tabellen", "typ": "fluss"},
     {"url": "https://www.gkd.bayern.de/de/seen/wassertemperatur/tabellen",    "typ": "see"},
 ]
-GKD_MAX_NEW_COORDS = 60    # neue Koordinaten je Lauf aufloesen (danach gecacht)
+GKD_MAX_NEW_COORDS = 200   # neue Koordinaten je Lauf aufloesen (danach gecacht)
 GKD_MAX_AGE_DAYS   = 4     # nur Stationen mit halbwegs aktuellem Wert
 
 BASE_DIR  = Path(__file__).resolve().parent
@@ -473,11 +473,20 @@ def parse_gkd_overview(html):
         href=m.group(1); base = href if href.startswith("http") else "https://www.gkd.bayern.de"+href
         cells=[re.sub(r"<[^>]+>"," ",c).replace("&nbsp;"," ").strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
         if len(cells)<2: continue
-        name=cells[0]; river=cells[1]
-        joined=" ".join(cells)
-        mm=re.search(r"(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})\s*Uhr[\s|]*([-]?\d+(?:,\d+)?)", joined)
-        dt=parse_dt(mm.group(1)) if mm else None
-        val=to_number(mm.group(2)) if mm else None
+        joined=" ".join(cells).replace("\xa0"," ")
+        # GKD nutzt beschriftete Zellen: "Messstelle: X", "Gewässer: Y", "Datum: … Uhr", "Wassertemperatur [°C]: 23,7"
+        def _label(prefix):   # Zelle finden, die mit prefix beginnt, Label entfernen
+            for c in cells:
+                if re.match(prefix, c): return re.sub(prefix, "", c).strip()
+            return ""
+        name  = _label(r"^\s*Messstelle\s*:\s*") or cells[0]
+        river = _label(r"^\s*Gew[aä]sser\s*:\s*") or cells[1]
+        river = re.split(r"\s+(?:Lkr|Datum|Wassertemp)", river)[0].strip()
+        dm=re.search(r"(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})", joined)
+        vm=re.search(r"Wassertemperatur[^:]*:\s*([-]?\d+(?:,\d+)?)", joined) \
+           or re.search(r"Uhr[\s|]*([-]?\d+(?:,\d+)?)", joined)      # Fallback altes Format
+        dt=parse_dt(dm.group(1)) if dm else None
+        val=to_number(vm.group(1)) if vm else None
         out.append({"base":base, "id":gkd_id(base), "name":name, "river":river, "dt":dt, "val":val})
     return out
 
