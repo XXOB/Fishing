@@ -561,11 +561,13 @@ def main():
             results.append(process_station(st))
         except Exception as e:
             print(f"      FEHLER bei {st['name']}: {e}")
-    for st in HESSEN_STATIONS:             # Hessen (HLNUG)
-        try:
-            results.append(process_hessen(st))
-        except Exception as e:
-            print(f"      FEHLER bei {st['name']}: {e}")
+    # Hessen (HLNUG) wird jetzt client-seitig in der App geladen (app.hlnug.de, alle
+    # kontinuierlichen Stationen) – daher hier deaktiviert, um Doppelungen zu vermeiden.
+    # for st in HESSEN_STATIONS:
+    #     try:
+    #         results.append(process_hessen(st))
+    #     except Exception as e:
+    #         print(f"      FEHLER bei {st['name']}: {e}")
     try:                                   # Bayern (GKD) – alle Stationen aus der Gesamttabelle
         results.extend(process_gkd_all())
     except Exception as e:

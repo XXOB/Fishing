@@ -249,6 +249,9 @@ function renderQuality(){
       const bet=cur.betreiber?" · "+esc(cur.betreiber):"";
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
         bet+' · Daten: <a href="https://niz.baden-wuerttemberg.de/oberflaechengewaesser/gueteparameter" target="_blank" rel="noopener">LUBW/NIZ ↗</a>';
+    } else if(cur.src==="hlnug"){
+      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
+        ' · Daten: <a href="https://www.hlnug.de/messwerte/datenportal" target="_blank" rel="noopener">HLNUG ↗</a>';
     } else {
       const sid=cur.id?String(cur.id):"";
       const surl=sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
@@ -267,6 +270,7 @@ async function loadQuality(){
     }
   }catch(e){ /* z.B. lokal ohne Server geöffnet */ }
   mergeNIZ();                               // BW-NIZ-Stationen anhängen (falls schon geladen)
+  mergeHessen();                            // Hessen-HLNUG-Stationen anhängen
   renderQuality();
 }
 function activeWQ(){
@@ -376,6 +380,47 @@ async function loadNizBW(){
                updated:items[0].time, items, history:{} });
   }
   window.NIZBW=out; mergeNIZ();
+}
+
+/* Hessen (HLNUG): Live-Wassergüte der kontinuierlichen DFÜ-Gütemessstationen, client-seitig
+   über app.hlnug.de. Wassertemperatur = Parameter 150, Sauerstoff = 124. Werte-Fenster wird
+   an den letzten verfügbaren Zeitstempel gehängt (sonst liefert die API leere Reihen). */
+const HLNUG_BASE="https://app.hlnug.de/json/wasser/";
+window.HESSENWQ=[];
+function mergeHessen(){
+  if(!window.HESSENWQ || !window.HESSENWQ.length) return;
+  if(!window.WQ) window.WQ={updated:"",stations:[]};
+  if(!Array.isArray(window.WQ.stations)) window.WQ.stations=[];
+  const have=new Set(window.WQ.stations.map(s=>s.id));
+  for(const s of window.HESSENWQ){ if(!have.has(s.id)) window.WQ.stations.push(s); }
+}
+async function hlnugVal(sid,param,from,to){
+  try{ const cd=await fetch(HLNUG_BASE+"getStationChartData/"+sid+"/"+param+"/"+from+"/"+to+"?pad=1&valueType=1").then(r=>r.json());
+    const s=cd&&cd[0]; const d=(s&&s.data||[]).filter(p=>p[1]!=null); const last=d[d.length-1];
+    return last ? {v:last[1], t:last[0]} : null; }catch(e){ return null; }
+}
+async function loadHessen(){
+  if(window.HESSENWQ && window.HESSENWQ.length) return;      // nur einmal laden
+  let list; try{ list=await fetch(HLNUG_BASE+"getThemeStations/6/63,67,55,69,110,126,138,144?tformat=d.m.Y%20H:i").then(r=>r.json()); }catch(e){ return; }
+  const conti=(list||[]).filter(s=>s.isConti==1);
+  if(!conti.length) return;
+  let max=0; try{ const mm=await fetch(HLNUG_BASE+"getStationMinMaxTime/"+conti[0].stationId+"/1").then(r=>r.json()); max=mm&&mm.max; }catch(e){}
+  if(!max) max=Math.floor(Date.now()/1000);
+  const from=max-90000, to=max+3600;
+  const out=[];
+  await Promise.all(conti.map(async st=>{
+    const sid=st.stationId;
+    const [wt,o2]=await Promise.all([hlnugVal(sid,150,from,to), hlnugVal(sid,124,from,to)]);
+    if(!wt) return;                                          // ohne Temperatur nicht anzeigen
+    const parts=String(st.displayName||"").split(",");
+    const river=(parts[0]||"").trim();
+    const place=(parts[1]||"").replace(/Messstation.*/,"").trim();
+    const items=[{label:"Wassertemperatur", value:(+wt.v).toFixed(1).replace(".",","), unit:"°C", icon:"\u{1F321}️", time:nizTime(wt.t)}];
+    if(o2) items.push({label:"Sauerstoff", value:(+o2.v).toFixed(1).replace(".",","), unit:"mg/l", icon:"\u{1FAE7}", time:nizTime(o2.t)});
+    out.push({ id:"he-"+sid, name:(place||river), lat:+st.lat, lon:+st.lon, river, betreiber:"HLNUG", src:"hlnug",
+               updated:items[0].time, items, history:{} });
+  }));
+  window.HESSENWQ=out; mergeHessen();
 }
 
 /* ===================== Fangbuch ===================== */
@@ -1813,6 +1858,7 @@ async function boot(){
   reflectStation(); renderSpots();
   ensureBaitSeed();                           // Standardköder beim ersten Start anlegen
   loadNizBW().then(()=>{ renderQuality(); if(typeof addStationDots==="function") addStationDots(); });  // BW-Wassergüte (LUBW/NIZ)
+  loadHessen().then(()=>{ renderQuality(); if(typeof addStationDots==="function") addStationDots(); }); // Hessen-Wassergüte (HLNUG)
   initFangbuch();                             // Formular, Karte (Stationen + Angelplätze)
   showHome();                                 // Startbildschirm: Angelplätze + Trips
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
