@@ -522,23 +522,65 @@ function buildRecord(blank){
     station: { pegel: CUR?CUR.name:"", pegel_uuid: CUR?CUR.uuid:"", km: CUR?CUR.km:null }
   };
 }
+let EDIT_CATCH_ID=null;
+function resetCatchEdit(){
+  EDIT_CATCH_ID=null;
+  const b=$("fbSaveBtn"), c=$("fbEditCancel");
+  if(b) b.textContent="🎣 Fang speichern";
+  if(c) c.style.display="none";
+}
 function saveCatch(opts){
   opts=opts||{};
   const blank = opts.blank || !$("f_art").value.trim();   // ohne Fischart => Leereintrag (Angeltag)
   const rec=buildRecord(blank);
-  const arr=loadCatches(); arr.push(rec); saveCatches(arr);
+  const arr=loadCatches();
+  if(EDIT_CATCH_ID!=null){
+    const i=arr.findIndex(c=>String(c.id)===String(EDIT_CATCH_ID));
+    if(i>=0){
+      const old=arr[i];
+      // Beim Bearbeiten bleiben die damals gespeicherten Bedingungen und die
+      // Trip-Zuordnung erhalten; geändert werden die sichtbaren Formularfelder.
+      rec.id=old.id; rec.erfasst_iso=old.erfasst_iso; rec.trip_id=old.trip_id;
+      rec.wetter=old.wetter; rec.wasser=old.wasser; rec.mondphase=old.mondphase;
+      arr[i]=rec;
+    } else arr.push(rec);
+  } else arr.push(rec);
+  saveCatches(arr);
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value="";
   if($("f_koeder_base")) $("f_koeder_base").value=""; onKoederBaseChange();
   if($("f_methode")) $("f_methode").value=""; if($("f_verwertung")) $("f_verwertung").value="";
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
+  const wasEdit=EDIT_CATCH_ID!=null; resetCatchEdit();
   populateCatchSpots();
   refreshFangbuch();
   const bt=$(blank?"fbBlankBtn":"fbSaveBtn");
-  if(bt){ const o=bt.textContent; bt.textContent = blank?"✓ Angeltag gespeichert":"✓ Fang gespeichert"; setTimeout(()=>{ bt.textContent=o; }, 1500); }
+  if(bt){ const o=bt.textContent; bt.textContent = wasEdit?"✓ Änderungen gespeichert":(blank?"✓ Angeltag gespeichert":"✓ Fang gespeichert"); setTimeout(()=>{ if(EDIT_CATCH_ID==null) bt.textContent="🎣 Fang speichern"; else bt.textContent=o; }, 1500); }
 }
 function saveBlank(){ saveCatch({blank:true}); }
+
+function editCatch(id){
+  const c=loadCatches().find(x=>String(x.id)===String(id)); if(!c) return;
+  const sp=loadSpots().find(s=>s.name===c.angelplatz);
+  if(sp) activateSpotById(sp.id);
+  openSpot(sp?sp.id:null); openFangbuchForm();
+  EDIT_CATCH_ID=c.id;
+  $("f_art").value=c.fischart||""; $("f_groesse").value=c.groesse_cm==null?"":c.groesse_cm;
+  $("f_gewicht").value=c.gewicht_kg==null?"":c.gewicht_kg;
+  if($("f_verwertung")) $("f_verwertung").value=c.verwertung||"";
+  $("f_datum").value=c.datum||""; $("f_zeit").value=c.uhrzeit||""; $("f_notiz").value=c.notiz||"";
+  populateKoeder();
+  if($("f_koeder_base")) $("f_koeder_base").value=c.koeder_basis||c.koeder||"";
+  onKoederBaseChange();
+  if($("f_koeder_var") && c.koeder) $("f_koeder_var").value=c.koeder||"";
+  CURRENT_GPS=c.gps||null;
+  const gi=$("gpsInfo"); if(gi) gi.textContent=CURRENT_GPS?("📍 Fangort: "+CURRENT_GPS.lat+", "+CURRENT_GPS.lon):"Kein eigener Fangort gespeichert.";
+  const b=$("fbSaveBtn"), x=$("fbEditCancel"); if(b) b.textContent="✓ Änderungen speichern"; if(x) x.style.display="";
+  showFishRules();
+  setTimeout(()=>$("fangbuchBox")&&$("fangbuchBox").scrollIntoView({behavior:"smooth",block:"start"}),120);
+}
+function cancelCatchEdit(){ resetCatchEdit(); $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value=""; showFishRules(); }
 
 function deleteCatch(id){
   if(!confirm("Diesen Fang löschen?")) return;
@@ -565,7 +607,8 @@ function catchCard(c){
     ? '🚫 Kein Fang'
     : esc(c.fischart)+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+weightStr(c);
   return '<div class="fbitem'+(c.kein_fang?' blank':'')+'"><div class="h"><span class="fish">'+title+'</span>'+
-    '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></div>'+
+    '<span class="catchacts"><button class="editmini" onclick="editCatch('+c.id+')">bearbeiten</button>'+
+    '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></span></div>'+
     '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
     (c.angelplatz?' · <b>'+esc(c.angelplatz)+'</b>':'')+' · '+esc(c.gewaesser||"")+
     (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+
@@ -903,6 +946,63 @@ function refreshFangbuch(){
   if($("tripsView") && $("tripsView").style.display!=="none") renderTripList();
   if($("statsView") && $("statsView").style.display!=="none") renderStats();
   renderTripBanner();
+}
+
+/* Gesetzliche Basiswerte. Gewässerordnungen/Erlaubnisscheine können strengere
+   Regeln enthalten. Bayern und NRW sind aus den amtlichen Landesvorschriften
+   hinterlegt; bei anderen Ländern wird bewusst keine Zahl geraten. */
+const FISH_RULES={
+  "Bayern":{
+    source:"https://www.gesetze-bayern.de/Content/Document/BayAVFiG-ANL_1",
+    rules:{
+      "aal":["50 cm","1. Oktober–31. Dezember (nicht Donaugebiet)"], "aesche":["35 cm","1. Januar–30. April"],
+      "bachforelle":["26 cm","1. Oktober–15. März"], "forelle":["26 cm","1. Oktober–15. März (Bachforelle)"],
+      "barbe":["40 cm","1. Mai–30. Juni"], "hecht":["50 cm","15. Februar–30. April"],
+      "huchen":["90 cm","15. Februar–30. Juni (Donaugebiet)"], "karpfen":["35 cm","keine gesetzliche Schonzeit"],
+      "nase":["30 cm","1. März–30. April"], "regenbogenforelle":["26 cm","15. Dezember–15. März"],
+      "rapfen":["40 cm","1. März–30. April"], "schied":["40 cm","1. März–30. April"],
+      "schleie":["26 cm","1. Mai–30. Juni"], "seeforelle":["60 cm","1. Oktober–15. März"],
+      "seesaibling":["30 cm","1. Oktober–31. Dezember"], "zander":["50 cm","15. Februar–30. April"],
+      "quappe":["40 cm","keine gesetzliche Schonzeit"], "rutte":["40 cm","keine gesetzliche Schonzeit"],
+      "barsch":["kein gesetzliches Mindestmaß","keine gesetzliche Schonzeit"],
+      "wels":["kein gesetzliches Mindestmaß","keine gesetzliche Schonzeit"],
+      "doebel":["kein gesetzliches Mindestmaß","keine gesetzliche Schonzeit"]
+    }
+  },
+  "Nordrhein-Westfalen":{
+    source:"https://recht.nrw.de/lrgv/rechtsverordnung/03072026-landesfischereiverordnung-lfischvo/",
+    rules:{
+      "aal":["50 cm","1. Oktober–1. März nur Rheinhauptstrom"], "barbe":["35 cm","15. Mai–15. Juni"],
+      "nase":["30 cm","1. März–30. April"], "karpfen":["35 cm","keine gesetzliche Schonzeit"],
+      "hecht":["45 cm","15. Februar–30. April"], "bachforelle":["25 cm","20. Oktober–15. März"],
+      "forelle":["25 cm","20. Oktober–15. März (Bachforelle)"], "seeforelle":["50 cm","20. Oktober–15. März"],
+      "seesaibling":["30 cm","20. Oktober–15. März"], "zander":["40 cm","1. April–31. Mai"],
+      "aesche":["30 cm","1. März–30. April"], "schleie":["25 cm","keine gesetzliche Schonzeit"]
+    }
+  }
+};
+function fishKey(s){ return String(s||"").toLowerCase().trim().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z]/g,""); }
+async function resolveSpotState(sp){
+  if(!sp) return ""; if(sp.bundesland) return sp.bundesland;
+  const ll=spotLatLon(sp);
+  try{
+    const u="https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=5&accept-language=de&lat="+encodeURIComponent(ll[0])+"&lon="+encodeURIComponent(ll[1]);
+    const r=await fetch(u); if(!r.ok) return ""; const j=await r.json();
+    const state=(j.address&&(j.address.state||j.address.region))||"";
+    if(state){ const a=loadSpots(), x=a.find(s=>String(s.id)===String(sp.id)); if(x){ x.bundesland=state; saveSpots(a); } }
+    return state;
+  }catch(e){ return ""; }
+}
+let RULE_REQ=0;
+async function showFishRules(){
+  const box=$("fishRules"); if(!box) return; const art=$("f_art")?$("f_art").value.trim():"";
+  if(!art){ box.style.display="none"; box.innerHTML=""; return; }
+  const req=++RULE_REQ, sp=activeSpot(); box.style.display="block"; box.textContent="Bestimmungen am Angelplatz werden ermittelt …";
+  const state=await resolveSpotState(sp); if(req!==RULE_REQ) return;
+  const data=FISH_RULES[state], rule=data&&data.rules[fishKey(art)];
+  if(rule){ box.innerHTML='<b>'+esc(state)+' · '+esc(art)+'</b><br>Mindestmaß: <b>'+esc(rule[0])+'</b> · Schonzeit: <b>'+esc(rule[1])+'</b><br><a href="'+data.source+'" target="_blank" rel="noopener">amtliche Grundlage prüfen ↗</a><small> Erlaubnisschein und Gewässerordnung können strengere Regeln enthalten.</small>'; }
+  else if(data){ box.innerHTML='<b>'+esc(state)+' · '+esc(art)+'</b><br>Für diese Bezeichnung ist kein eindeutiger Eintrag hinterlegt. <a href="'+data.source+'" target="_blank" rel="noopener">Amtliche Tabelle prüfen ↗</a>'; }
+  else { box.innerHTML='<b>'+(state?esc(state):'Bundesland nicht ermittelbar')+' · '+esc(art)+'</b><br>Noch keine verlässlich hinterlegten Landeswerte. <a href="https://angelmagazin.de/schonzeiten/" target="_blank" rel="noopener">Regelübersicht öffnen ↗</a><small> Maßgeblich sind Erlaubnisschein und Gewässerordnung.</small>'; }
 }
 
 function initFangbuch(){
@@ -1766,6 +1866,18 @@ function statLine(k, arr, withIcon){
   const body = arr.length ? arr.map(s=>esc(s.key)+' <b>'+s.count+'</b>').join(" · ") : "–";
   return '<div class="statline"><span class="statk">'+k+'</span>'+body+'</div>';
 }
+function personalBestHtml(fc){
+  const fish=[...new Set(fc.map(c=>c.fischart).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"de"));
+  const rows=fish.map(name=>{
+    const a=fc.filter(c=>c.fischart===name);
+    const longest=a.filter(c=>+c.groesse_cm>0).sort((x,y)=>(+y.groesse_cm)-(+x.groesse_cm))[0];
+    const heaviest=a.filter(c=>+c.gewicht_kg>0).sort((x,y)=>(+y.gewicht_kg)-(+x.gewicht_kg))[0];
+    const len=longest?(longest.groesse_cm+' cm'+(longest.angelplatz?' · '+esc(longest.angelplatz):'')):'–';
+    const wei=heaviest?(Number(heaviest.gewicht_kg).toLocaleString('de-DE')+' kg'+(heaviest.angelplatz?' · '+esc(heaviest.angelplatz):'')):'–';
+    return '<div class="pbrow"><b>'+esc(name)+'</b><span>📏 '+len+'</span><span>⚖️ '+wei+'</span></div>';
+  }).join('');
+  return '<div class="statcard"><div class="stath">🏆 Personal Best je Fischart</div><div class="pblist">'+rows+'</div></div>';
+}
 function renderStats(){
   const box=$("statsBody"); if(!box) return;
   const fc=fishCatches();
@@ -1773,6 +1885,7 @@ function renderStats(){
   let html='<div class="statcard"><div class="stath">📊 Überblick <span class="statn">'+fc.length+' Fänge · '+loadCatches().length+' Trips</span></div>'+
     statLine("🎣 Beste Plätze", topBy(fc, c=>c.angelplatz, 3), false)+
     statLine("🪱 Fängigste Köder", topBy(fc, c=>c.koeder, 3), true)+'</div>';
+  html+=personalBestHtml(fc);
   html+=statsByFish().map(f=>
     '<div class="statcard"><div class="stath">'+esc(f.fisch)+' <span class="statn">'+f.total+' Fang'+(f.total===1?'':'e')+'</span></div>'+
     statLine("Beste Plätze", f.spots, false)+

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=37">
+<link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body>
 <header>
@@ -170,12 +170,13 @@
   <button type="button" class="fbblank fbblanktop" id="fbBlankBtn" onclick="saveBlank()">🚫 Angeltag ohne Fang eintragen</button>
   <div class="fbnote" id="f_ort_label" style="margin:0 0 12px 2px"></div>
   <div class="fbrow">
-    <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht"></div>
+    <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht" oninput="showFishRules()" onchange="showFishRules()"></div>
     <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
     <div class="fbfield"><label>Gewicht (kg, optional)</label><input id="f_gewicht" type="number" min="0" step="0.1" inputmode="decimal"></div>
     <div class="fbfield"><label>Verwertung</label>
       <select id="f_verwertung"><option value="">—</option><option value="entnommen">entnommen</option><option value="freigelassen">freigelassen</option><option value="abgegangen">abgegangen</option></select></div>
   </div>
+  <div id="fishRules" class="rulehint" style="display:none"></div>
   <div class="fbrow">
     <div class="fbfield"><label>Köder</label><select id="f_koeder_base" onchange="onKoederBaseChange()"></select></div>
     <div class="fbfield" id="f_var_field" style="display:none"><label>Variante</label><select id="f_koeder_var"></select></div>
@@ -198,6 +199,7 @@
   <div id="gpsInfo" class="fbnote">Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren".</div>
   <div class="fbactions">
     <button type="button" class="fbsave" id="fbSaveBtn" onclick="saveCatch()">🎣 Fang speichern</button>
+    <button type="button" class="backbtn" id="fbEditCancel" style="display:none" onclick="cancelCatchEdit()">Bearbeiten abbrechen</button>
     <span class="fbnote">Bedingungen (Wetter, Wasser, Mond) werden immer mitgespeichert – auch ohne Fang.</span>
   </div>
 </div>
@@ -337,6 +339,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js?v=37"></script>
+<script src="app.js?v=38"></script>
 </body>
 </html>
