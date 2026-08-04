@@ -23,7 +23,11 @@ import sys
 import csv
 import io
 import math
+import html as html_lib
+import zipfile
+import xml.etree.ElementTree as ET
 import urllib.request
+from urllib.parse import urljoin
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -64,12 +68,14 @@ GKD_OVERVIEWS = [
     {"url": "https://www.gkd.bayern.de/de/fluesse/wassertemperatur/tabellen", "typ": "fluss"},
     {"url": "https://www.gkd.bayern.de/de/seen/wassertemperatur/tabellen",    "typ": "see"},
 ]
+GKD_SCHWEBSTOFF_URL = "https://www.gkd.bayern.de/de/fluesse/schwebstoff/tabellen"
 GKD_MAX_NEW_COORDS = 200   # neue Koordinaten je Lauf aufloesen (danach gecacht)
 GKD_MAX_AGE_DAYS   = 4     # nur Stationen mit halbwegs aktuellem Wert
 
 BASE_DIR  = Path(__file__).resolve().parent
 JSON_FILE = BASE_DIR / "wasserwerte.json"
 GKD_COORDS_FILE = BASE_DIR / "gkd_coords.json"   # Cache: Stations-ID -> lat/lon
+NLWKN_COORDS_FILE = BASE_DIR / "nlwkn_coords.json"
 CSV_DIR   = BASE_DIR / "wasserwerte_csv"
 CSV_DIR.mkdir(exist_ok=True)
 
@@ -444,6 +450,25 @@ def fetch_gkd_html(url):
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode("utf-8", "replace")
 
+def fetch_bytes(url):
+    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (DeepFish Wasserwerte)"})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        return r.read()
+
+def decode_text(raw):
+    for enc in ("utf-8-sig", "utf-8", "cp1252", "latin1"):
+        try: return raw.decode(enc)
+        except UnicodeDecodeError: pass
+    return raw.decode("utf-8", "replace")
+
+def clean_html(fragment):
+    text = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", " ", fragment or "", flags=re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", html_lib.unescape(text).replace("\xa0", " ")).strip()
+
+def now_text():
+    return datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M")
+
 def utm32_to_wgs84(E, N):
     """ETRS89 / UTM Zone 32N -> WGS84 (lat, lon), GRS80."""
     a=6378137.0; f=1/298.257222101; k0=0.9996
@@ -516,23 +541,80 @@ def process_gkd_all():
         rows=parse_gkd_overview(html)
         print(f"[Bayern/GKD] {ov['typ']}: {len(rows)} Stationen in Uebersicht")
         for r in rows:
-            if r["val"] is None or r["dt"] is None: continue
-            if (now - r["dt"]).days > GKD_MAX_AGE_DAYS: continue     # veraltet/offline
             coords=cache.get(r["id"])
             if not coords and new < GKD_MAX_NEW_COORDS:
                 try: coords=resolve_gkd_coords(r["base"], cache); new+=1
                 except Exception: coords=None
             if not coords: continue
+            fresh=(r["val"] is not None and r["dt"] is not None and
+                   (now-r["dt"]).total_seconds() <= GKD_MAX_AGE_DAYS*86400)
+            items=[]
+            if fresh:
+                items.append({"label":"Wassertemperatur", "value":fmt_value(r["val"],1), "unit":"°C",
+                              "icon":"", "time":r["dt"].strftime("%d.%m.%Y %H:%M")})
             results.append({
                 "id": r["base"], "name": r["name"], "lat": coords["lat"], "lon": coords["lon"], "river": r["river"],
-                "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
-                "items": [{"label":"Wassertemperatur", "value":fmt_value(r["val"],1), "unit":"°C",
-                           "icon":"\U0001F321️", "time":r["dt"].strftime("%d.%m.%Y %H:%M")}],
-                "history": {},
+                "updated": now_text(), "src":"gkd", "source_url":r["base"]+"/messwerte",
+                "params":{"wt":True,"o2":False,"tr":False}, "items":items, "history": {},
             })
     save_gkd_coords(cache)
     print(f"[Bayern/GKD] {len(results)} Stationen mit Werten (+{new} neue Koordinaten aufgeloest, {len(cache)} gecacht)")
     return results
+
+
+# ---------------------------------------------- Bayern (GKD Schwebstoff) ----
+def parse_gkd_schwebstoff(page):
+    """Alle GKD-Schwebstoffstationen aus der landesweiten Tabelle."""
+    out=[]
+    for row in re.split(r"<tr", page, flags=re.I):
+        m=re.search(r'href="([^"]*?/schwebstoff/[^"]*?)/messwerte', row, re.I)
+        if not m: continue
+        href=m.group(1); base=href if href.startswith("http") else "https://www.gkd.bayern.de"+href
+        cells=[clean_html(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S|re.I)]
+        joined=" ".join(cells)
+        def labelled(pattern):
+            for c in cells:
+                if re.match(pattern,c,re.I): return re.sub(pattern,"",c,flags=re.I).strip()
+            return ""
+        name=labelled(r"^\s*Messstelle\s*:\s*") or (cells[0] if cells else gkd_id(base))
+        river=labelled(r"^\s*Gew[aä]sser\s*:\s*") or (cells[1] if len(cells)>1 else "")
+        river=re.split(r"\s+(?:Lkr|Datum|Konzentration)",river)[0].strip()
+        dm=re.search(r"(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})",joined)
+        vm=(re.search(r"Konzentration[^:]*:\s*([-]?\d[\d.]*?(?:,\d+)?)",joined,re.I)
+            or re.search(r"Uhr\s*([-]?\d[\d.]*?(?:,\d+)?)",joined,re.I))
+        out.append({"base":base,"id":gkd_id(base),"name":name,"river":river,
+                    "dt":parse_dt(dm.group(1)) if dm else None,
+                    "val":to_number(vm.group(1)) if vm else None})
+    return out
+
+def enrich_gkd_with_schwebstoff(stations):
+    """Braunes Segment = Schwebstoff. Gleiche GKD-Stationsnummern werden vereinigt."""
+    page=fetch_gkd_html(GKD_SCHWEBSTOFF_URL)
+    rows=parse_gkd_schwebstoff(page); cache=load_gkd_coords(); now=datetime.now(); new=0
+    by_sid={gkd_id(str(s.get("id",""))):s for s in stations}; added=0; standalone=0
+    for r in rows:
+        st=by_sid.get(r["id"])
+        if st is None:
+            coords=cache.get(r["id"])
+            if not coords and new<GKD_MAX_NEW_COORDS:
+                try: coords=resolve_gkd_coords(r["base"],cache); new+=1
+                except Exception: coords=None
+            if not coords: continue
+            st={"id":r["base"],"name":r["name"],"lat":coords["lat"],"lon":coords["lon"],
+                "river":r["river"],"updated":now_text(),"src":"gkd",
+                "source_url":r["base"]+"/messwerte","params":{"wt":False,"o2":False,"tr":True},
+                "items":[],"history":{}}
+            stations.append(st); by_sid[r["id"]]=st; standalone+=1
+        st.setdefault("params",{})["tr"]=True
+        fresh=(r["val"] is not None and r["dt"] is not None and
+               (now-r["dt"]).total_seconds()<=GKD_MAX_AGE_DAYS*86400)
+        if fresh and not any("schwebstoff" in i.get("label","").lower() for i in st.get("items",[])):
+            st.setdefault("items",[]).append({"label":"Schwebstoff","value":fmt_value(r["val"],1),
+                "unit":"g/m³","icon":"","time":r["dt"].strftime("%d.%m.%Y %H:%M")})
+            added+=1
+    save_gkd_coords(cache)
+    print(f"[Bayern/GKD] {len(rows)} Schwebstoffstationen ({added} aktuelle Werte, {standalone} zusaetzliche Punkte)")
+    return stations
 
 
 # ------------------------------------------------ Bayern (NID Sauerstoff) ----
@@ -565,11 +647,13 @@ def enrich_gkd_with_nid_oxygen(stations):
             nums = re.findall(r"(?<!\d)(\d{1,2},\d{1,2})(?!\d)", tail)
             val = to_number(nums[0]) if nums else None
         dt = parse_dt(dm.group(1)) if dm else None
+        st = by_sid.get(sid)
+        if st is None:
+            continue
+        st.setdefault("params", {})["o2"] = True
         if val is None or dt is None or (now - dt).days > NID_MAX_AGE_DAYS:
             continue
-        st = by_sid.get(sid)
-        if st is None or any("sauerstoff" in i.get("label", "").lower()
-                             for i in st.get("items", [])):
+        if any("sauerstoff" in i.get("label", "").lower() for i in st.get("items", [])):
             continue
         st.setdefault("items", []).append({
             "label": "Sauerstoff (Tagesminimum)", "value": fmt_value(val, 2),
@@ -578,6 +662,273 @@ def enrich_gkd_with_nid_oxygen(stations):
         added += 1
     print(f"[Bayern/NID] {added} automatische Gütestationen mit Sauerstoff ergänzt")
     return stations
+
+
+# ------------------------------------------- Niedersachsen (NLWKN live) ----
+NLWKN_URL = "https://www.gewaessergueteonline.nlwkn.niedersachsen.de/Messwerte"
+NLWKN_STATION = "https://www.gewaessergueteonline.nlwkn.niedersachsen.de/Station/ID/{id}"
+NLWKN_MAX_AGE_H = 36
+
+def load_json_cache(path):
+    try: return json.loads(path.read_text(encoding="utf-8"))
+    except Exception: return {}
+
+def save_json_cache(path, data):
+    try: path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
+    except Exception: pass
+
+def nlwkn_station_info(sid, cache):
+    if sid in cache: return cache[sid]
+    url=NLWKN_STATION.format(id=sid); page=fetch_gkd_html(url); text=clean_html(page)
+    mr=re.search(r"Rechtswert\s+(\d{7,8})",text,re.I)
+    mn=re.search(r"Hochwert\s+(\d{6,8})",text,re.I)
+    if not mr or not mn: return None
+    rv=float(mr.group(1)); nv=float(mn.group(1))
+    # NLWKN schreibt die UTM-Zone vor den Ostwert: 32514994 -> Zone 32, E=514994.
+    if 32_000_000 <= rv < 33_000_000: rv-=32_000_000
+    lat,lon=utm32_to_wgs84(rv,nv)
+    low=text.lower()
+    info={"lat":round(lat,5),"lon":round(lon,5),
+          "params":{"wt":"wassertemperatur" in low,
+                    "o2":"sauerstoff" in low,
+                    "tr":"trübung" in low or "truebung" in low}}
+    cache[sid]=info
+    return info
+
+def process_nlwkn():
+    page=fetch_gkd_html(NLWKN_URL); cache=load_json_cache(NLWKN_COORDS_FILE)
+    now=datetime.now(); results=[]; seen=0
+    for row in re.findall(r"<tr[^>]*>([\s\S]*?)</tr>",page,re.I):
+        mh=re.search(r'href="[^"]*/Station/ID/(\d+)"',row,re.I)
+        if not mh: continue
+        sid=mh.group(1); cells=[clean_html(c) for c in re.findall(r"<td[^>]*>(.*?)</td>",row,re.S|re.I)]
+        if len(cells)<9: continue
+        seen+=1; name=cells[0]; river=cells[1]
+        dm=re.search(r"\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2}",cells[2])
+        dt=parse_dt(dm.group(0)) if dm else None
+        try: info=nlwkn_station_info(sid,cache)
+        except Exception as ex: print(f"      NLWKN {name}: Koordinatenfehler {ex}"); continue
+        if not info: continue
+        defs=[(6,"Wassertemperatur","°C",1),(4,"Sauerstoff","mg/l",1),(8,"Trübung","FNU",1),
+              (5,"pH-Wert","",1),(3,"Leitfähigkeit","µS/cm",0)]
+        fresh=bool(dt and (now-dt).total_seconds()<=NLWKN_MAX_AGE_H*3600)
+        items=[]
+        if fresh:
+            for idx,label,unit,digits in defs:
+                val=to_number(cells[idx]) if idx<len(cells) else None
+                if val is not None:
+                    items.append({"label":label,"value":fmt_value(val,digits),"unit":unit,"icon":"",
+                                  "time":dt.strftime("%d.%m.%Y %H:%M")})
+        p=dict(info.get("params") or {})
+        p["wt"]=p.get("wt") or any(i[1]=="Wassertemperatur" and to_number(cells[i[0]]) is not None for i in defs)
+        p["o2"]=p.get("o2") or any(i[1]=="Sauerstoff" and to_number(cells[i[0]]) is not None for i in defs)
+        p["tr"]=p.get("tr") or any(i[1]=="Trübung" and to_number(cells[i[0]]) is not None for i in defs)
+        results.append({"id":"nlwkn-"+sid,"name":name,"lat":info["lat"],"lon":info["lon"],
+            "river":river,"updated":now_text(),"src":"nlwkn","source_url":NLWKN_STATION.format(id=sid),
+            "params":p,"items":items,"history":{}})
+    save_json_cache(NLWKN_COORDS_FILE,cache)
+    print(f"[Niedersachsen/NLWKN] {len(results)} von {seen} automatischen Gütestationen")
+    return results
+
+
+# ----------------------------------------- Brandenburg (LfU, 10 Stationen) ----
+BRANDENBURG_OVERVIEW = ("https://lfu.brandenburg.de/lfu/de/aufgaben/wasser/"
+    "fliessgewaesser-und-seen/gewaesserueberwachung/wasserguetemessnetz/")
+BRANDENBURG_SLUGS = ["beeskow","cumlosen","frankfurt-oder","hohenwutzen","kleinmachnow",
+                     "leibsch","neuhausen","potsdam","ratzdorf","spremberg"]
+BB_MAX_AGE_H = 48
+
+def normalized_header(value):
+    return (str(value or "").lower().replace("ä","ae").replace("ö","oe")
+            .replace("ü","ue").replace("ß","ss").replace("₂","2"))
+
+def matrix_datetime(row):
+    for i,cell in enumerate(row):
+        try:
+            serial=float(cell)
+            if 30000 < serial < 80000:
+                if i+1<len(row):
+                    try:
+                        frac=float(row[i+1])
+                        if 0<=frac<1: serial+=frac
+                    except Exception: pass
+                return datetime(1899,12,30)+timedelta(days=serial)
+        except Exception: pass
+        d=parse_dt(str(cell).strip())
+        if d: return d
+        if i+1<len(row):
+            d=parse_dt((str(cell)+" "+str(row[i+1])).strip())
+            if d: return d
+    return None
+
+def parse_wide_sensor_csv(raw):
+    """Liest unterschiedlich aufgebaute Amts-CSV mit Zeit + Sensorspalten."""
+    text=decode_text(raw).replace("\x00","")
+    sample=text[:12000]
+    try: delimiter=csv.Sniffer().sniff(sample,delimiters=";\t,").delimiter
+    except Exception: delimiter=";"
+    rows=[[c.strip() for c in r] for r in csv.reader(io.StringIO(text),delimiter=delimiter)]
+    header_i=None; columns={}
+    for ri,row in enumerate(rows[:80]):
+        for ci,h in enumerate(row):
+            n=normalized_header(h)
+            kind=None
+            if "wassertemp" in n or ("temperatur" in n and "luft" not in n): kind="wt"
+            elif "sauerstoff" in n and not any(x in n for x in ("saettig","prozent","%")): kind="o2"
+            elif "trueb" in n or "turbid" in n: kind="tr"
+            elif n.strip() in ("ph","ph-wert") or "ph-wert" in n: kind="ph"
+            elif "leitfaeh" in n: kind="lf"
+            if kind and kind not in columns: columns[kind]=ci; header_i=ri if header_i is None else min(header_i,ri)
+    if header_i is None or not columns: return {},{}
+    data={k:[] for k in columns}
+    for row in rows[header_i+1:]:
+        dt=matrix_datetime(row)
+        if not dt: continue
+        for kind,ci in columns.items():
+            if ci>=len(row): continue
+            val=to_number(row[ci])
+            if val is None: continue
+            if kind=="wt" and not (-5<=val<=45): continue
+            if kind=="o2" and not (0<=val<=30): continue
+            if kind=="ph" and not (0<=val<=14): continue
+            if kind=="tr" and not (0<=val<1_000_000): continue
+            data[kind].append((dt,val))
+    latest={}; history={}
+    labels={"wt":"Wassertemperatur","o2":"Sauerstoff","tr":"Trübung","ph":"pH-Wert","lf":"Leitfähigkeit"}
+    for kind,vals in data.items():
+        vals.sort(key=lambda x:x[0])
+        if vals:
+            latest[kind]=vals[-1]
+            cutoff=vals[-1][0]-timedelta(days=8)
+            history[labels[kind]]=[{"t":d.strftime("%Y-%m-%dT%H:%M"),"v":round(v,3)} for d,v in vals if d>=cutoff]
+    return latest,history
+
+def process_brandenburg():
+    overview=fetch_gkd_html(BRANDENBURG_OVERVIEW)
+    urls=[urljoin(BRANDENBURG_OVERVIEW,s+"/") for s in BRANDENBURG_SLUGS]
+    for href in re.findall(r'href="([^"]*?/wasserguetemessnetz/[^"#?]+/)"',overview,re.I):
+        u=urljoin(BRANDENBURG_OVERVIEW,html_lib.unescape(href))
+        if u.rstrip("/")==BRANDENBURG_OVERVIEW.rstrip("/") or u in urls: continue
+        urls.append(u)
+    results=[]; now=datetime.now()
+    for url in urls:
+        try: page=fetch_gkd_html(url)
+        except Exception as ex: print(f"      Brandenburg {url}: {ex}"); continue
+        mh=re.search(r"<h1[^>]*>\s*(?:Messstation\s+)?([\s\S]*?)</h1>",page,re.I)
+        name=clean_html(mh.group(1)) if mh else url.rstrip("/").rsplit("/",1)[-1].title()
+        text=clean_html(page)
+        mg=re.search(r"Gew[aä]sser:\s*([A-Za-zÄÖÜäöüß()\- ]+?)(?:\s+Messstellennummer|\s+mittlere)",text,re.I)
+        river=mg.group(1).strip() if mg else ""
+        mn=re.search(r"Hochwert\s*\(ETRS89\s*UTM33N\)\s*:\s*(\d{7})",text,re.I)
+        me=re.search(r"Rechtswert\s*\(ETRS89\s*UTM33N\)\s*:\s*(\d{6,7})",text,re.I)
+        if not mn or not me: continue
+        lat,lon=utm33_to_wgs84(float(me.group(1)),float(mn.group(1)))
+        csvm=re.search(r'href="([^"]+\.csv)"',page,re.I)
+        latest={}; history={}
+        if csvm:
+            csvurl=urljoin(url,html_lib.unescape(csvm.group(1)))
+            try: latest,history=parse_wide_sensor_csv(fetch_bytes(csvurl))
+            except Exception as ex: print(f"      Brandenburg {name}: CSV {ex}")
+        else: csvurl=""
+        low=normalized_header(text)
+        params={"wt":"wassertemperatur" in low or "wt" in latest,
+                "o2":"sauerstoff" in low or "o2" in latest,
+                "tr":"truebung" in low or "tr" in latest}
+        defs={"wt":("Wassertemperatur","°C",1),"o2":("Sauerstoff","mg/l",1),
+              "tr":("Trübung","FNU",1),"ph":("pH-Wert","",2),"lf":("Leitfähigkeit","µS/cm",0)}
+        items=[]
+        for kind,(dt,val) in latest.items():
+            if (now-dt).total_seconds()>BB_MAX_AGE_H*3600: continue
+            label,unit,digits=defs[kind]
+            items.append({"label":label,"value":fmt_value(val,digits),"unit":unit,"icon":"",
+                          "time":dt.strftime("%d.%m.%Y %H:%M")})
+        results.append({"id":"bb-"+url.rstrip("/").rsplit("/",1)[-1],"name":name,"lat":round(lat,5),
+            "lon":round(lon,5),"river":river,"updated":now_text(),"src":"brandenburg",
+            "source_url":url,"download_url":csvurl,"params":params,"items":items,"history":history})
+    print(f"[Brandenburg/LfU] {len(results)} automatische Gütestationen")
+    return results
+
+
+# ---------------------------------------------- Sachsen (BfUL, 5 Stationen) ----
+SAXONY_STATIONS = [
+    ("Schmilka","Elbe",50.8897,14.2283,"https://www.wasser.sachsen.de/messstation-schmilka-elbe-rechts-fluss-km-726-alte-kilometrierung-4-18339.html"),
+    ("Zehren","Elbe",51.1989,13.4090,"https://www.wasser.sachsen.de/messstation-zehren-elbe-links-fluss-km-638-alte-kilometrierung-92-18337.html"),
+    ("Dommitzsch","Elbe",51.6402,12.8820,"https://www.wasser.sachsen.de/messstation-dommitzsch-elbe-links-fluss-km-557-alte-kilometrierung-173-18335.html"),
+    ("Bad Düben","Vereinigte Mulde",51.5900,12.5860,"https://www.wasser.sachsen.de/messstation-bad-dueben-vereinigte-mulde-links-fluss-km-67-18333.html"),
+    ("Görlitz","Lausitzer Neiße",51.1520,14.9930,"https://www.wasser.sachsen.de/goerlitz-18253.html"),
+]
+SAXONY_MAX_AGE_H=48
+
+def xlsx_rows(raw):
+    """Kleine XLSX-Leseroutine ohne externe Python-Pakete."""
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        shared=[]
+        if "xl/sharedStrings.xml" in z.namelist():
+            root=ET.fromstring(z.read("xl/sharedStrings.xml"))
+            for si in root.findall("{*}si"):
+                shared.append("".join(t.text or "" for t in si.iter() if t.tag.endswith("}t")))
+        sheets=[]
+        for path in sorted(n for n in z.namelist() if re.match(r"xl/worksheets/sheet\d+\.xml$",n)):
+            root=ET.fromstring(z.read(path)); matrix=[]
+            for row in root.findall(".//{*}row"):
+                vals={}; maxcol=-1
+                for c in row.findall("{*}c"):
+                    ref=c.attrib.get("r","")
+                    letters=re.match(r"[A-Z]+",ref)
+                    if not letters: continue
+                    col=0
+                    for ch in letters.group(0): col=col*26+ord(ch)-64
+                    col-=1; maxcol=max(maxcol,col); typ=c.attrib.get("t","")
+                    v=c.find("{*}v"); val=v.text if v is not None else ""
+                    if typ=="s" and val:
+                        try: val=shared[int(val)]
+                        except Exception: pass
+                    elif typ=="inlineStr":
+                        val="".join(t.text or "" for t in c.iter() if t.tag.endswith("}t"))
+                    vals[col]=val
+                if maxcol>=0: matrix.append([vals.get(i,"") for i in range(maxcol+1)])
+            if matrix: sheets.append(matrix)
+    return sheets
+
+def parse_xlsx_sensors(raw):
+    merged={}; histories={}
+    for rows in xlsx_rows(raw):
+        # In eine temporaere CSV ueberfuehren, damit dieselbe robuste Spaltenerkennung greift.
+        buf=io.StringIO(); wr=csv.writer(buf,delimiter=";",lineterminator="\n"); wr.writerows(rows)
+        latest,hist=parse_wide_sensor_csv(buf.getvalue().encode("utf-8"))
+        for kind,pair in latest.items():
+            if kind not in merged or pair[0]>merged[kind][0]: merged[kind]=pair
+        for label,vals in hist.items(): histories[label]=vals
+    return merged,histories
+
+def process_sachsen():
+    results=[]; now=datetime.now()
+    defs={"wt":("Wassertemperatur","°C",1),"o2":("Sauerstoff","mg/l",1),
+          "tr":("Trübung","FNU",1),"ph":("pH-Wert","",2),"lf":("Leitfähigkeit","µS/cm",0)}
+    for name,river,lat,lon,url in SAXONY_STATIONS:
+        latest={}; history={}; xurl=""; page=""
+        try:
+            page=fetch_gkd_html(url)
+            links=[urljoin(url,html_lib.unescape(x)) for x in re.findall(r'href="([^"]+\.xlsx)"',page,re.I)]
+            # Auf den Stationsseiten steht die aktuelle 14-Tage-Datei vor den Jahresarchiven.
+            xurl=next((x for x in links if "/stationen/download/" in x and "365" not in x.lower()),links[0] if links else "")
+            if xurl: latest,history=parse_xlsx_sensors(fetch_bytes(xurl))
+        except Exception as ex: print(f"      Sachsen {name}: {ex}")
+        items=[]
+        for kind,(dt,val) in latest.items():
+            if (now-dt).total_seconds()>SAXONY_MAX_AGE_H*3600: continue
+            label,unit,digits=defs[kind]
+            items.append({"label":label,"value":fmt_value(val,digits),"unit":unit,"icon":"",
+                          "time":dt.strftime("%d.%m.%Y %H:%M")})
+        low=normalized_header(clean_html(page))
+        params={"wt":"wassertemperatur" in low or "wt" in latest,
+                "o2":"sauerstoff" in low or "o2" in latest,
+                "tr":"truebung" in low or "tr" in latest}
+        results.append({"id":"sn-"+normalized_header(name).replace(" ","-"),"name":name,"lat":lat,"lon":lon,
+            "river":river,"updated":now_text(),"src":"sachsen","source_url":url,"download_url":xurl,
+            "params":params,"items":items,"history":history})
+    print(f"[Sachsen/BfUL] {len(results)} automatische Gütestationen")
+    return results
 
 
 # ---------------------------------------------------------- Berlin (Wasserportal) ----
@@ -698,7 +1049,7 @@ def process_nrw():
 # Koordinaten (Gauß-Krüger/Bessel) auf den Stationsseiten -> WGS84. Dubletten mit bereits
 # vorhandenen Netzen werden client-seitig beim Zeichnen entfernt.
 UNDINE_REGIONS = ["rhein", "ems", "weser", "elbe", "oder", "donau"]
-UNDINE_COORDS_FILE = Path("undine_coords.json")
+UNDINE_COORDS_FILE = BASE_DIR / "undine_coords.json"
 UNDINE_MAX_AGE_H = 30
 
 def gk_bessel_to_wgs84(R, H):
@@ -803,6 +1154,47 @@ def process_undine():
     return results
 
 
+# -------------------------------------------------- Nord-/Ostsee (BSH MARNET) ----
+# Das BSH veröffentlicht die aktuellen Messreihen als Diagramme, aber nicht als
+# frei abrufbare Zahlen-API. Deshalb erscheinen alle Hauptstationen auf der Karte;
+# wo ein Stationsdiagramm verfügbar ist, kann es direkt aus DeepFish geöffnet werden.
+MARNET_OVERVIEW="https://www2.bsh.de/daten/MARNET/Uebersichtskarte/Uebersichtskarte.html"
+MARNET_STATIONS=[
+    ("Nordseeboje 2","Nordsee",55.00000,6.33333),
+    ("Deutsche Bucht","Nordsee",54.16667,7.45000),
+    ("Ems","Nordsee",54.16667,6.35000),
+    ("Nordseeboje 3","Nordsee",54.68333,6.78333),
+    ("FINO 1","Nordsee",54.01667,6.58333),
+    ("FINO 3","Nordsee",55.19500,7.15833),
+    ("Kiel","Ostsee",54.50000,10.26667),
+    ("Fehmarn Belt","Ostsee",54.60000,11.15000),
+    ("Darßer Schwelle","Ostsee",54.70000,12.70000),
+    ("Oder Bank","Ostsee",54.08333,14.16667),
+    ("Arkona Becken","Ostsee",54.88333,13.86667),
+    ("FINO 2","Ostsee",55.00832,13.15418),
+]
+
+def process_marnet_metadata():
+    results=[]
+    for idx,(name,sea,lat,lon) in enumerate(MARNET_STATIONS):
+        source=MARNET_OVERVIEW; items=[]
+        if name=="Kiel":
+            source="https://www2.bsh.de/daten/MARNET/Stationen/Kiel.html"
+            items=[{"label":"Wassertemperatur","value":None,"unit":"","icon":"","time":"",
+                    "chart_url":"https://www2.bsh.de/aktdat/marnet_export/Kiel/KielTemperatur14Tage.png"},
+                   {"label":"Sauerstoff","value":None,"unit":"","icon":"","time":"",
+                    "chart_url":"https://www2.bsh.de/aktdat/marnet_export/Kiel/KielOx14Tage.png"}]
+        elif name=="Fehmarn Belt":
+            source="https://www2.bsh.de/daten/MARNET/Stationen/Fehmarn.html"
+            items=[{"label":"Wassertemperatur","value":None,"unit":"","icon":"","time":"","source_url":source},
+                   {"label":"Sauerstoff","value":None,"unit":"","icon":"","time":"","source_url":source}]
+        results.append({"id":f"marnet-{idx+1}","name":name,"lat":lat,"lon":lon,"river":sea,
+            "updated":now_text(),"src":"bsh-marnet","source_url":source,
+            "params":{"wt":True,"o2":True,"tr":False},"items":items,"history":{}})
+    print(f"[BSH/MARNET] {len(results)} Hauptstationen in Nord- und Ostsee (Diagramm-/Metadaten)")
+    return results
+
+
 # ------------------------------------------------------------------- Main -----
 def write_json(stations):
     payload = {
@@ -845,8 +1237,12 @@ def main():
     #         results.append(process_hessen(st))
     #     except Exception as e:
     #         print(f"      FEHLER bei {st['name']}: {e}")
-    try:                                   # Bayern: Temperatur (GKD) + Sauerstoff (NID)
+    try:                                   # Bayern: Temperatur + Schwebstoff (GKD) + Sauerstoff (NID)
         bayern = process_gkd_all()
+        try:
+            bayern = enrich_gkd_with_schwebstoff(bayern)
+        except Exception as e:
+            print(f"      FEHLER Bayern/GKD Schwebstoff: {e}")
         try:
             bayern = enrich_gkd_with_nid_oxygen(bayern)
         except Exception as e:
@@ -854,6 +1250,18 @@ def main():
         results.extend(bayern)
     except Exception as e:
         print(f"      FEHLER GKD: {e}")
+    try:                                   # Niedersachsen: Temperatur, O2, Trübung
+        results.extend(process_nlwkn())
+    except Exception as e:
+        print(f"      FEHLER Niedersachsen/NLWKN: {e}")
+    try:                                   # Brandenburg: zehn automatische Gütestationen
+        results.extend(process_brandenburg())
+    except Exception as e:
+        print(f"      FEHLER Brandenburg/LfU: {e}")
+    try:                                   # Sachsen: fünf automatische Gütestationen
+        results.extend(process_sachsen())
+    except Exception as e:
+        print(f"      FEHLER Sachsen/BfUL: {e}")
     try:                                   # Berlin (Wasserportal) – Oberflächen-Wassertemperatur
         results.extend(process_berlin())
     except Exception as e:
@@ -866,6 +1274,10 @@ def main():
         results.extend(process_undine())
     except Exception as e:
         print(f"      FEHLER Undine: {e}")
+    try:                                   # BSH-Messnetz in Nord- und Ostsee
+        results.extend(process_marnet_metadata())
+    except Exception as e:
+        print(f"      FEHLER BSH/MARNET: {e}")
     if not results:
         print("Keine Station erfolgreich abgerufen.")
         sys.exit(2)

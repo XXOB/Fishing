@@ -319,8 +319,4 @@ body{padding-bottom:82px}
   #map{height:300px}
   .tabbtn .tx{font-size:10px}
 }
-.catchacts{display:flex;align-items:center;gap:6px}.editmini{border:1px solid var(--line);background:transparent;color:var(--water);border-radius:8px;padding:4px 7px;font-size:11px;cursor:pointer}
-.rulehint{margin:8px 0 12px;padding:11px 12px;border:1px solid rgba(56,189,248,.35);border-radius:10px;background:rgba(56,189,248,.09);font-size:13px;line-height:1.45;color:var(--text)}
-.rulehint a{color:var(--water);font-weight:700}.rulehint small{display:block;margin-top:5px;color:var(--muted)}
-.pblist{display:grid;gap:8px;margin-top:8px}.pbrow{display:grid;grid-template-columns:minmax(90px,1fr) minmax(120px,1.3fr) minmax(120px,1.3fr);gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}.pbrow span{color:var(--muted)}
-@media(max-width:560px){.pbrow{grid-template-columns:1fr}.pbrow span{padding-left:8px}}
+

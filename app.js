@@ -231,20 +231,26 @@ function renderQuality(){
     return;
   }
   const items=(cur.items||[]).filter(it=> it.label!=="pH-Wert" && it.label!=="Leitfähigkeit");
-  const CHARTABLE={"Wassertemperatur":1,"O₂-Sättigung":1,"Trübung":1,"Sauerstoff":1};
+  const CHARTABLE={"Wassertemperatur":1,"O₂-Sättigung":1,"Trübung":1,"Schwebstoff":1,"Sauerstoff":1};
   box.innerHTML = items.map(it=>{
     const cls=classifyWQ(it.label, deNum(it.value));
     const badge = cls ? '<span class="pgbadge '+cls.c+'">'+cls.t+'</span>' : '';
     const stripe = cls ? stripeColor(cls.c) : "var(--water)";
     const clk = (CHARTABLE[it.label] && (cur.history||{})[it.label]) ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
+    const ext=it.chart_url||it.source_url||"";
+    const val=(it.value==null||it.value==="")
+      ? (ext?'<a href="'+esc(ext)+'" target="_blank" rel="noopener">Aktuelles Diagramm öffnen ↗</a>':'keine Zahlen-API')
+      : esc(it.value)+' <small>'+esc(it.unit||"")+'</small>';
+    const meta=(it.value==null||it.value==="") ? 'Amtliche Messreihe' : badge+'Stand: '+esc(it.time||"–");
     return '<div class="tile'+clk+'" style="border-top-color:'+stripe+'"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
-      '<div class="val">'+it.value+' <small>'+(it.unit||"")+'</small></div>'+
-      '<div class="meta">'+badge+'Stand: '+(it.time||"–")+'</div></div>';
+      '<div class="val">'+val+'</div><div class="meta">'+meta+'</div></div>';
   }).join("");
   if(st){
     if(cur.source==="live"){
       const dtxt = cur.dist>0.3 ? " · "+cur.dist.toFixed(1)+" km" : "";
-      st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+dtxt+" (PEGELONLINE) · Stand "+esc(cur.updated);
+      const extra=cur.supplement ? " · Zusatzwerte: "+esc(cur.supplement)+
+        (cur.source_url?' <a href="'+esc(cur.source_url)+'" target="_blank" rel="noopener">amtlich ↗</a>':'') : "";
+      st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+dtxt+" (PEGELONLINE) · Stand "+esc(cur.updated)+extra;
     } else if(cur.src==="niz"){
       const bet=cur.betreiber?" · "+esc(cur.betreiber):"";
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
@@ -257,7 +263,7 @@ function renderQuality(){
         ' · Daten: <a href="https://undine.bafg.de" target="_blank" rel="noopener">BfG/Undine ↗</a>';
     } else {
       const sid=cur.id?String(cur.id):"";
-      const surl=sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "";
+      const surl=cur.source_url || (sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "");
       const link=surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich ↗</a>' : '';
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+link;
     }
@@ -285,7 +291,7 @@ function activeWQ(){
   const river = (sp&&sp.river) ? sp.river : (CUR&&CUR.river ? CUR.river : null);
   if(!river) return null;                                   // Fluss unbekannt → keine Güte (nie Mainz-Notlösung)
   const rk = String(river).toLowerCase().trim();
-  const cand = st.filter(s => String(s.river||"").toLowerCase().trim() === rk);  // NUR gleicher Fluss
+  const cand = st.filter(s => String(s.river||"").toLowerCase().trim() === rk && (s.items||[]).length);  // NUR gleicher Fluss, nur darstellbare Werte/Diagramme
   if(!cand.length) return null;                             // kein Messpunkt an diesem Fluss → nichts anzeigen
   let best=null, bd=1e9;
   for(const s of cand){ if(s.lat==null) continue; const d=haversine(WXPOS.lat,WXPOS.lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
@@ -338,12 +344,22 @@ async function loadLiveWQ(){
 /* Aktuelle Wasserqualitäts-Quelle: bevorzugt Live-Pegel (frisch, am Ort), sonst Gütestation (JSON). */
 function wqCurrent(){
   const live=window.LIVEWQ;
-  if(live && live.items && live.items.length)
-    return { items:live.items, history:live.history||{}, name:live.station, dist:(live.dist||0), source:"live",
-             id:(CUR&&CUR.uuid)||"", updated:live.updated||"" };
   const aw=activeWQ();
+  if(live && live.items && live.items.length){
+    // PEGELONLINE bleibt die frischeste Temperaturquelle. Fehlende O2-/Trübungs-/
+    // Schwebstoffwerte der Landesmessstation werden aber zusätzlich angezeigt.
+    const key=it=>{ const l=String(it.label||"").toLowerCase();
+      if(l.includes("wassertemperatur")) return "wt"; if(l.includes("sauerstoff")||l.includes("o₂")) return "o2";
+      if(l.includes("trübung")||l.includes("truebung")) return "tr"; if(l.includes("schwebstoff")) return "ss"; return l; };
+    const items=(live.items||[]).slice(), have=new Set(items.map(key));
+    if(aw) for(const it of (aw.station.items||[])){ const k=key(it); if(!have.has(k)){ items.push(it); have.add(k); } }
+    return { items, history:Object.assign({},aw?aw.station.history||{}:{},live.history||{}), name:live.station,
+      dist:(live.dist||0), source:"live", id:(CUR&&CUR.uuid)||"", updated:live.updated||"",
+      supplement:aw?aw.station.name:"", source_url:aw?aw.station.source_url||"":"" };
+  }
   if(aw) return { items:aw.station.items||[], history:aw.station.history||{}, name:aw.station.name, dist:aw.dist,
                   source:"guete", id:aw.station.id||"", src:aw.station.src||"", betreiber:aw.station.betreiber||"",
+                  source_url:aw.station.source_url||"",
                   updated:aw.station.updated||(window.WQ&&window.WQ.updated)||"" };
   return null;
 }
@@ -457,11 +473,12 @@ function moonPhase(date){
 
 function waterQualitySnap(){
   const M={ "Wassertemperatur":"wassertemperatur_c","Sauerstoff":"sauerstoff_mgl",
-    "O₂-Sättigung":"o2_saettigung_pct","Trübung":"truebung","pH-Wert":"ph","Leitfähigkeit":"leitfaehigkeit_uScm" };
+    "O₂-Sättigung":"o2_saettigung_pct","Trübung":"truebung","Schwebstoff":"schwebstoff_gm3",
+    "pH-Wert":"ph","Leitfähigkeit":"leitfaehigkeit_uScm" };
   const cur=wqCurrent(); const items=cur?cur.items:[];
   const out={ stand:(cur&&cur.updated)||"", station:(cur&&cur.name)||"", quelle:(cur&&cur.source)||"",
     entfernung_km:(cur? Math.round(cur.dist*10)/10 : null) };
-  items.forEach(it=>{ const k=M[it.label]; if(k) out[k]=deNum(it.value); });
+  items.forEach(it=>{ const k=M[it.label],v=deNum(it.value); if(k&&typeof v==="number"&&!isNaN(v)) out[k]=v; });
   return out;
 }
 
@@ -718,12 +735,12 @@ async function ensureStationParams(){
   }catch(e){ PO_PARAMS={}; }
   PO_LOADING=false;
 }
-/* Farblogik: rot=nur Temp, blau=Temp+Sauerstoff, braun=Temp+Sauerstoff+Trübung */
+/* Farblogik fuer einzelne Altanzeigen; die Karte selbst nutzt Kuchen-Segmente. */
 function paramColor(p){ if(!p||!p.wt) return null; if(p.o2&&p.tr) return "#8a5a2b"; if(p.o2) return "#3b82f6"; return "#e0483b"; }
-function guteParams(st){ const L=(st.items||[]).map(i=>String(i.label||"").toLowerCase());
-  return { wt:L.some(l=>l.includes("wassertemperatur")),
-    o2:L.some(l=>l.includes("sauerstoff")||l.includes("o₂")),
-    tr:L.some(l=>l.includes("trübung")||l.includes("truebung")) }; }
+function guteParams(st){ const L=(st.items||[]).map(i=>String(i.label||"").toLowerCase()),p=st.params||{};
+  return { wt:!!p.wt||L.some(l=>l.includes("wassertemperatur")),
+    o2:!!p.o2||L.some(l=>l.includes("sauerstoff")||l.includes("o₂")),
+    tr:!!p.tr||L.some(l=>l.includes("trübung")||l.includes("truebung")||l.includes("schwebstoff")) }; }
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
   MAP = L.map("map",{scrollWheelZoom:false}).setView([WXPOS.lat, WXPOS.lon], 12);
@@ -755,8 +772,8 @@ function initMap(){
   renderMarkers();
 }
 /* Kuchen-Symbol: gleich große Segmente je vorhandenem Parameter.
-   Reihenfolge/Farben: grau=Pegel, rot=Temperatur, blau=Sauerstoff, braun=Trübung. */
-const SEG_DEF=[["pegel","#9aa3ab","Pegel"],["wt","#e0483b","Temperatur"],["o2","#3b82f6","Sauerstoff"],["tr","#8a5a2b","Trübung"]];
+   Reihenfolge/Farben: grau=Pegel, rot=Temperatur, blau=Sauerstoff, braun=Trübung/Schwebstoff. */
+const SEG_DEF=[["pegel","#9aa3ab","Pegel"],["wt","#e0483b","Temperatur"],["o2","#3b82f6","Sauerstoff"],["tr","#8a5a2b","Trübung/Schwebstoff"]];
 function segList(p){ return SEG_DEF.filter(d=>p&&p[d[0]]); }
 function pieIcon(segs, r){
   r=r||7; const pad=2, c=r+pad, size=c*2, n=segs.length;
@@ -785,7 +802,8 @@ function addStationDots(){
     pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, r:5, p}); }
   const gu=(window.WQ&&window.WQ.stations)||[];
   for(const s of gu){ if(s.lat==null) continue; const g=guteParams(s);
-    pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, id:s.id, r:6, p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
+    pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, id:s.id, source_url:s.source_url||"", r:6,
+      p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
   // Messnetze am selben Ort zusammenfassen. Andernfalls verdecken sich z. B.
   // in Ingolstadt der graue PEGELONLINE- und der GKD/NID-Gütepunkt.
   { const merged=[];
@@ -796,7 +814,7 @@ function addStationDots(){
       if(!hit){ merged.push(s); continue; }
       hit.p={pegel:!!(hit.p.pegel||s.p.pegel),wt:!!(hit.p.wt||s.p.wt),o2:!!(hit.p.o2||s.p.o2),tr:!!(hit.p.tr||s.p.tr)};
       hit.guete=hit.guete||s.guete; hit.r=Math.max(hit.r||5,s.r||5);
-      if(s.guete){ hit.name=s.name; hit.id=s.id; hit.lat=s.lat; hit.lon=s.lon; }
+      if(s.guete){ hit.name=s.name; hit.id=s.id; hit.lat=s.lat; hit.lon=s.lon; hit.source_url=s.source_url||hit.source_url||""; }
     }
     pts.length=0; pts.push(...merged);
   }
@@ -804,11 +822,15 @@ function addStationDots(){
   // Filter: sichtbarer Ausschnitt + optional nur Stationen mit >= 2 Werten
   try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(o=>b.contains([o.s.lat,o.s.lon])); } }catch(e){}
   if(STATION_MINWERTE) list=list.filter(o=>o.segs.length>=2);
-  if(list.length>500) list=list.slice(0,500);
+  // Deutschlandweit sind inzwischen deutlich mehr als 500 Pegel- und Gütepunkte
+  // vorhanden. Der alte 500er-Schnitt ließ vor allem später geladene Landesnetze weg.
+  if(list.length>2500) list=list.slice(0,2500);
   for(const o of list){
     const names=o.segs.map(d=>d[2]).join("+");
     const mk=L.marker([o.s.lat,o.s.lon],{icon:pieIcon(o.segs, o.s.r)});
     mk.bindTooltip((o.s.guete?"Gütestation ":"Pegel ")+o.s.name+" · "+(o.s.river||"")+" · "+names);
+    if(o.s.source_url) mk.bindPopup('<b>'+esc(o.s.name)+'</b><br>'+esc(o.s.river||"")+'<br>'+esc(names)+
+      '<br><a href="'+esc(o.s.source_url)+'" target="_blank" rel="noopener">Amtliche Messstation öffnen ↗</a>');
     STATIONS_LAYER.addLayer(mk);
   }
 }
