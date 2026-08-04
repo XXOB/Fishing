@@ -726,7 +726,7 @@ def gk_bessel_to_wgs84(R, H):
     return round(math.degrees(l2),5), round(math.degrees(math.atan2(Y,X)),5)
 
 def undine_wt(region):
-    """{key: {'t':temp, 'd':'dd.mm.yyyy HH:MM'}} aus der Flussgebiets-JS-Datei."""
+    """Temperatur und Sauerstoff aus der Undine-Flussgebiets-JS-Datei."""
     urls=[f"https://undine.bafg.de/bilder/undine/{region}/aktuell_wt_o2_{region}.js",
           f"https://undine.bafg.de/bilder/undine/aktuell_wt_o2_{region}.js"]
     t=""
@@ -736,12 +736,16 @@ def undine_wt(region):
             if "wt_" in t: break
         except Exception: continue
     out={}
-    for m in re.finditer(r'(wt_[a-z0-9_]+)\s*=\s*"([^"]*)"', t):
-        key=m.group(1)[3:]; v=m.group(2)
-        mt=re.search(r"Wassertemperatur:\s*([\-\d.,]+)", v)
-        md=re.search(r"Datum:\s*([\d.]+),?\s*([\d:]+)", v)
-        if not mt: continue
-        out[key]={"t":to_number(mt.group(1)), "d":(md.group(1)+" "+md.group(2)) if md else ""}
+    for m in re.finditer(r'((?:wt|o2)_[a-z0-9_]+)\s*=\s*"([^"]*)"', t, re.I):
+        var=m.group(1).lower(); kind="o2" if var.startswith("o2_") else "t"
+        key=var.split("_",1)[1]; v=m.group(2)
+        mv=(re.search(r"Sauerstoff(?:gehalt|konzentration)?:\s*([\-\d.,]+)", v, re.I)
+            if kind=="o2" else re.search(r"Wassertemperatur:\s*([\-\d.,]+)", v, re.I))
+        md=re.search(r"Datum:\s*([\d.]+),?\s*([\d:]+)", v, re.I)
+        if not mv: continue
+        d=out.setdefault(key,{"t":None,"d":"","o2":None,"d_o2":""})
+        d[kind]=to_number(mv.group(1))
+        d["d_o2" if kind=="o2" else "d"]=(md.group(1)+" "+md.group(2)) if md else ""
     return out
 
 def undine_station_coords(region, key, cache):
@@ -775,21 +779,27 @@ def process_undine():
         try: wt=undine_wt(region)
         except Exception as ex: print(f"      Undine {region}: {ex}"); continue
         for key,d in wt.items():
-            if d["t"] is None: continue
-            dt=parse_dt(d["d"]) if d["d"] else None
-            if dt and (now-dt).total_seconds() > UNDINE_MAX_AGE_H*3600: continue
+            dt=parse_dt(d.get("d","")) if d.get("d") else None
+            dto=parse_dt(d.get("d_o2","")) if d.get("d_o2") else None
+            temp_ok=d.get("t") is not None and not (dt and (now-dt).total_seconds()>UNDINE_MAX_AGE_H*3600)
+            o2_ok=d.get("o2") is not None and not (dto and (now-dto).total_seconds()>UNDINE_MAX_AGE_H*3600)
+            if not temp_ok and not o2_ok: continue
             c=undine_station_coords(region, key, cache)
             if not c: continue
+            items=[]
+            if temp_ok: items.append({"label":"Wassertemperatur", "value":fmt_value(d["t"],1), "unit":"°C",
+                                      "icon":"\U0001F321️", "time":dt.strftime("%d.%m.%Y %H:%M") if dt else d.get("d","")})
+            if o2_ok: items.append({"label":"Sauerstoff", "value":fmt_value(d["o2"],1), "unit":"mg/l",
+                                    "icon":"\U0001FAE7", "time":dto.strftime("%d.%m.%Y %H:%M") if dto else d.get("d_o2","")})
             results.append({
                 "id":"undine-"+region+"-"+key, "name":c["name"], "lat":c["lat"], "lon":c["lon"], "river":c["river"], "src":"undine",
                 "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
-                "items":[{"label":"Wassertemperatur", "value":fmt_value(d["t"],1), "unit":"°C",
-                          "icon":"\U0001F321️", "time": dt.strftime("%d.%m.%Y %H:%M") if dt else d["d"]}],
+                "items":items,
                 "history":{},
             })
     try: UNDINE_COORDS_FILE.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
     except Exception: pass
-    print(f"[Undine/BfG] {len(results)} Gütestationen (Wassertemperatur)")
+    print(f"[Undine/BfG] {len(results)} Gütestationen (Temperatur/Sauerstoff soweit verfügbar)")
     return results
 
 

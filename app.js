@@ -720,8 +720,10 @@ async function ensureStationParams(){
 }
 /* Farblogik: rot=nur Temp, blau=Temp+Sauerstoff, braun=Temp+Sauerstoff+Trübung */
 function paramColor(p){ if(!p||!p.wt) return null; if(p.o2&&p.tr) return "#8a5a2b"; if(p.o2) return "#3b82f6"; return "#e0483b"; }
-function guteParams(st){ const L=(st.items||[]).map(i=>i.label);
-  return { wt:L.includes("Wassertemperatur"), o2:L.some(l=>l==="Sauerstoff"||l==="O₂-Sättigung"), tr:L.includes("Trübung") }; }
+function guteParams(st){ const L=(st.items||[]).map(i=>String(i.label||"").toLowerCase());
+  return { wt:L.some(l=>l.includes("wassertemperatur")),
+    o2:L.some(l=>l.includes("sauerstoff")||l.includes("o₂")),
+    tr:L.some(l=>l.includes("trübung")||l.includes("truebung")) }; }
 function initMap(){
   if(MAP || !window.L || !document.getElementById("map")) return;
   MAP = L.map("map",{scrollWheelZoom:false}).setView([WXPOS.lat, WXPOS.lon], 12);
@@ -784,19 +786,21 @@ function addStationDots(){
   const gu=(window.WQ&&window.WQ.stations)||[];
   for(const s of gu){ if(s.lat==null) continue; const g=guteParams(s);
     pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, id:s.id, r:6, p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
-  let list=pts.map(s=>({s, segs:segList(s.p)})).filter(o=>o.segs.length>0);
-  // Dubletten entfernen: Undine-Punkte, die eine bereits vorhandene Station (anderes Netz) doppeln
-  { const norm=x=>String(x||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"");
-    const isU=o=>String(o.s.id||"").indexOf("undine-")===0;
-    const others=list.filter(o=>!isU(o));
-    list=list.filter(o=>{ if(!isU(o)) return true;
-      const nr=norm(o.s.river), nn=norm(o.s.name);
-      for(const x of others){
-        if(nn && norm(x.s.name)===nn) return false;                                   // gleicher Name
-        if(nr && norm(x.s.river)===nr && haversine(o.s.lat,o.s.lon,x.s.lat,x.s.lon)<6) return false;  // gleicher Fluss + <6 km
-      }
-      return true; });
+  // Messnetze am selben Ort zusammenfassen. Andernfalls verdecken sich z. B.
+  // in Ingolstadt der graue PEGELONLINE- und der GKD/NID-Gütepunkt.
+  { const merged=[];
+    const norm=x=>String(x||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"");
+    for(const s of pts){
+      const nr=norm(s.river);
+      const hit=merged.find(x=>nr&&norm(x.river)===nr&&haversine(s.lat,s.lon,x.lat,x.lon)<2);
+      if(!hit){ merged.push(s); continue; }
+      hit.p={pegel:!!(hit.p.pegel||s.p.pegel),wt:!!(hit.p.wt||s.p.wt),o2:!!(hit.p.o2||s.p.o2),tr:!!(hit.p.tr||s.p.tr)};
+      hit.guete=hit.guete||s.guete; hit.r=Math.max(hit.r||5,s.r||5);
+      if(s.guete){ hit.name=s.name; hit.id=s.id; hit.lat=s.lat; hit.lon=s.lon; }
+    }
+    pts.length=0; pts.push(...merged);
   }
+  let list=pts.map(s=>({s, segs:segList(s.p)})).filter(o=>o.segs.length>0);
   // Filter: sichtbarer Ausschnitt + optional nur Stationen mit >= 2 Werten
   try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(o=>b.contains([o.s.lat,o.s.lon])); } }catch(e){}
   if(STATION_MINWERTE) list=list.filter(o=>o.segs.length>=2);
