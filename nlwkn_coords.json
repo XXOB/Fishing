@@ -1,0 +1,200 @@
+{
+  "2001": {
+    "lat": 52.92696,
+    "lon": 9.22305,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2015": {
+    "lat": 52.469,
+    "lon": 7.30377,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2016": {
+    "lat": 53.32247,
+    "lon": 7.31173,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2017": {
+    "lat": 53.21389,
+    "lon": 7.47283,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2005": {
+    "lat": 52.35169,
+    "lon": 10.43033,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2018": {
+    "lat": 52.15799,
+    "lon": 9.24871,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2019": {
+    "lat": 52.13589,
+    "lon": 9.76158,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2020": {
+    "lat": 52.24773,
+    "lon": 9.8286,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2021": {
+    "lat": 52.50964,
+    "lon": 9.46636,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2007": {
+    "lat": 51.70614,
+    "lon": 9.96471,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2004": {
+    "lat": 52.61129,
+    "lon": 6.73849,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2029": {
+    "lat": 53.02142,
+    "lon": 7.32085,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2027": {
+    "lat": 45.58336,
+    "lon": 47.69386,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2002": {
+    "lat": 52.55996,
+    "lon": 10.29456,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2006": {
+    "lat": 51.50099,
+    "lon": 9.60424,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2008": {
+    "lat": 51.71357,
+    "lon": 10.00038,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2013": {
+    "lat": 53.67764,
+    "lon": 9.495,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2014": {
+    "lat": 53.03823,
+    "lon": 11.56971,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": true
+    }
+  },
+  "2023": {
+    "lat": 53.31519,
+    "lon": 8.48609,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2003": {
+    "lat": 52.54416,
+    "lon": 10.16752,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2022": {
+    "lat": 53.16147,
+    "lon": 8.32222,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  },
+  "2010": {
+    "lat": 52.68845,
+    "lon": 9.21019,
+    "params": {
+      "wt": true,
+      "o2": true,
+      "tr": false
+    }
+  }
+}
