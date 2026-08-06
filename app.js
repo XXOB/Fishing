@@ -241,7 +241,8 @@ function renderQuality(){
     const val=(it.value==null||it.value==="")
       ? (ext?'<a href="'+esc(ext)+'" target="_blank" rel="noopener">Aktuelles Diagramm öffnen ↗</a>':'keine Zahlen-API')
       : esc(it.value)+' <small>'+esc(it.unit||"")+'</small>';
-    const meta=(it.value==null||it.value==="") ? 'Amtliche Messreihe' : badge+'Stand: '+esc(it.time||"–");
+    const periodic=(it.periodic||cur.periodic) ? '<span class="pgbadge pg-amber">periodische Untersuchung</span>' : '';
+    const meta=(it.value==null||it.value==="") ? periodic+'Amtliche Messreihe' : periodic+badge+'Stand: '+esc(it.time||"–");
     return '<div class="tile'+clk+'" style="border-top-color:'+stripe+'"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
       '<div class="val">'+val+'</div><div class="meta">'+meta+'</div></div>';
   }).join("");
@@ -265,7 +266,8 @@ function renderQuality(){
       const sid=cur.id?String(cur.id):"";
       const surl=cur.source_url || (sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "");
       const link=surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich ↗</a>' : '';
-      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+link;
+      const ptxt=cur.periodic?" · periodische Untersuchung":"";
+      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+ptxt+link;
     }
   }
 }
@@ -291,8 +293,12 @@ function activeWQ(){
   const river = (sp&&sp.river) ? sp.river : (CUR&&CUR.river ? CUR.river : null);
   if(!river) return null;                                   // Fluss unbekannt → keine Güte (nie Mainz-Notlösung)
   const rk = String(river).toLowerCase().trim();
-  const cand = st.filter(s => String(s.river||"").toLowerCase().trim() === rk && (s.items||[]).length);  // NUR gleicher Fluss, nur darstellbare Werte/Diagramme
-  if(!cand.length) return null;                             // kein Messpunkt an diesem Fluss → nichts anzeigen
+  const exact = st.filter(s => String(s.river||"").toLowerCase().trim() === rk && (s.items||[]).length);  // NUR gleicher Fluss, nur darstellbare Werte/Diagramme
+  if(!exact.length) return null;                            // kein Messpunkt an diesem Fluss → nichts anzeigen
+  // Ein reiner Pegelpunkt darf eine am selben Gewässer vorhandene Temperatur-/
+  // Gütestation nicht verdrängen (wichtig bei den österreichischen Landesfeeds).
+  const quality = exact.filter(s=>{ const p=guteParams(s); return p.wt||p.o2||p.tr; });
+  const cand = quality.length ? quality : exact;
   let best=null, bd=1e9;
   for(const s of cand){ if(s.lat==null) continue; const d=haversine(WXPOS.lat,WXPOS.lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } }
   if(!best || bd>WQ_MAXKM) return null;

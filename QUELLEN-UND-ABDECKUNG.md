@@ -1,8 +1,9 @@
-# DeepFish – Wasserwerte und Abdeckung (v41)
+# DeepFish – Wasserwerte und Abdeckung (v42)
 
 DeepFish übernimmt **aktuelle automatische Messwerte**, sofern ein amtlicher,
-ohne Anmeldung abrufbarer Datenweg vorhanden ist. Periodische WRRL-Laborproben
-(oft nur einige Male pro Jahr) werden nicht als Live-Sensoren dargestellt.
+ohne Anmeldung abrufbarer Datenweg vorhanden ist. Zusätzlich werden amtlich
+veröffentlichte periodische Untersuchungswerte ausdrücklich als solche markiert;
+sie werden nicht mit Live-Sensorwerten verwechselt.
 
 ## Eingebundene Netze
 
@@ -23,14 +24,22 @@ ohne Anmeldung abrufbarer Datenweg vorhanden ist. Periodische WRRL-Laborproben
 | Nord- und Ostsee | BSH MARNET | zwölf Hauptstationen als Messpunkte; Temperatur-/Sauerstoff-Segmente und amtliche Messreihen. Das BSH bietet aktuelle Werte dort überwiegend nur als Diagramm, nicht als offene Zahlen-API. |
 | Schweiz | BAFU Datenplattform | alle aktiven Stationen des offenen Live-Feeds; Pegel/Abfluss und Wassertemperatur sowie weitere Güteparameter, sobald sie im Feed geliefert werden |
 | Niederlande, Nordsee und Wattenmeer | Rijkswaterstaat DDAPI20/WFS | alle Standorte mit letzter Beobachtung für Pegel, Temperatur, Sauerstoff und Trübung/Schwebstoff |
+| Österreich – bundesweit | BMLUK OGC Features | alle im offenen Feed veröffentlichten aktuellen Pegel- und Abflussstationen |
+| Niederösterreich | Landes-Kartenfeed | Wasserstand, Durchfluss und Wassertemperatur aller darin veröffentlichten Stationen |
+| Oberösterreich | Hydrographischer Dienst OGD | Wasserstand und Wassertemperatur aus den amtlichen ZRXP-Sammeldateien; Georeferenzierung über HZB-Nummer/Messstellenliste |
+| Kärnten | Hydrographischer Dienst GeoJSON | Fluss- und Seepegel, Durchfluss und Wassertemperatur soweit je Station geliefert |
+| Salzburg | Land Salzburg OGD | alle veröffentlichten Abfluss- und Seepegel; vorhandene aktuelle Werte werden übernommen |
+| Österreich – periodisch | AGES/Bundesministerium Badegewässer | alle veröffentlichten Badegewässer-Untersuchungen: Temperatur, Sichttiefe, Badewasserqualität, E. coli und Enterokokken; zusätzliche O2-/pH-Werte soweit geliefert |
 
-## Österreich
+## Österreich und Nutzungsstatus
 
-Das nationale eHYD-Portal untersagt in seinen Hinweisen ausdrücklich das
-Herunterladen der Inhalte und dahinterstehenden Datenquellen, soweit ein Inhalt
-nicht ausdrücklich als Download angeboten wird. Deshalb wird eHYD **nicht**
-automatisiert ausgelesen. Eine kommerzielle App braucht für eine österreichweite
-Live-Abdeckung eine schriftliche Freigabe oder frei lizenzierte Landes-Feeds.
+Das nationale eHYD-Webportal und seine nicht ausdrücklich angebotenen internen
+Downloads werden **nicht** automatisiert ausgelesen. Eingebunden sind stattdessen
+separat veröffentlichte OGC-/OGD-/JSON-Angebote. BMLUK, Oberösterreich und
+Kärnten weisen offene Lizenzen (CC BY 4.0) aus. Bei Niederösterreich, Salzburg
+und der AGES-Verwendung wird im exportierten Datensatz vermerkt, dass die
+Bestätigung für die geplante kommerzielle Nutzung noch aussteht. Die Quellen-
+und Zeitangabe bleibt an jeder Station erhalten.
 
 ## Länder ohne zusätzliches offenes Live-Gütenetz
 
@@ -68,3 +77,10 @@ angezeigt; der Messpunkt bleibt als Stations-/Parameter-Metadatum sichtbar.
 - https://www2.bsh.de/daten/MARNET/Uebersichtskarte/Uebersichtskarte.html
 - https://data.bafu.admin.ch/api
 - https://geo.rijkswaterstaat.nl/services/ogc/hws/DDAPI20/ows
+- https://gis.lfrz.gv.at/api/geodata/i000501/ogc/features/v1/collections/i000501%3Apegel_aktuell/items
+- https://www.noe.gv.at/wasserstand/
+- https://data.ooe.gv.at/files/hydro/HDOOE_Export_WT.zrxp
+- https://data.ooe.gv.at/files/hydro/HDOOE_Export_OG.zrxp
+- https://info.ktn.gv.at/asp/hydro/daten/json/
+- https://www.salzburg.gv.at/ogd/943b7dda-5c3d-40d3-80de-f29a491a59fa/Abfluss_und_Seepegel.json
+- https://www.ages.at/umwelt/wasser/badegewaesser-monitoring

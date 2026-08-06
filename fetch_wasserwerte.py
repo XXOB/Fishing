@@ -1400,6 +1400,11 @@ def main():
         results.extend(process_netherlands_rws())
     except Exception as e:
         print(f"      FEHLER Niederlande/RWS: {e}")
+    try:                                   # Österreich: OGD/OGC/Landesfeeds; kein eHYD-Scraping
+        from austria_sources import process_austria_sources
+        results.extend(process_austria_sources())
+    except Exception as e:
+        print(f"      FEHLER Österreich gesamt: {e}")
     if not results:
         print("Keine Station erfolgreich abgerufen.")
         sys.exit(2)
