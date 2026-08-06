@@ -738,7 +738,8 @@ async function ensureStationParams(){
 /* Farblogik fuer einzelne Altanzeigen; die Karte selbst nutzt Kuchen-Segmente. */
 function paramColor(p){ if(!p||!p.wt) return null; if(p.o2&&p.tr) return "#8a5a2b"; if(p.o2) return "#3b82f6"; return "#e0483b"; }
 function guteParams(st){ const L=(st.items||[]).map(i=>String(i.label||"").toLowerCase()),p=st.params||{};
-  return { wt:!!p.wt||L.some(l=>l.includes("wassertemperatur")),
+  return { pegel:!!p.pegel||L.some(l=>l.includes("pegel")||l.includes("wasserstand")||l.includes("durchfluss")),
+    wt:!!p.wt||L.some(l=>l.includes("wassertemperatur")),
     o2:!!p.o2||L.some(l=>l.includes("sauerstoff")||l.includes("o₂")),
     tr:!!p.tr||L.some(l=>l.includes("trübung")||l.includes("truebung")||l.includes("schwebstoff")) }; }
 function initMap(){
@@ -803,7 +804,7 @@ function addStationDots(){
   const gu=(window.WQ&&window.WQ.stations)||[];
   for(const s of gu){ if(s.lat==null) continue; const g=guteParams(s);
     pts.push({lat:s.lat, lon:s.lon, name:s.name, river:s.river, id:s.id, source_url:s.source_url||"", r:6,
-      p:{pegel:false,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
+      p:{pegel:g.pegel,wt:g.wt,o2:g.o2,tr:g.tr}, guete:true}); }
   // Messnetze am selben Ort zusammenfassen. Andernfalls verdecken sich z. B.
   // in Ingolstadt der graue PEGELONLINE- und der GKD/NID-Gütepunkt.
   { const merged=[];
@@ -977,58 +978,50 @@ function refreshFangbuch(){
 /* Gesetzliche Basiswerte. Gewässerordnungen/Erlaubnisscheine können strengere
    Regeln enthalten. Bayern und NRW sind aus den amtlichen Landesvorschriften
    hinterlegt; bei anderen Ländern wird bewusst keine Zahl geraten. */
-const FISH_RULES={
-  "Bayern":{
-    source:"https://www.gesetze-bayern.de/Content/Document/BayAVFiG-ANL_1",
-    rules:{
-      "aal":["50 cm","1. Oktober–31. Dezember (nicht Donaugebiet)"], "aesche":["35 cm","1. Januar–30. April"],
-      "bachforelle":["26 cm","1. Oktober–15. März"], "forelle":["26 cm","1. Oktober–15. März (Bachforelle)"],
-      "barbe":["40 cm","1. Mai–30. Juni"], "hecht":["50 cm","15. Februar–30. April"],
-      "huchen":["90 cm","15. Februar–30. Juni (Donaugebiet)"], "karpfen":["35 cm","keine gesetzliche Schonzeit"],
-      "nase":["30 cm","1. März–30. April"], "regenbogenforelle":["26 cm","15. Dezember–15. März"],
-      "rapfen":["40 cm","1. März–30. April"], "schied":["40 cm","1. März–30. April"],
-      "schleie":["26 cm","1. Mai–30. Juni"], "seeforelle":["60 cm","1. Oktober–15. März"],
-      "seesaibling":["30 cm","1. Oktober–31. Dezember"], "zander":["50 cm","15. Februar–30. April"],
-      "quappe":["40 cm","keine gesetzliche Schonzeit"], "rutte":["40 cm","keine gesetzliche Schonzeit"],
-      "barsch":["kein gesetzliches Mindestmaß","keine gesetzliche Schonzeit"],
-      "wels":["kein gesetzliches Mindestmaß","keine gesetzliche Schonzeit"],
-      "doebel":["kein gesetzliches Mindestmaß","keine gesetzliche Schonzeit"]
-    }
-  },
-  "Nordrhein-Westfalen":{
-    source:"https://recht.nrw.de/lrgv/rechtsverordnung/03072026-landesfischereiverordnung-lfischvo/",
-    rules:{
-      "aal":["50 cm","1. Oktober–1. März nur Rheinhauptstrom"], "barbe":["35 cm","15. Mai–15. Juni"],
-      "nase":["30 cm","1. März–30. April"], "karpfen":["35 cm","keine gesetzliche Schonzeit"],
-      "hecht":["45 cm","15. Februar–30. April"], "bachforelle":["25 cm","20. Oktober–15. März"],
-      "forelle":["25 cm","20. Oktober–15. März (Bachforelle)"], "seeforelle":["50 cm","20. Oktober–15. März"],
-      "seesaibling":["30 cm","20. Oktober–15. März"], "zander":["40 cm","1. April–31. Mai"],
-      "aesche":["30 cm","1. März–30. April"], "schleie":["25 cm","keine gesetzliche Schonzeit"]
-    }
+const FISH_RULES=window.FISH_RULES||{};
+function fishKey(s){
+  const key=String(s||"").toLowerCase().trim().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z]/g,"");
+  const aliases={forelle:"bachforelle",flussforelle:"bachforelle",truesche:"quappe",rutte:"quappe",aalrutte:"quappe",
+    aitel:"doebel",schied:"rapfen",blei:"brassen",brachse:"brassen",flussbarsch:"barsch",paling:"aal",
+    snoek:"hecht",snoekbaars:"zander",baars:"barsch",alet:"doebel",felchen:"renke"};
+  return aliases[key]||key;
+}
+function countryRuleKey(code){ return code==="ch"?"Schweiz":code==="nl"?"Niederlande":""; }
+async function resolveSpotRegion(sp){
+  if(!sp) return {key:"",label:"Standort nicht ermittelbar",country:""};
+  if(sp.country_code){
+    const ck=countryRuleKey(sp.country_code);
+    return {key:FISH_RULES[sp.bundesland]?sp.bundesland:(ck||sp.bundesland||""),label:sp.bundesland||ck||sp.country_code,country:sp.country_code};
   }
-};
-function fishKey(s){ return String(s||"").toLowerCase().trim().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z]/g,""); }
-async function resolveSpotState(sp){
-  if(!sp) return ""; if(sp.bundesland) return sp.bundesland;
   const ll=spotLatLon(sp);
   try{
-    const u="https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=5&accept-language=de&lat="+encodeURIComponent(ll[0])+"&lon="+encodeURIComponent(ll[1]);
-    const r=await fetch(u); if(!r.ok) return ""; const j=await r.json();
-    const state=(j.address&&(j.address.state||j.address.region))||"";
-    if(state){ const a=loadSpots(), x=a.find(s=>String(s.id)===String(sp.id)); if(x){ x.bundesland=state; saveSpots(a); } }
-    return state;
-  }catch(e){ return ""; }
+    const u="https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=7&accept-language=de&lat="+encodeURIComponent(ll[0])+"&lon="+encodeURIComponent(ll[1]);
+    const r=await fetch(u); if(!r.ok) throw new Error("Geokodierung"); const j=await r.json(), a=j.address||{};
+    const state=a.state||a.region||a.province||"", code=String(a.country_code||"").toLowerCase(), ck=countryRuleKey(code);
+    const list=loadSpots(), x=list.find(s=>String(s.id)===String(sp.id));
+    if(x){ x.bundesland=state; x.country_code=code; x.land=a.country||""; saveSpots(list); }
+    return {key:FISH_RULES[state]?state:(ck||state),label:state||ck||a.country||"Standort",country:code};
+  }catch(e){
+    const state=sp.bundesland||"", ck=countryRuleKey(sp.country_code||"");
+    return {key:FISH_RULES[state]?state:(ck||state),label:state||ck||"Standort nicht ermittelbar",country:sp.country_code||""};
+  }
 }
 let RULE_REQ=0;
 async function showFishRules(){
   const box=$("fishRules"); if(!box) return; const art=$("f_art")?$("f_art").value.trim():"";
   if(!art){ box.style.display="none"; box.innerHTML=""; return; }
   const req=++RULE_REQ, sp=activeSpot(); box.style.display="block"; box.textContent="Bestimmungen am Angelplatz werden ermittelt …";
-  const state=await resolveSpotState(sp); if(req!==RULE_REQ) return;
-  const data=FISH_RULES[state], rule=data&&data.rules[fishKey(art)];
-  if(rule){ box.innerHTML='<b>'+esc(state)+' · '+esc(art)+'</b><br>Mindestmaß: <b>'+esc(rule[0])+'</b> · Schonzeit: <b>'+esc(rule[1])+'</b><br><a href="'+data.source+'" target="_blank" rel="noopener">amtliche Grundlage prüfen ↗</a><small> Erlaubnisschein und Gewässerordnung können strengere Regeln enthalten.</small>'; }
-  else if(data){ box.innerHTML='<b>'+esc(state)+' · '+esc(art)+'</b><br>Für diese Bezeichnung ist kein eindeutiger Eintrag hinterlegt. <a href="'+data.source+'" target="_blank" rel="noopener">Amtliche Tabelle prüfen ↗</a>'; }
-  else { box.innerHTML='<b>'+(state?esc(state):'Bundesland nicht ermittelbar')+' · '+esc(art)+'</b><br>Noch keine verlässlich hinterlegten Landeswerte. <a href="https://angelmagazin.de/schonzeiten/" target="_blank" rel="noopener">Regelübersicht öffnen ↗</a><small> Maßgeblich sind Erlaubnisschein und Gewässerordnung.</small>'; }
+  const region=await resolveSpotRegion(sp); if(req!==RULE_REQ) return;
+  const data=FISH_RULES[region.key], rule=data&&data.rules[fishKey(art)];
+  const caution='<small> Erlaubnisschein, Gewässerordnung und örtliche Verfügungen können strengere oder abweichende Regeln enthalten.</small>';
+  if(rule){
+    const extra=rule[2]?'<br><small>'+esc(rule[2])+'</small>':'';
+    box.innerHTML='<b>'+esc(region.label)+' · '+esc(art)+'</b><br>Mindestmaß: <b>'+esc(rule[0])+'</b> · Schonzeit: <b>'+esc(rule[1])+'</b>'+extra+(data.note?'<br><small>'+esc(data.note)+'</small>':'')+'<br>'+caution;
+  } else if(data){
+    box.innerHTML='<b>'+esc(region.label)+' · '+esc(art)+'</b><br>Diese Fischbezeichnung ist in der eingebetteten allgemeinen Tabelle nicht eindeutig aufgeführt.'+(data.note?'<br><small>'+esc(data.note)+'</small>':'')+'<br>'+caution;
+  } else {
+    box.innerHTML='<b>'+esc(region.label)+' · '+esc(art)+'</b><br>Für diesen Standort ist noch keine allgemeine Regel eindeutig hinterlegt.<br>'+caution;
+  }
 }
 
 function initFangbuch(){

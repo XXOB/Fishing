@@ -1,4 +1,4 @@
-# DeepFish – Wasserwerte und Abdeckung (v40)
+# DeepFish – Wasserwerte und Abdeckung (v41)
 
 DeepFish übernimmt **aktuelle automatische Messwerte**, sofern ein amtlicher,
 ohne Anmeldung abrufbarer Datenweg vorhanden ist. Periodische WRRL-Laborproben
@@ -21,6 +21,16 @@ ohne Anmeldung abrufbarer Datenweg vorhanden ist. Periodische WRRL-Laborproben
 | Sachsen | BfUL/LfULG | fünf aktive automatische Gütestationen Schmilka, Zehren, Dommitzsch, Bad Düben und Görlitz; Temperatur, Sauerstoff, Trübung |
 | Sachsen-Anhalt | LHW/BfG Undine | automatische Stationen Wittenberg (Elbe), Groß Rosenburg (Saale) und Dessau (Mulde) über Undine |
 | Nord- und Ostsee | BSH MARNET | zwölf Hauptstationen als Messpunkte; Temperatur-/Sauerstoff-Segmente und amtliche Messreihen. Das BSH bietet aktuelle Werte dort überwiegend nur als Diagramm, nicht als offene Zahlen-API. |
+| Schweiz | BAFU Datenplattform | alle aktiven Stationen des offenen Live-Feeds; Pegel/Abfluss und Wassertemperatur sowie weitere Güteparameter, sobald sie im Feed geliefert werden |
+| Niederlande, Nordsee und Wattenmeer | Rijkswaterstaat DDAPI20/WFS | alle Standorte mit letzter Beobachtung für Pegel, Temperatur, Sauerstoff und Trübung/Schwebstoff |
+
+## Österreich
+
+Das nationale eHYD-Portal untersagt in seinen Hinweisen ausdrücklich das
+Herunterladen der Inhalte und dahinterstehenden Datenquellen, soweit ein Inhalt
+nicht ausdrücklich als Download angeboten wird. Deshalb wird eHYD **nicht**
+automatisiert ausgelesen. Eine kommerzielle App braucht für eine österreichweite
+Live-Abdeckung eine schriftliche Freigabe oder frei lizenzierte Landes-Feeds.
 
 ## Länder ohne zusätzliches offenes Live-Gütenetz
 
@@ -56,3 +66,5 @@ angezeigt; der Messpunkt bleibt als Stations-/Parameter-Metadatum sichtbar.
 - https://lfu.brandenburg.de/lfu/de/aufgaben/wasser/fliessgewaesser-und-seen/gewaesserueberwachung/wasserguetemessnetz/
 - https://www.wasser.sachsen.de/gewaesserguetemessnetz-18251.html
 - https://www2.bsh.de/daten/MARNET/Uebersichtskarte/Uebersichtskarte.html
+- https://data.bafu.admin.ch/api
+- https://geo.rijkswaterstaat.nl/services/ogc/hws/DDAPI20/ows

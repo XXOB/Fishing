@@ -1195,6 +1195,120 @@ def process_marnet_metadata():
     return results
 
 
+# ------------------------------------------ Schweiz (BAFU Datenplattform) ----
+BAFU_API = "https://data.bafu.admin.ch/api"
+
+def post_json(url, payload, timeout=120):
+    body=json.dumps(payload).encode("utf-8")
+    req=urllib.request.Request(url, data=body, headers={
+        "User-Agent":"DeepFish/1.0 (water monitoring map)",
+        "Content-Type":"application/json", "Accept":"application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+        return json.loads(res.read().decode("utf-8"))
+
+def process_switzerland_bafu():
+    """Alle aktiven BAFU-Stationen und deren Live-Parameter aus der offenen GraphQL-API."""
+    query="""
+    { water { observations {
+      stations(where:{status:{_eq:\"Aufgebaut\"}}, limit:10000) {
+        no name siteName riverName latitude longitude status
+      }
+      data_live(limit:10000) { stationNo parameterName timestamp value releaseStatus }
+    } } }
+    """
+    obj=post_json(BAFU_API,{"query":query},180)
+    if obj.get("errors"): raise RuntimeError("BAFU GraphQL: "+str(obj["errors"])[:500])
+    root=obj.get("data",{}).get("water",{}).get("observations",{})
+    stations={str(s.get("no")):s for s in root.get("stations",[]) if s.get("latitude") is not None}
+    grouped={}
+    for row in root.get("data_live",[]):
+        sid=str(row.get("stationNo") or ""); code=str(row.get("parameterName") or "").upper()
+        if sid not in stations: continue
+        # Die API dokumentiert WT/W/Q. Weitere Qualitätscodes werden mitgenommen,
+        # sobald sie vom BAFU im Live-Feed ausgegeben werden.
+        if code not in ("WT","T","W","Q","O2","DO","OXY","TR","TURB","NTU","SS"):
+            continue
+        old=grouped.setdefault(sid,{}).get(code)
+        if not old or str(row.get("timestamp") or "") > str(old.get("timestamp") or ""):
+            grouped[sid][code]=row
+    out=[]
+    for sid,vals in grouped.items():
+        s=stations[sid]; items=[]; params={"pegel":False,"wt":False,"o2":False,"tr":False}
+        def add(codes,label,unit,dec,param):
+            hit=next((vals[c] for c in codes if c in vals),None)
+            if not hit: return
+            params[param]=True
+            items.append({"label":label,"value":fmt_value(hit.get("value"),dec),"unit":unit,
+                          "icon":"","time":str(hit.get("timestamp") or "")})
+        add(("W",),"Pegelstand","m ü. M.",2,"pegel")
+        add(("Q",),"Durchfluss","m³/s",2,"pegel")
+        add(("WT","T"),"Wassertemperatur","°C",1,"wt")
+        add(("O2","DO","OXY"),"Sauerstoff","mg/l",1,"o2")
+        add(("TR","TURB","NTU","SS"),"Trübung/Schwebstoff","NTU",1,"tr")
+        if not items: continue
+        out.append({"id":"ch-bafu-"+sid,"name":s.get("name") or s.get("siteName") or sid,
+            "lat":float(s["latitude"]),"lon":float(s["longitude"]),
+            "river":s.get("riverName") or "Schweiz","updated":now_text(),"src":"ch-bafu",
+            "source_url":"https://www.hydrodaten.admin.ch/de/seen-und-fluesse/stationen/"+sid,
+            "params":params,"items":items,"history":{}})
+    print(f"[Schweiz/BAFU] {len(out)} Stationen mit aktuellen Pegel-/Temperatur-/Gütewerten")
+    return out
+
+
+# -------------------------------------- Niederlande (Rijkswaterstaat WFS) ----
+RWS_LATEST_CSV=("https://geo.rijkswaterstaat.nl/services/ogc/hws/DDAPI20/ows?"
+                "SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&"
+                "TYPENAME=locatiesmetlaatstewaarneming&outputFormat=csv")
+
+def _pick(row, *names):
+    low={str(k).lower():v for k,v in row.items()}
+    for n in names:
+        if n.lower() in low and low[n.lower()] not in (None,""): return low[n.lower()]
+    return ""
+
+def process_netherlands_rws():
+    """Alle letzten relevanten RWS-Beobachtungen, inklusive Nordsee/Wattenmeer."""
+    raw=fetch_bytes(RWS_LATEST_CSV).decode("utf-8-sig","replace")
+    rows=list(csv.DictReader(io.StringIO(raw)))
+    grouped={}
+    for row in rows:
+        desc=str(_pick(row,"parameter_wat_omschrijving","PARAMETER_WAT_OMSCHRIJVING","omschrijving") or "")
+        dl=desc.lower(); param=None; label=""; unit=str(_pick(row,"eenheid_code","EENHEID_CODE","eenheid") or "")
+        if "temperatuur" in dl and ("water" in dl or "oppervlakte" in dl): param,label="wt","Wassertemperatur"
+        elif "zuurstof" in dl or "oxygen" in dl: param,label="o2","Sauerstoff"
+        elif any(x in dl for x in ("troebel","turbid","zwevend","suspende","doorzicht")): param,label="tr","Trübung/Schwebstoff"
+        elif "waterhoogte" in dl or "waterstand" in dl: param,label="pegel","Pegelstand"
+        elif "debiet" in dl or "afvoer" in dl: param,label="pegel","Durchfluss"
+        if not param: continue
+        code=str(_pick(row,"locatie_code","LOCATIE_CODE","code","locatie") or "").strip()
+        if not code: continue
+        # DDAPI20 liefert ETRS89 lat/lon; Feldnamen können je WFS-Version variieren.
+        lat=_pick(row,"latitude","lat","y"); lon=_pick(row,"longitude","lon","lng","x")
+        geom=str(_pick(row,"wkt","geom","geometry","the_geom") or "")
+        if (not lat or not lon) and geom:
+            m=re.search(r"POINT\s*\(\s*([-0-9.]+)\s+([-0-9.]+)",geom,re.I)
+            if m: lon,lat=m.group(1),m.group(2)
+        try: lat=float(str(lat).replace(",",".")); lon=float(str(lon).replace(",","."))
+        except Exception: continue
+        if not (49.0<=lat<=56.5 and 2.0<=lon<=8.5): continue
+        value=_pick(row,"meetwaarde_waarde_numeriek","meetwaarde","waarde_numeriek","waarde")
+        try: value=float(str(value).replace(",","."))
+        except Exception: continue
+        t=str(_pick(row,"tijdstip","waarnemingdatum","begindatumtijd","datumtijd","timestamp") or "")
+        name=str(_pick(row,"locatie_omschrijving","naam","locatienaam") or code)
+        water=str(_pick(row,"waterlichaam_omschrijving","waternaam","waterlichaam","compartiment_omschrijving") or "Niederlande")
+        g=grouped.setdefault(code,{"id":"nl-rws-"+code,"name":name,"lat":lat,"lon":lon,"river":water,
+            "updated":now_text(),"src":"nl-rws","source_url":"https://waterinfo.rws.nl/","params":{"pegel":False,"wt":False,"o2":False,"tr":False},"items":{},"history":{}})
+        old=g["items"].get(param)
+        if not old or t>=old.get("time",""):
+            g["params"][param]=True
+            g["items"][param]={"label":label,"value":fmt_value(value,1 if param!="pegel" else 2),"unit":unit,"icon":"","time":t}
+    out=[]
+    for g in grouped.values(): g["items"]=list(g["items"].values()); out.append(g)
+    print(f"[Niederlande/RWS] {len(out)} Stationen mit Pegel/Temperatur/O2/Trübung")
+    return out
+
+
 # ------------------------------------------------------------------- Main -----
 def write_json(stations):
     payload = {
@@ -1278,6 +1392,14 @@ def main():
         results.extend(process_marnet_metadata())
     except Exception as e:
         print(f"      FEHLER BSH/MARNET: {e}")
+    try:                                   # Schweiz: offizielle offene BAFU-GraphQL-API
+        results.extend(process_switzerland_bafu())
+    except Exception as e:
+        print(f"      FEHLER Schweiz/BAFU: {e}")
+    try:                                   # Niederlande inkl. Küste: offizielle RWS-DDAPI20/WFS
+        results.extend(process_netherlands_rws())
+    except Exception as e:
+        print(f"      FEHLER Niederlande/RWS: {e}")
     if not results:
         print("Keine Station erfolgreich abgerufen.")
         sys.exit(2)
