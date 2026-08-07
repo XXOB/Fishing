@@ -47,6 +47,7 @@ jobs:
           [ -f gkd_coords.json ] && git add gkd_coords.json || true
           [ -f nlwkn_coords.json ] && git add nlwkn_coords.json || true
           [ -f undine_coords.json ] && git add undine_coords.json || true
+          [ -f berlin_coords.json ] && git add berlin_coords.json || true
           if ! git diff --cached --quiet; then
             git commit -m "Wasserwerte aktualisiert ($(date -u +'%Y-%m-%d %H:%MZ'))"
             git push

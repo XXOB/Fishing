@@ -7,6 +7,12 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+.icon-sprite{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+.uiicon{width:1.12em;height:1.12em;display:inline-block;vertical-align:-.17em;
+  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button .uiicon{vertical-align:-.2em}
+.ico .uiicon{width:18px;height:18px}
+.statusdot{display:inline-block;width:.62em;height:.62em;border-radius:50%;background:currentColor;vertical-align:.04em}
 body{
   background:radial-gradient(1200px 600px at 20% -10%,#12233a 0%,var(--bg) 55%) fixed;
   color:var(--text);
@@ -107,6 +113,7 @@ h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
   background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--line);box-shadow:var(--shadow)}
 .cond .dot{width:52px;height:52px;min-width:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-size:26px;font-weight:700}
+.cond .dot .uiicon{width:27px;height:27px}
 .cond .lvl{font-size:17px;font-weight:700;margin-bottom:3px}
 .cond .why{font-size:13px;color:var(--muted)}
 .lg-green{background:rgba(74,222,128,.16);color:var(--green);border:1px solid rgba(74,222,128,.35)}
@@ -157,6 +164,7 @@ footer a{color:var(--muted)}
 .mapmeta button,.mapmeta a.b{background:var(--card2);border:1px solid var(--line);color:var(--text);
   font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer}
 .mapmeta button:hover,.mapmeta a.b:hover{background:#25344a}
+.mapmeta button.active{border-color:var(--primary2);background:rgba(59,130,246,.16);color:#fff}
 #map{height:360px;width:100%;background:#0e1622}
 .leaflet-popup-content{font-size:13px;line-height:1.5}
 .spot-ic{background:none;border:0;font-size:20px;line-height:26px;text-align:center;
@@ -249,6 +257,7 @@ body{padding-bottom:82px}
   background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.30);border-radius:20px;
   padding:5px 11px;white-space:nowrap;margin:0 4px}
 .countbadge .fishico{font-size:14px}
+.countbadge .uiicon{width:14px;height:14px}
 
 /* Köder-Eingabe */
 .baitadd{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
@@ -267,6 +276,8 @@ body{padding-bottom:82px}
 .fbitem.blank{opacity:.86}
 .fbitem.blank .fish{color:var(--muted)}
 .countbadge .tripico{font-size:12px}
+.ampelbadge{display:inline-flex;align-items:center;gap:4px}
+.ampelbadge .uiicon{width:13px;height:13px}
 .fbblanktop{width:100%;margin:0 0 14px}
 
 /* Köder-Kategorien (aufklappbar) mit Varianten */
@@ -276,6 +287,7 @@ body{padding-bottom:82px}
   font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
 .baitcathead:hover{background:#0e1622}
 .baitcathead .tw{color:var(--muted2);font-size:12px;width:12px;display:inline-block}
+.baitcathead .tw .uiicon,.baitgrouphead .tw .uiicon{width:13px;height:13px}
 .baitcathead small{color:var(--muted2);font-weight:400;margin-left:4px}
 .baitvars{border-top:1px solid var(--line);background:var(--bg2);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px}
 .baitvar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
@@ -319,4 +331,3 @@ body{padding-bottom:82px}
   #map{height:300px}
   .tabbtn .tx{font-size:10px}
 }
-

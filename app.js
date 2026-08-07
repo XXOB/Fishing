@@ -17,6 +17,10 @@ function poStation(){ return PO_BASE+"/stations/"+CUR.uuid; }
 
 const $ = id => document.getElementById(id);
 const fmt = (n,d=0) => (n==null||isNaN(n)) ? "–" : Number(n).toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+const hesc = s => String(s==null?"":s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function uiIcon(name, extra){ return '<svg class="uiicon'+(extra?' '+extra:'')+'" aria-hidden="true"><use href="#i-'+name+'"></use></svg>'; }
+function iconLabel(name,text){ return uiIcon(name)+' '+hesc(text); }
+function setIconLabel(el,name,text){ if(el) el.innerHTML=iconLabel(name,text); }
 
 // Klassifizierungs-Farbe -> CSS-Farbe für den Kachelstreifen
 function stripeColor(c){
@@ -32,9 +36,9 @@ function trendBadge(series){
   const ref  = series[Math.max(0,series.length-13)].value; // ~3 h zurück (15-min-Werte)
   const diff = last-ref;
   const th = Math.max(1, Math.abs(ref)*0.004);
-  if(diff> th) return '<span class="trend t-up">▲ steigt</span>';
-  if(diff<-th) return '<span class="trend t-dn">▼ fällt</span>';
-  return '<span class="trend t-fl">▬ stabil</span>';
+  if(diff> th) return '<span class="trend t-up">'+uiIcon('trend-up')+' steigt</span>';
+  if(diff<-th) return '<span class="trend t-dn">'+uiIcon('trend-down')+' fällt</span>';
+  return '<span class="trend t-fl">'+uiIcon('minus')+' stabil</span>';
 }
 function sparkline(svgEl,series,color){
   if(!svgEl) return;
@@ -58,15 +62,15 @@ function relTime(iso){
 function hhmm(iso){ return new Date(iso).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}); }
 
 const WMO = {
-  0:["Klar","☀️"],1:["Überwiegend klar","🌤️"],2:["Teils bewölkt","⛅"],3:["Bedeckt","☁️"],
-  45:["Nebel","🌫️"],48:["Reifnebel","🌫️"],
-  51:["Leichter Niesel","🌦️"],53:["Niesel","🌦️"],55:["Starker Niesel","🌧️"],
-  61:["Leichter Regen","🌦️"],63:["Regen","🌧️"],65:["Starker Regen","🌧️"],
-  66:["Gefr. Regen","🌧️"],67:["Gefr. Regen","🌧️"],
-  71:["Leichter Schnee","🌨️"],73:["Schnee","🌨️"],75:["Starker Schnee","❄️"],77:["Schneegriesel","🌨️"],
-  80:["Schauer","🌦️"],81:["Schauer","🌧️"],82:["Heftige Schauer","⛈️"],
-  85:["Schneeschauer","🌨️"],86:["Schneeschauer","🌨️"],
-  95:["Gewitter","⛈️"],96:["Gewitter + Hagel","⛈️"],99:["Gewitter + Hagel","⛈️"]
+  0:["Klar","sun"],1:["Überwiegend klar","sun"],2:["Teils bewölkt","cloud"],3:["Bedeckt","cloud"],
+  45:["Nebel","cloud"],48:["Reifnebel","cloud"],
+  51:["Leichter Niesel","rain"],53:["Niesel","rain"],55:["Starker Niesel","rain"],
+  61:["Leichter Regen","rain"],63:["Regen","rain"],65:["Starker Regen","rain"],
+  66:["Gefr. Regen","rain"],67:["Gefr. Regen","rain"],
+  71:["Leichter Schnee","cloud"],73:["Schnee","cloud"],75:["Starker Schnee","cloud"],77:["Schneegriesel","cloud"],
+  80:["Schauer","rain"],81:["Schauer","rain"],82:["Heftige Schauer","rain"],
+  85:["Schneeschauer","cloud"],86:["Schneeschauer","cloud"],
+  95:["Gewitter","warning"],96:["Gewitter + Hagel","warning"],99:["Gewitter + Hagel","warning"]
 };
 function windDir(deg){
   const d=["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"];
@@ -74,7 +78,7 @@ function windDir(deg){
 }
 async function getJSON(url){
   const r = await fetch(url,{cache:"no-store"});
-  if(!r.ok) throw new Error(url+" → "+r.status);
+  if(!r.ok) throw new Error(url+": "+r.status);
   return r.json();
 }
 const state = {pegelTrend:null, gust:null, rainNow:null, wcode:null, pressTrend:null};
@@ -143,10 +147,10 @@ async function loadWeather(){
     $("windMeta").textContent = "Böen "+fmt(c.wind_gusts_10m)+" km/h";
     $("rainVal").innerHTML = fmt(c.precipitation,1)+' <small>mm/h</small>';
     $("rainMeta").textContent = "heute "+fmt(d.daily.precipitation_sum[0],1)+" mm";
-    const wc = WMO[c.weather_code] || ["–","•"];
-    $("skyVal").textContent = wc[1]+" "+wc[0];
+    const wc = WMO[c.weather_code] || ["–","cloud"];
+    $("skyVal").innerHTML = iconLabel(wc[1],wc[0]);
     $("skyMeta").textContent = "Bewölkung "+fmt(c.cloud_cover)+" % · Feuchte "+fmt(c.relative_humidity_2m)+" %";
-    $("sunVal").textContent = "☀️ "+hhmm(d.daily.sunrise[0])+" – "+hhmm(d.daily.sunset[0]);
+    $("sunVal").innerHTML = iconLabel("sunrise",hhmm(d.daily.sunrise[0])+" – "+hhmm(d.daily.sunset[0]));
     $("sunMeta").textContent = "Sonnenauf- / -untergang";
 
     let pt=null;
@@ -155,9 +159,9 @@ async function loadWeather(){
       let i=times.findIndex(t=>t>=now); if(i<1) i=times.length-1;
       pt = d.hourly.pressure_msl[i] - d.hourly.pressure_msl[Math.max(0,i-3)];
     }catch(_){}
-    let arrow="▬", ptxt="stabil";
-    if(pt!=null){ if(pt>0.8){arrow="▲";ptxt="steigend";} else if(pt<-0.8){arrow="▼";ptxt="fallend";} }
-    $("pressVal").innerHTML = fmt(c.pressure_msl)+' <small>hPa</small> '+arrow;
+    let trendIcon="minus", ptxt="stabil";
+    if(pt!=null){ if(pt>0.8){trendIcon="trend-up";ptxt="steigend";} else if(pt<-0.8){trendIcon="trend-down";ptxt="fallend";} }
+    $("pressVal").innerHTML = fmt(c.pressure_msl)+' <small>hPa</small> '+uiIcon(trendIcon);
     $("pressMeta").textContent = "Tendenz "+ptxt+" (3 h)";
     state.pressTrend=pt; state.gust=c.wind_gusts_10m; state.rainNow=c.precipitation; state.wcode=c.weather_code;
     snap.weather = {
@@ -190,21 +194,21 @@ function updateAmpel(){
     else if(Math.abs(diff)<=4){ reasons.push("Pegel stabil"); }
   }
   const lv=ampelLevel(score);
-  $("condDot").className="dot "+lv.cls; $("condDot").textContent=lv.ico;
+  $("condDot").className="dot "+lv.cls; $("condDot").innerHTML=uiIcon(lv.icon);
   $("condLvl").textContent=lv.long;
   $("condWhy").textContent = reasons.length ? reasons.join(" · ") : "Keine auffälligen Faktoren.";
 }
 /* gemeinsame Einstufung (gleiche Wörter/Icons wie im Angelplatz) */
 function ampelLevel(score){
-  if(score>=2)  return {cls:"lg-green", ico:"👍", word:"Gut",       long:"Gute Bedingungen"};
-  if(score<=-1) return {cls:"lg-red",   ico:"⚠️", word:"Schwierig", long:"Schwierige Bedingungen"};
-  return              {cls:"lg-amber", ico:"≈",  word:"Mittel",    long:"Mittelmäßige Bedingungen"};
+  if(score>=2)  return {cls:"lg-green", icon:"circle-check", word:"Gut",       long:"Gute Bedingungen"};
+  if(score<=-1) return {cls:"lg-red",   icon:"warning",      word:"Schwierig", long:"Schwierige Bedingungen"};
+  return              {cls:"lg-amber", icon:"minus",        word:"Mittel",    long:"Mittelmäßige Bedingungen"};
 }
 
 function copyCoords(){
   const t = CUR.lat+", "+CUR.lon;
   navigator.clipboard?.writeText(t).then(()=>{
-    const b=$("copyBtn"), o=b.textContent; b.textContent="✓ kopiert"; setTimeout(()=>b.textContent=o,1500);
+    const b=$("copyBtn"), o=b.innerHTML; setIconLabel(b,"check","kopiert"); setTimeout(()=>b.innerHTML=o,1500);
   }).catch(()=>{});
 }
 
@@ -220,12 +224,20 @@ function classifyWQ(label, num){
   let i=0; while(i<bands.length && num>=bands[i]) i++;
   return { t:labels[i], c:colors[i] };
 }
+function qualityIcon(label){
+  const s=String(label||"").toLowerCase();
+  if(s.includes("temperatur")) return "thermometer";
+  if(s.includes("sauerstoff")||s.includes("sättigung")) return "oxygen";
+  if(s.includes("trüb")||s.includes("schwebstoff")) return "turbidity";
+  if(s.includes("pegel")||s.includes("durchfluss")) return "gauge";
+  return "droplet";
+}
 function renderQuality(){
   const box=$("quality"); if(!box) return;
   const st=$("qStamp");
   const cur=wqCurrent();
   if(!cur){
-    box.innerHTML='<div class="qtile"><div class="lbl">🌊 Wasserqualität</div>'+
+    box.innerHTML='<div class="qtile"><div class="lbl">'+uiIcon('droplet')+' Wasserqualität</div>'+
       '<div class="hint">Für dieses Gewässer liegen (noch) keine Wasserwerte vor. Pegel &amp; Wetter passen aber zum Angelplatz.</div></div>';
     if(st) st.textContent="";
     return;
@@ -239,35 +251,33 @@ function renderQuality(){
     const clk = (CHARTABLE[it.label] && (cur.history||{})[it.label]) ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
     const ext=it.chart_url||it.source_url||"";
     const val=(it.value==null||it.value==="")
-      ? (ext?'<a href="'+esc(ext)+'" target="_blank" rel="noopener">Aktuelles Diagramm öffnen ↗</a>':'keine Zahlen-API')
+      ? (ext?'<a href="'+esc(ext)+'" target="_blank" rel="noopener">Aktuelles Diagramm öffnen '+uiIcon('external')+'</a>':'keine Zahlen-API')
       : esc(it.value)+' <small>'+esc(it.unit||"")+'</small>';
-    const periodic=(it.periodic||cur.periodic) ? '<span class="pgbadge pg-amber">periodische Untersuchung</span>' : '';
-    const meta=(it.value==null||it.value==="") ? periodic+'Amtliche Messreihe' : periodic+badge+'Stand: '+esc(it.time||"–");
-    return '<div class="tile'+clk+'" style="border-top-color:'+stripe+'"><div class="lbl">'+(it.icon||"•")+' '+it.label+'</div>'+
+    const meta=(it.value==null||it.value==="") ? 'Amtliche Messreihe' : badge+'Stand: '+esc(it.time||"–");
+    return '<div class="tile'+clk+'" style="border-top-color:'+stripe+'"><div class="lbl">'+uiIcon(qualityIcon(it.label))+' '+esc(it.label)+'</div>'+
       '<div class="val">'+val+'</div><div class="meta">'+meta+'</div></div>';
   }).join("");
   if(st){
     if(cur.source==="live"){
       const dtxt = cur.dist>0.3 ? " · "+cur.dist.toFixed(1)+" km" : "";
       const extra=cur.supplement ? " · Zusatzwerte: "+esc(cur.supplement)+
-        (cur.source_url?' <a href="'+esc(cur.source_url)+'" target="_blank" rel="noopener">amtlich ↗</a>':'') : "";
-      st.innerHTML="🟢 Live am Pegel "+esc(cur.name)+dtxt+" (PEGELONLINE) · Stand "+esc(cur.updated)+extra;
+        (cur.source_url?' <a href="'+esc(cur.source_url)+'" target="_blank" rel="noopener">amtlich '+uiIcon('external')+'</a>':'') : "";
+      st.innerHTML='<span class="statusdot" style="color:var(--green)"></span> Live am Pegel '+esc(cur.name)+dtxt+" (PEGELONLINE) · Stand "+esc(cur.updated)+extra;
     } else if(cur.src==="niz"){
       const bet=cur.betreiber?" · "+esc(cur.betreiber):"";
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
-        bet+' · Daten: <a href="https://niz.baden-wuerttemberg.de/oberflaechengewaesser/gueteparameter" target="_blank" rel="noopener">LUBW/NIZ ↗</a>';
+        bet+' · Daten: <a href="https://niz.baden-wuerttemberg.de/oberflaechengewaesser/gueteparameter" target="_blank" rel="noopener">LUBW/NIZ '+uiIcon('external')+'</a>';
     } else if(cur.src==="hlnug"){
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
-        ' · Daten: <a href="https://www.hlnug.de/messwerte/datenportal" target="_blank" rel="noopener">HLNUG ↗</a>';
+        ' · Daten: <a href="https://www.hlnug.de/messwerte/datenportal" target="_blank" rel="noopener">HLNUG '+uiIcon('external')+'</a>';
     } else if(cur.src==="undine" || String(cur.id||"").indexOf("undine-")===0){
       st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+
-        ' · Daten: <a href="https://undine.bafg.de" target="_blank" rel="noopener">BfG/Undine ↗</a>';
+        ' · Daten: <a href="https://undine.bafg.de" target="_blank" rel="noopener">BfG/Undine '+uiIcon('external')+'</a>';
     } else {
       const sid=cur.id?String(cur.id):"";
       const surl=cur.source_url || (sid ? (/^https?:/.test(sid) ? sid : "https://geodaten-wasser.rlp-umwelt.de/gus/"+esc(sid)+"/messwerte") : "");
-      const link=surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich ↗</a>' : '';
-      const ptxt=cur.periodic?" · periodische Untersuchung":"";
-      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+ptxt+link;
+      const link=surl ? ' · <a href="'+esc(surl)+'" target="_blank" rel="noopener">amtlich '+uiIcon('external')+'</a>' : '';
+      st.innerHTML="Gütestation "+esc(cur.name)+" · "+cur.dist.toFixed(1)+" km entfernt · Stand "+esc(cur.updated)+link;
     }
   }
 }
@@ -276,7 +286,16 @@ async function loadQuality(){
   try{
     const r = await fetch("wasserwerte.json?t="+Math.floor(Date.now()/300000), {cache:"no-store"});
     if(r.ok){ const j = await r.json();
-      if(j && Array.isArray(j.stations)) window.WQ = j;
+      if(j && Array.isArray(j.stations)){
+        // Nur automatische/aktuelle Messreihen anzeigen. Damit verschwinden auch
+        // periodische Altbestände sofort, selbst wenn noch eine ältere JSON-Datei
+        // aus dem Cache geladen wurde.
+        j.stations=j.stations.filter(s=>!s.periodic).map(s=>{
+          if(Array.isArray(s.items)) s.items=s.items.filter(item=>!item.periodic);
+          return s;
+        });
+        window.WQ = j;
+      }
       else if(j && Array.isArray(j.items)) window.WQ = { updated:j.updated||"", stations:[{ id:"2511510500", name:"Mainz-Wiesbaden", lat:50.0068, lon:8.2795, river:"Rhein", updated:j.updated||"", items:j.items, history:j.history||{} }] };
     }
   }catch(e){ /* z.B. lokal ohne Server geöffnet */ }
@@ -291,10 +310,10 @@ function activeWQ(){
   const st=(window.WQ&&window.WQ.stations)||[]; if(!st.length) return null;
   const sp=activeSpot();
   const river = (sp&&sp.river) ? sp.river : (CUR&&CUR.river ? CUR.river : null);
-  if(!river) return null;                                   // Fluss unbekannt → keine Güte (nie Mainz-Notlösung)
+  if(!river) return null;                                   // Fluss unbekannt: keine Güte (nie Mainz-Notlösung)
   const rk = String(river).toLowerCase().trim();
   const exact = st.filter(s => String(s.river||"").toLowerCase().trim() === rk && (s.items||[]).length);  // NUR gleicher Fluss, nur darstellbare Werte/Diagramme
-  if(!exact.length) return null;                            // kein Messpunkt an diesem Fluss → nichts anzeigen
+  if(!exact.length) return null;                            // kein Messpunkt an diesem Fluss: nichts anzeigen
   // Ein reiner Pegelpunkt darf eine am selben Gewässer vorhandene Temperatur-/
   // Gütestation nicht verdrängen (wichtig bei den österreichischen Landesfeeds).
   const quality = exact.filter(s=>{ const p=guteParams(s); return p.wt||p.o2||p.tr; });
@@ -307,8 +326,8 @@ function activeWQ(){
 
 /* Live-Wasserwerte direkt vom Pegel des Angelplatzes (PEGELONLINE, ganz Deutschland).
    Viele WSV-Stationen liefern Wassertemperatur (WT), einige auch O2/Leitfähigkeit/pH – im 15-Min-Takt. */
-const PO_TS_MAP = { WT:["Wassertemperatur","°C","\u{1F321}️",1], O2:["Sauerstoff","mg/l","\u{1FAE7}",1],
-                    LF:["Leitfähigkeit","µS/cm","⚡",0], PH:["pH-Wert","","⚗️",2] };
+const PO_TS_MAP = { WT:["Wassertemperatur","°C","",1], O2:["Sauerstoff","mg/l","",1],
+                    LF:["Leitfähigkeit","µS/cm","",0], PH:["pH-Wert","","",2] };
 window.LIVEWQ = null;
 function hhmm2(iso){ const d=new Date(iso), p=n=>String(n).padStart(2,"0");
   return p(d.getDate())+"."+p(d.getMonth()+1)+"."+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes()); }
@@ -335,7 +354,7 @@ async function loadLiveWQ(){
     let wt; try{ wt=await getJSON(PO_BASE+"/stations/"+stn.uuid+"/WT/measurements.json?start=P8D"); }catch(e){ continue; }
     if(!wt || !wt.length) continue;
     const last=wt[wt.length-1];
-    const items=[{label:"Wassertemperatur", value:(+last.value).toFixed(1).replace(".",","), unit:"°C", icon:"\u{1F321}️", time:hhmm2(last.timestamp)}];
+    const items=[{label:"Wassertemperatur", value:(+last.value).toFixed(1).replace(".",","), unit:"°C", icon:"", time:hhmm2(last.timestamp)}];
     const history={ "Wassertemperatur": histFromPO(wt) };
     for(const sh of ["O2","LF","PH"]){    // Zusatzwerte, wenn die Station sie hat
       try{ const m=await getJSON(PO_BASE+"/stations/"+stn.uuid+"/"+sh+"/measurements.json?start=PT6H");
@@ -397,11 +416,11 @@ async function loadNizBW(){
       const num=parseFloat(String(v).replace(",",".")); if(isNaN(num)) return;
       items.push({label, value:num.toFixed(dec).replace(".",","), unit, icon, time:nizTime(mr.values["latest-ts"])});
     };
-    push(M.temp,"Wassertemperatur","°C","\u{1F321}️",1);
-    push(M.o2,"Sauerstoff","mg/l","\u{1FAE7}",1);
-    push(M.tr,"Trübung","FNU","\u{1F32B}️",1);
-    push(M.lf,"Leitfähigkeit","µS/cm","⚡",0);
-    push(M.pH,"pH-Wert","","⚗️",1);
+    push(M.temp,"Wassertemperatur","°C","",1);
+    push(M.o2,"Sauerstoff","mg/l","",1);
+    push(M.tr,"Trübung","FNU","",1);
+    push(M.lf,"Leitfähigkeit","µS/cm","",0);
+    push(M.pH,"pH-Wert","","",1);
     if(!items.length) continue;
     out.push({ id:"niz-"+(a.id||it.id), name:(a.name||a.gewaesser||""), lat:g.lat, lon:g.lon,
                river:(a.gewaesser||""), betreiber:(a.betreiber||""), src:"niz",
@@ -443,8 +462,8 @@ async function loadHessen(){
     const parts=String(st.displayName||"").split(",");
     const river=(parts[0]||"").trim();
     const place=(parts[1]||"").replace(/Messstation.*/,"").trim();
-    const items=[{label:"Wassertemperatur", value:(+wt.v).toFixed(1).replace(".",","), unit:"°C", icon:"\u{1F321}️", time:nizTime(wt.t)}];
-    if(o2) items.push({label:"Sauerstoff", value:(+o2.v).toFixed(1).replace(".",","), unit:"mg/l", icon:"\u{1FAE7}", time:nizTime(o2.t)});
+    const items=[{label:"Wassertemperatur", value:(+wt.v).toFixed(1).replace(".",","), unit:"°C", icon:"", time:nizTime(wt.t)}];
+    if(o2) items.push({label:"Sauerstoff", value:(+o2.v).toFixed(1).replace(".",","), unit:"mg/l", icon:"", time:nizTime(o2.t)});
     out.push({ id:"he-"+sid, name:(place||river), lat:+st.lat, lon:+st.lon, river, betreiber:"HLNUG", src:"hlnug",
                updated:items[0].time, items, history:{} });
   }));
@@ -462,7 +481,7 @@ function catchesForView(){
   return all;
 }
 function toggleFbFilter(){ FB_FILTER = (FB_FILTER==="spot") ? "all" : "spot"; updateFilterBtn(); refreshFangbuch(); }
-function updateFilterBtn(){ const b=$("filterBtn"); if(!b) return; const n=activeSpotName(); b.textContent = (FB_FILTER==="spot") ? ("🎣 nur: "+(n||"aktueller Platz")) : "🎣 alle Plätze"; }
+function updateFilterBtn(){ const b=$("filterBtn"); if(!b) return; const n=activeSpotName(); setIconLabel(b,"pin",(FB_FILTER==="spot") ? ("nur: "+(n||"aktueller Platz")) : "alle Plätze"); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function deNum(s){ if(s==null) return null; const n=parseFloat(String(s).replace(/\./g,'').replace(',','.')); return isNaN(n)? String(s) : n; }
 
@@ -490,13 +509,13 @@ function waterQualitySnap(){
 
 function captureGps(){
   if(!navigator.geolocation){ $("gpsInfo").textContent="Ortung auf diesem Gerät nicht verfügbar."; return; }
-  $("gpsBtn").textContent="… wird geortet";
+  setIconLabel($("gpsBtn"),"pin","wird geortet …");
   navigator.geolocation.getCurrentPosition(p=>{
     setSelectedLocation(p.coords.latitude, p.coords.longitude, p.coords.accuracy, true);
-    $("gpsBtn").textContent="📍 Standort aktualisieren";
+    setIconLabel($("gpsBtn"),"pin","Standort aktualisieren");
   }, ()=>{
     $("gpsInfo").textContent="Ortung abgelehnt/fehlgeschlagen – Fang wird ohne Standort gespeichert.";
-    $("gpsBtn").textContent="📍 Handy-Standort";
+    setIconLabel($("gpsBtn"),"pin","Handy-Standort");
   }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
 }
 
@@ -549,7 +568,7 @@ let EDIT_CATCH_ID=null;
 function resetCatchEdit(){
   EDIT_CATCH_ID=null;
   const b=$("fbSaveBtn"), c=$("fbEditCancel");
-  if(b) b.textContent="🎣 Fang speichern";
+  setIconLabel(b,"fish","Fang speichern");
   if(c) c.style.display="none";
 }
 function saveCatch(opts){
@@ -579,7 +598,7 @@ function saveCatch(opts){
   populateCatchSpots();
   refreshFangbuch();
   const bt=$(blank?"fbBlankBtn":"fbSaveBtn");
-  if(bt){ const o=bt.textContent; bt.textContent = wasEdit?"✓ Änderungen gespeichert":(blank?"✓ Angeltag gespeichert":"✓ Fang gespeichert"); setTimeout(()=>{ if(EDIT_CATCH_ID==null) bt.textContent="🎣 Fang speichern"; else bt.textContent=o; }, 1500); }
+  if(bt){ const o=bt.innerHTML; setIconLabel(bt,"check",wasEdit?"Änderungen gespeichert":(blank?"Angeltag gespeichert":"Fang gespeichert")); setTimeout(()=>{ if(EDIT_CATCH_ID==null) setIconLabel(bt,"fish","Fang speichern"); else bt.innerHTML=o; }, 1500); }
 }
 function saveBlank(){ saveCatch({blank:true}); }
 
@@ -598,8 +617,8 @@ function editCatch(id){
   onKoederBaseChange();
   if($("f_koeder_var") && c.koeder) $("f_koeder_var").value=c.koeder||"";
   CURRENT_GPS=c.gps||null;
-  const gi=$("gpsInfo"); if(gi) gi.textContent=CURRENT_GPS?("📍 Fangort: "+CURRENT_GPS.lat+", "+CURRENT_GPS.lon):"Kein eigener Fangort gespeichert.";
-  const b=$("fbSaveBtn"), x=$("fbEditCancel"); if(b) b.textContent="✓ Änderungen speichern"; if(x) x.style.display="";
+  const gi=$("gpsInfo"); if(gi) gi.innerHTML=CURRENT_GPS?iconLabel("pin","Fangort: "+CURRENT_GPS.lat+", "+CURRENT_GPS.lon):"Kein eigener Fangort gespeichert.";
+  const b=$("fbSaveBtn"), x=$("fbEditCancel"); setIconLabel(b,"check","Änderungen speichern"); if(x) x.style.display="";
   showFishRules();
   setTimeout(()=>$("fangbuchBox")&&$("fangbuchBox").scrollIntoView({behavior:"smooth",block:"start"}),120);
 }
@@ -627,15 +646,15 @@ function catchCard(c){
   if(w.wetterlage) cond.push(w.wetterlage);
   if(c.mondphase&&c.mondphase.name) cond.push(c.mondphase.name);
   const title = c.kein_fang
-    ? '🚫 Kein Fang'
-    : esc(c.fischart)+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+weightStr(c);
+    ? uiIcon('ban')+' Kein Fang'
+    : uiIcon('fish')+' '+esc(c.fischart)+(c.groesse_cm?' · '+c.groesse_cm+' cm':'')+weightStr(c);
   return '<div class="fbitem'+(c.kein_fang?' blank':'')+'"><div class="h"><span class="fish">'+title+'</span>'+
     '<span class="catchacts"><button class="editmini" onclick="editCatch('+c.id+')">bearbeiten</button>'+
-    '<button class="del" onclick="deleteCatch('+c.id+')">löschen ✕</button></span></div>'+
+    '<button class="del" onclick="deleteCatch('+c.id+')">'+uiIcon('close')+' löschen</button></span></div>'+
     '<div class="when">'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+
     (c.angelplatz?' · <b>'+esc(c.angelplatz)+'</b>':'')+' · '+esc(c.gewaesser||"")+
     (c.koeder?' · '+esc(c.koeder):'')+(c.methode?' · '+esc(c.methode):'')+
-    (c.verwertung?' · '+(c.verwertung==="entnommen"?"🪣 entnommen":"↩︎ freigelassen"):'')+(c.gps?' · 📍':'')+'</div>'+
+    (c.verwertung?' · '+esc(c.verwertung):'')+(c.gps?' · '+uiIcon('pin'):'')+'</div>'+
     (cond.length?'<div class="cond">'+esc(cond.join(" · "))+'</div>':'')+
     (c.notiz?'<div class="cond">„'+esc(c.notiz)+'"</div>':'')+'</div>';
 }
@@ -654,8 +673,8 @@ function tripCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===n
 function totalFish(){ return loadCatches().filter(isFish).length; }
 function totalTrips(){ return loadCatches().length; }
 function countBadge(fish, trips){
-  return '<span class="countbadge" title="Fänge · Angeltrips"><span class="fishico">🐟</span>'+fish+
-    ' <span class="tripico">🎣</span>'+trips+'</span>';
+  return '<span class="countbadge" title="Fänge · Angeltrips"><span class="fishico">'+uiIcon('fish')+'</span>'+fish+
+    ' <span class="tripico">'+uiIcon('calendar')+'</span>'+trips+'</span>';
 }
 function renderCatchList(){
   const box=$("catchList"); if(!box) return;
@@ -837,7 +856,7 @@ function addStationDots(){
     const mk=L.marker([o.s.lat,o.s.lon],{icon:pieIcon(o.segs, o.s.r)});
     mk.bindTooltip((o.s.guete?"Gütestation ":"Pegel ")+o.s.name+" · "+(o.s.river||"")+" · "+names);
     if(o.s.source_url) mk.bindPopup('<b>'+esc(o.s.name)+'</b><br>'+esc(o.s.river||"")+'<br>'+esc(names)+
-      '<br><a href="'+esc(o.s.source_url)+'" target="_blank" rel="noopener">Amtliche Messstation öffnen ↗</a>');
+      '<br><a href="'+esc(o.s.source_url)+'" target="_blank" rel="noopener">Amtliche Messstation öffnen '+uiIcon('external')+'</a>');
     STATIONS_LAYER.addLayer(mk);
   }
 }
@@ -857,7 +876,7 @@ function addSpotMarkers(){
     iconSize:[26,26], iconAnchor:[13,26]});
   for(const sp of loadSpots()){
     const ll=spotLatLon(sp);
-    const mk=L.marker(ll,{icon}).bindTooltip("🎣 "+sp.name);
+    const mk=L.marker(ll,{icon}).bindTooltip(uiIcon('pin')+' '+esc(sp.name));
     mk.on("click", ()=>openSpot(sp.id));
     SPOTS_LAYER.addLayer(mk);
   }
@@ -866,13 +885,14 @@ function toggleStationsLayer(){
   STATIONS_VISIBLE=!STATIONS_VISIBLE; updateLayerBtns();
   if(!MAP || !STATIONS_LAYER) return;
   if(STATIONS_VISIBLE){
-    const a=$("layStations"); if(a) a.textContent="… lädt";
+    const a=$("layStations"); setIconLabel(a,"gauge","lädt …");
     ensureStationParams().then(()=>{ addStationDots(); STATIONS_LAYER.addTo(MAP); updateLayerBtns(); });
   } else { STATIONS_LAYER.remove(); }
 }
 function toggleSpotsLayer(){ SPOTS_VISIBLE=!SPOTS_VISIBLE; if(MAP&&SPOTS_LAYER){ if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP); else SPOTS_LAYER.remove(); } updateLayerBtns(); }
 function updateLayerBtns(){ const a=$("layStations"), b=$("laySpots"), m=$("layMode");
-  if(a) a.textContent=(STATIONS_VISIBLE?"◉":"○")+" Stationen"; if(b) b.textContent=(SPOTS_VISIBLE?"◉":"○")+" Angelplätze";
+  setIconLabel(a,"gauge","Stationen"); setIconLabel(b,"pin","Angelplätze");
+  if(a) a.classList.toggle("active",STATIONS_VISIBLE); if(b) b.classList.toggle("active",SPOTS_VISIBLE);
   if(m){ m.textContent=STATION_MINWERTE?"≥2 Werte":"alle"; m.style.display=STATIONS_VISIBLE?"":"none"; } }
 function setSelectedLocation(lat, lon, acc, pan){
   CURRENT_GPS={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6), genauigkeit_m: (acc==null? null : Math.round(acc)) };
@@ -885,14 +905,14 @@ function setSelectedLocation(lat, lon, acc, pan){
   }
   const extra = CURRENT_GPS.genauigkeit_m!=null ? " (Handy, ±"+CURRENT_GPS.genauigkeit_m+" m)" : " (auf Karte gewählt)";
   const gi=$("gpsInfo");
-  if(gi) gi.innerHTML='📍 Fangort: '+CURRENT_GPS.lat+', '+CURRENT_GPS.lon+extra+
+  if(gi) gi.innerHTML=uiIcon('pin')+' Fangort: '+CURRENT_GPS.lat+', '+CURRENT_GPS.lon+extra+
     ' · <a href="#" onclick="clearSelectedLocation();return false;">entfernen</a>';
 }
 function clearSelectedLocation(){
   CURRENT_GPS=null; MARKING=false; removeProv();
   if(SELECT_MARKER && MAP){ MAP.removeLayer(SELECT_MARKER); SELECT_MARKER=null; }
   const gi=$("gpsInfo"); if(gi) gi.textContent="Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren\".";
-  const b=$("gpsBtn"); if(b) b.textContent="📍 Handy-Standort";
+  setIconLabel($("gpsBtn"),"pin","Handy-Standort");
   const hb=$("markHint"); if(hb) hb.style.display="none";
 }
 function renderMarkers(){
@@ -915,7 +935,7 @@ let MARKING=false, PROV=null, PROV_MARKER=null;
 function markOnMap(){
   MARKING=true; removeProv();
   if(!MAP) initMap();
-  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe auf die Karte an die Stelle deines Fangs."; hb.style.display="block"; }
+  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+" Tippe auf die Karte an die Stelle deines Fangs."; hb.style.display="block"; }
   const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
 }
 function setProvFangort(lat, lon){                 // erst provisorisch – muss bestätigt werden
@@ -925,7 +945,7 @@ function setProvFangort(lat, lon){                 // erst provisorisch – muss
     else PROV_MARKER.setLatLng([lat,lon]);
   }
   const hb=$("markHint");
-  if(hb){ hb.innerHTML='📍 Fangort hier setzen? <button class="mhbtn" onclick="confirmFangort()">✓ Bestätigen</button><button class="mhbtn sec" onclick="cancelFangort()">✕ Abbrechen</button>'; hb.style.display="block"; }
+  if(hb){ hb.innerHTML=uiIcon('pin')+' Fangort hier setzen? <button class="mhbtn" onclick="confirmFangort()">'+uiIcon('check')+' Bestätigen</button><button class="mhbtn sec" onclick="cancelFangort()">'+uiIcon('close')+' Abbrechen</button>'; hb.style.display="block"; }
 }
 function removeProv(){ if(PROV_MARKER && MAP){ try{ MAP.removeLayer(PROV_MARKER); }catch(e){} } PROV_MARKER=null; PROV=null; }
 function confirmFangort(){
@@ -933,10 +953,10 @@ function confirmFangort(){
   setSelectedLocation(PROV.lat, PROV.lon, null, false);
   removeProv();
   const hb=$("markHint");
-  if(hb){ hb.innerHTML='✓ Fangort gesetzt · für einen weiteren Ort erneut tippen · <a href="#" onclick="scrollToSave();return false;">↑ Fang speichern</a> · <a href="#" onclick="stopMarking();return false;">fertig</a>'; hb.style.display="block"; }
+  if(hb){ hb.innerHTML=uiIcon('check')+' Fangort gesetzt · für einen weiteren Ort erneut tippen · <a href="#" onclick="scrollToSave();return false;">Fang speichern</a> · <a href="#" onclick="stopMarking();return false;">fertig</a>'; hb.style.display="block"; }
   // MARKING bleibt aktiv – der nächste Fangort kann direkt markiert werden
 }
-function cancelFangort(){ removeProv(); const hb=$("markHint"); if(hb){ hb.innerHTML='👆 Tippe auf die Karte an die Stelle deines Fangs.'; hb.style.display="block"; } }
+function cancelFangort(){ removeProv(); const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+' Tippe auf die Karte an die Stelle deines Fangs.'; hb.style.display="block"; } }
 function stopMarking(){ MARKING=false; removeProv(); const hb=$("markHint"); if(hb) hb.style.display="none"; }
 function scrollToSave(){ const b=document.getElementById("fbSaveBtn"); if(b) b.scrollIntoView({behavior:"smooth", block:"center"}); }
 function centerOnActiveSpot(){
@@ -961,8 +981,8 @@ function renderTable(){
 function toggleTable(){
   const box=$("fbTable"), b=$("tblBtn"); if(!box) return;
   const show=(box.style.display==="none" || !box.style.display);
-  if(show){ renderTable(); box.style.display="block"; if(b) b.textContent="📋 Tabelle ausblenden"; }
-  else { box.style.display="none"; if(b) b.textContent="📋 Tabelle anzeigen"; }
+  if(show){ renderTable(); box.style.display="block"; setIconLabel(b,"table","Tabelle ausblenden"); }
+  else { box.style.display="none"; setIconLabel(b,"table","Tabelle anzeigen"); }
 }
 function toggleList(){
   const box=$("fbList"), b=$("listBtn"); if(!box) return;
@@ -1217,11 +1237,11 @@ function renderBite(){
   const rows=BITE.map(sp=>{
     const r=evalBite(sp,ctx);
     const rec=bestBaitForFish(sp.name);
-    const recHtml = rec ? '<div class="biterec">🎣 Bewährter Köder bei dir: <b>'+esc(rec.koeder)+
+    const recHtml = rec ? '<div class="biterec">'+uiIcon('hook')+' Bewährter Köder bei dir: <b>'+esc(rec.koeder)+
       '</b> <small>('+rec.count+' von '+rec.total+' '+esc(sp.name)+'-Fängen)</small></div>' : '';
     return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
       '<span class="bitedot bd-'+r.color+'"></span>'+sp.name+
-      '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' ▾</span></button>'+
+      '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' '+uiIcon('chevron-down')+'</span></button>'+
       '<div class="bitereason">'+esc(r.reason)+recHtml+'</div></div>';
   }).join("");
   const warn = ctx.wt==null ? '<div class="fbnote" style="margin:0 4px 10px">Wassertemperatur noch nicht geladen – Einstufung vorläufig.</div>' : '';
@@ -1231,8 +1251,8 @@ function renderBite(){
 function toggleBite(){
   const box=$("biteBox"), b=$("biteBtn"); if(!box) return;
   const show=(box.style.display==="none"||!box.style.display);
-  if(show){ renderBite(); box.style.display="block"; if(b) b.textContent="🎯 Beißwetter ausblenden"; }
-  else { box.style.display="none"; if(b) b.textContent="🎯 Beißwetter anzeigen"; }
+  if(show){ renderBite(); box.style.display="block"; setIconLabel(b,"target","Beißwetter ausblenden"); }
+  else { box.style.display="none"; setIconLabel(b,"target","Beißwetter anzeigen"); }
 }
 function toggleFangbuch(){
   const box=$("fangbuchBox"); if(!box) return;
@@ -1308,7 +1328,7 @@ function pegAuto(){
 function pegPickMap(){
   hidePegEdit(); STATION_PICK=true;
   ensureMapVisible();
-  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
+  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+" Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
   setTimeout(()=>{ const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
 function applyWaterType(sp){
@@ -1334,7 +1354,7 @@ function reflectStation(){
   const ps=$("pegelSect"); if(ps) ps.textContent="Fluss · Pegel "+CUR.name+" (PEGELONLINE)";
   const cs=$("curStation"); if(cs) cs.textContent = (sp? "Angelplatz: "+sp.name+" · " : "")+"Pegel "+CUR.name+" · km "+CUR.km;
   if(pn) pn.textContent = CUR.name + (CUR.river? " ("+CUR.river+")" : "");
-  const mc=$("mapCo"); if(mc) mc.textContent="📍 Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O";
+  const mc=$("mapCo"); if(mc) mc.innerHTML=iconLabel("pin","Pegel "+CUR.name+" · "+CUR.lat.toFixed(4)+"° N, "+CUR.lon.toFixed(4)+"° O");
   const mo=$("mapOsm"); if(mo) mo.href="https://www.openstreetmap.org/?mlat="+WXPOS.lat+"&mlon="+WXPOS.lon+"#map=14/"+WXPOS.lat+"/"+WXPOS.lon;
   const mg=$("mapGmaps"); if(mg) mg.href="https://www.google.com/maps/search/?api=1&query="+WXPOS.lat+","+WXPOS.lon;
   applyWaterType(sp);
@@ -1365,8 +1385,8 @@ function newSpotOnMap(){
   SPOT_PICK=true;
   ensureMapVisible();
   setAddMapView();
-  const b=$("homeMapBtn"); if(b && $("homeView") && $("homeView").style.display!=="none") b.textContent="🗺️ Karte ausblenden";
-  const hb=$("markHint"); if(hb){ hb.innerHTML="👆 Tippe auf deinen Angelplatz auf der Karte – danach kannst du ihn benennen."; hb.style.display="block"; }
+  const b=$("homeMapBtn"); if(b && $("homeView") && $("homeView").style.display!=="none") setIconLabel(b,"map","Karte ausblenden");
+  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+" Tippe auf deinen Angelplatz auf der Karte – danach kannst du ihn benennen."; hb.style.display="block"; }
   setTimeout(()=>{ setAddMapView(); const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
 function pickAuto(){
@@ -1441,7 +1461,7 @@ function renderSpots(){
   const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
   if(sel){
     if(!spots.length) sel.innerHTML='<option value="">— noch keiner —</option>';
-    else { sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">🎣 '+esc(s.name)+'</option>').join("");
+    else { sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
       if(active && spots.some(s=>String(s.id)===String(active))) sel.value=active; }
   }
   renderSpotList();
@@ -1455,12 +1475,12 @@ function renderSpotList(){
     '<div class="emptytitle">Noch kein Angelplatz gespeichert</div>'+
     '<div class="emptydesc">Wähle deinen Platz auf der Karte aus, wenn du ihn hinzufügen möchtest. Eine Standortfreigabe ist nicht nötig.</div>'+
     '<button class="btn-primary" onclick="newSpotOnMap()">Angelplatz hinzufügen</button></div>'; return; }
-  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">🎣 '+esc(s.name)+
+  box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">'+uiIcon('pin')+' '+esc(s.name)+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span>'+
     '<span class="spotcond" id="cond_'+s.id+'">Bedingungen …</span></button>'+
     '<div class="spotbadges">'+countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+
-    '<span class="ampelbadge lg-amber" id="amp_'+s.id+'">≈ …</span></div>'+
-    '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">✕</button></div>').join("");
+    '<span class="ampelbadge lg-amber" id="amp_'+s.id+'">'+uiIcon('minus')+' …</span></div>'+
+    '<button class="spotdel" title="löschen" onclick="deleteSpotFromList('+s.id+')">'+uiIcon('close')+'</button></div>').join("");
   loadSpotConditions();
 }
 function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); }
@@ -1483,7 +1503,7 @@ async function spotCondition(s){
   if(cur.wind_gusts_10m!=null){ if(cur.wind_gusts_10m>=45) sc--; else if(cur.wind_gusts_10m>=12 && cur.wind_gusts_10m<35) sc++; }
   if((cur.precipitation!=null && cur.precipitation>=2) || [82,95,96,99].includes(cur.weather_code)) sc--;
   const wc=WMO[cur.weather_code]||["",""];
-  const text=Math.round(cur.temperature_2m)+"° "+(wc[1]||"")+" · Wind "+Math.round(cur.wind_speed_10m)+" km/h";
+  const text=Math.round(cur.temperature_2m)+"° "+(wc[0]||"")+" · Wind "+Math.round(cur.wind_speed_10m)+" km/h";
   const res={ts:Date.now(), lvl:ampelLevel(sc), text}; COND_CACHE[key]=res; return res;
 }
 async function loadSpotConditions(){
@@ -1492,9 +1512,9 @@ async function loadSpotConditions(){
     const el=$("cond_"+s.id), amp=$("amp_"+s.id);
     try{
       const c=await spotCondition(s);
-      if(amp){ amp.className="ampelbadge "+c.lvl.cls; amp.innerHTML=c.lvl.ico+" "+c.lvl.word; }
+      if(amp){ amp.className="ampelbadge "+c.lvl.cls; amp.innerHTML=uiIcon(c.lvl.icon)+" "+c.lvl.word; }
       if(el) el.textContent=c.text;
-    }catch(e){ if(amp){ amp.className="ampelbadge lg-amber"; amp.textContent="≈ n/v"; } if(el) el.textContent="Bedingungen n/v"; }
+    }catch(e){ if(amp){ amp.className="ampelbadge lg-amber"; amp.innerHTML=uiIcon('minus')+' n/v'; } if(el) el.textContent="Bedingungen n/v"; }
   }));
 }
 /* Ansichten: Start (Liste) · Angelplatz (Daten) · Mein Fangbuch (alle Fänge) */
@@ -1509,7 +1529,7 @@ function showTrips(){
 function showHome(){
   hideAllViews();
   const h=$("homeView"); if(h) h.style.display="block";
-  const b=$("homeMapBtn"); if(b) b.textContent="🗺️ Karte anzeigen";
+  const b=$("homeMapBtn"); setIconLabel(b,"map","Karte anzeigen");
   renderSpotList();
   renderTripBanner();
   setActiveTab("places");
@@ -1525,10 +1545,10 @@ function showFangbuchList(){
 function renderFbIndex(){
   const box=$("fbIndexList"); if(!box) return;
   const spots=loadSpots();
-  let html='<div class="spotrow"><button class="spotopen" onclick="showCatchList(null)">📚 Gesamtfangbuch'+
+  let html='<div class="spotrow"><button class="spotopen" onclick="showCatchList(null)">'+uiIcon('book-open')+' Gesamtfangbuch'+
     '<span class="spotsub">alle Angelplätze</span></button>'+countBadge(totalFish(), totalTrips())+'</div>';
   if(spots.length){
-    html+=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="showCatchListBySpot('+s.id+')">📒 '+esc(s.name)+' Fangbuch'+
+    html+=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="showCatchListBySpot('+s.id+')">'+uiIcon('book')+' '+esc(s.name)+' Fangbuch'+
       '<span class="spotsub">'+spotWaterLabel(s)+'</span></button>'+
       countBadge(fishCountForSpot(s.name), tripCountForSpot(s.name))+'</div>').join("");
   } else {
@@ -1539,7 +1559,7 @@ function renderFbIndex(){
 function showCatchListBySpot(id){ const sp=loadSpots().find(x=>String(x.id)===String(id)); showCatchList(sp?sp.name:null); }
 function showCatchList(spotName){
   CATCH_VIEW_SPOT = spotName || null; CATCH_VIEW_TRIP=null;
-  const bb=$("catchBackBtn"); if(bb) bb.textContent="← Fangbücher";
+  const bb=$("catchBackBtn"); setIconLabel(bb,"arrow-left","Fangbücher");
   hideAllViews();
   const v=$("catchListView"); if(v) v.style.display="block";
   renderCatchList();
@@ -1548,7 +1568,7 @@ function showCatchList(spotName){
 }
 function showTripCatches(tripId){
   CATCH_VIEW_TRIP=String(tripId); CATCH_VIEW_SPOT=null;
-  const bb=$("catchBackBtn"); if(bb) bb.textContent="← Trips";
+  const bb=$("catchBackBtn"); setIconLabel(bb,"arrow-left","Trips");
   hideAllViews();
   const v=$("catchListView"); if(v) v.style.display="block";
   renderCatchList();
@@ -1625,7 +1645,7 @@ function renderTripSuccess(){
   const pct=Math.round(succ/trips.length*100);
   const fishTotal=loadCatches().filter(c=>c.trip_id!=null && isFish(c)).length;
   const avg=Math.round(fishTotal/trips.length*10)/10;
-  box.innerHTML='<div class="statcard"><div class="stath">📈 Trips <span class="statn">'+trips.length+' gesamt</span></div>'+
+  box.innerHTML='<div class="statcard"><div class="stath">'+uiIcon('line-chart')+' Trips <span class="statn">'+trips.length+' gesamt</span></div>'+
     '<div class="statline"><span class="statk">Erfolgsquote</span><b>'+pct+' %</b> · '+succ+' von '+trips.length+' Trips mit Fang</div>'+
     '<div class="statline"><span class="statk">Ø Fänge pro Trip</span><b>'+avg+'</b></div></div>';
 }
@@ -1642,7 +1662,7 @@ function renderFishPie(){
   const colors=["#38bdf8","#4ade80","#fbbf24","#f87171","#a78bfa","#2dd4bf","#fb923c","#f472b6","#60a5fa","#a3e635","#e879f9","#facc15"];
   box.innerHTML='<div class="statcard"><div class="cmcanvas" style="height:260px;position:relative"><canvas id="fishPieCanvas"></canvas></div>'+
     '<div class="fbnote" style="margin-top:10px;line-height:1.7">'+entries.map((e,i)=>
-      '<span style="color:'+colors[i%colors.length]+'">●</span> '+esc(e[0])+': '+e[1]+' ('+Math.round(e[1]/total*100)+' %)').join(' · ')+'</div></div>';
+      '<span class="statusdot" style="color:'+colors[i%colors.length]+'"></span> '+esc(e[0])+': '+e[1]+' ('+Math.round(e[1]/total*100)+' %)').join(' · ')+'</div></div>';
   const cv=$("fishPieCanvas"); if(!cv || !window.Chart) return;
   if(FISHPIE){ try{ FISHPIE.destroy(); }catch(e){} }
   FISHPIE=new Chart(cv.getContext("2d"),{ type:"pie",
@@ -1660,9 +1680,9 @@ function renderTripBanner(){
   const tr=activeTrip();
   if(!tr){ b.style.display="none"; b.innerHTML=""; return; }
   b.style.display="";
-  b.innerHTML='🎣 Trip läuft · <b>'+esc(tr.spotName)+'</b> · seit '+hhmm(tr.start)+' ('+tripDur(tr.start,null)+') '+
-    '<button class="mhbtn" onclick="tripAddCatch()">🐟 Fang</button>'+
-    '<button class="mhbtn sec" onclick="endTrip()">⏹ Beenden</button>';
+  b.innerHTML=uiIcon('calendar')+' Trip läuft · <b>'+esc(tr.spotName)+'</b> · seit '+hhmm(tr.start)+' ('+tripDur(tr.start,null)+') '+
+    '<button class="mhbtn" onclick="tripAddCatch()">'+uiIcon('fish')+' Fang</button>'+
+    '<button class="mhbtn sec" onclick="endTrip()">'+uiIcon('stop')+' Beenden</button>';
 }
 function renderTripList(){
   const box=$("tripList"), sect=$("tripSect"); if(!box) return;
@@ -1672,7 +1692,7 @@ function renderTripList(){
   box.innerHTML=trips.map(t=>{
     const f=loadCatches().filter(c=>String(c.trip_id)===String(t.id) && isFish(c)).length;
     const running=!t.end;
-    return '<div class="spotrow"><button class="spotopen" onclick="showTripCatches('+t.id+')">'+(running?'🔴 ':'🎣 ')+esc(t.spotName)+
+    return '<div class="spotrow"><button class="spotopen" onclick="showTripCatches('+t.id+')">'+(running?'<span class="statusdot" style="color:var(--red)"></span> ':uiIcon('calendar')+' ')+esc(t.spotName)+
       '<span class="spotsub">'+deDateTime(t.start)+' · '+(running?'läuft':tripDur(t.start,t.end))+'</span></button>'+
       countBadgeFish(f)+'</div>';
   }).join("");
@@ -1726,23 +1746,6 @@ function ensureBaitSeed(){                         // Standardköder als Startpu
 }
 const BAIT_GROUP_OPEN={kunst:true, natur:true, sonstige:true};
 function toggleBaitGroup(k){ BAIT_GROUP_OPEN[k]=!(BAIT_GROUP_OPEN[k]!==false); renderBaitList(); }
-function baitIcon(text){
-  const s=String(text||"").toLowerCase();
-  if(/tauwurm|rotwurm|dendro|wurm/.test(s)) return "🪱";
-  if(/made|maden/.test(s)) return "🐛";
-  if(/mais/.test(s)) return "🌽";
-  if(/boilie|pellet/.test(s)) return "🔴";
-  if(/brot|teig/.test(s)) return "🍞";
-  if(/k(ä|ae)se/.test(s)) return "🧀";
-  if(/k(ö|oe)derfisch|fischfetzen|k(ö|oe)fi/.test(s)) return "🐟";
-  if(/gummifisch|gummi|shad|kaulquappe/.test(s)) return "🐠";
-  if(/wobbler|crank|jerk/.test(s)) return "🐡";
-  if(/spinner/.test(s)) return "✨";
-  if(/blinker|l(ö|oe)ffel|spoon/.test(s)) return "🥄";
-  if(/twister|twist/.test(s)) return "🌀";
-  if(/fliege|streamer|nymphe/.test(s)) return "🪰";
-  return "🎣";
-}
 function variantLabel(base, v){ return base + (v&&v.size?(" "+v.size):"") + (v&&v.color?(", "+v.color):""); }
 /* Anzahl Fänge je Köder: Kategorie = alle Varianten (Präfix), Variante = exakt. Nur echte Fänge. */
 function koederCatchCount(text, isCat){
@@ -1750,7 +1753,7 @@ function koederCatchCount(text, isCat){
   return loadCatches().filter(c=>{ if(!isFish(c)) return false; const k=(c.koeder||"").toLowerCase().trim();
     return isCat ? (k===t || k.indexOf(t+" ")===0 || k.indexOf(t+",")===0) : k===t; }).length;
 }
-function countBadgeFish(n){ return '<span class="countbadge" title="Fänge mit diesem Köder"><span class="fishico">🐟</span>'+n+'</span>'; }
+function countBadgeFish(n){ return '<span class="countbadge" title="Fänge mit diesem Köder"><span class="fishico">'+uiIcon('fish')+'</span>'+n+'</span>'; }
 const BAIT_OPEN={};   // aufgeklappte Kategorien (Basename kleingeschrieben)
 function showBaitList(){
   hideAllViews();
@@ -1791,15 +1794,15 @@ function renderBaitList(){
   const catHtml=(c,i)=>{
     const open=!!BAIT_OPEN[c.base.toLowerCase()];
     let h='<div class="baitcat"><div class="baitcatrow">'+
-      '<button class="baitcathead" onclick="toggleBaitCat('+i+')"><span class="tw">'+(open?'▾':'▸')+'</span> '+
+      '<button class="baitcathead" onclick="toggleBaitCat('+i+')"><span class="tw">'+uiIcon(open?'chevron-down':'chevron-right')+'</span> '+
         esc(c.base)+' <small>'+c.variants.length+' Variante'+(c.variants.length===1?'':'n')+'</small></button>'+
       countBadgeFish(koederCatchCount(c.base,true))+
-      '<button class="spotdel" title="Köder löschen" onclick="deleteBaitCat('+i+')">✕</button></div>';
+      '<button class="spotdel" title="Köder löschen" onclick="deleteBaitCat('+i+')">'+uiIcon('close')+'</button></div>';
     if(open){
       h+='<div class="baitvars">';
       h+=c.variants.map((v,j)=>{ const lbl=variantLabel(c.base,v);
         return '<div class="baitvar"><span class="vlabel">'+esc(lbl)+'</span>'+countBadgeFish(koederCatchCount(lbl,false))+
-          '<button class="spotdel" onclick="deleteBaitVar('+i+','+j+')">✕</button></div>'; }).join("");
+          '<button class="spotdel" onclick="deleteBaitVar('+i+','+j+')">'+uiIcon('close')+'</button></div>'; }).join("");
       h+='<div class="baitvaradd">'+
          '<input id="var_size_'+i+'" placeholder="Größe, z. B. 5 cm">'+
          '<input id="var_color_'+i+'" placeholder="Farbe, z. B. braun" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addVariant('+i+');}">'+
@@ -1814,7 +1817,7 @@ function renderBaitList(){
     if(!items.length) return;
     const gopen=BAIT_GROUP_OPEN[gr.key]!==false;
     html+='<div class="baitgroup"><button class="baitgrouphead" onclick="toggleBaitGroup(\''+gr.key+'\')">'+
-      '<span class="tw">'+(gopen?'▾':'▸')+'</span> '+gr.name+' <small>'+items.length+'</small></button>';
+      '<span class="tw">'+uiIcon(gopen?'chevron-down':'chevron-right')+'</span> '+gr.name+' <small>'+items.length+'</small></button>';
     if(gopen) html+='<div class="baitgroupbody">'+items.map(o=>catHtml(o.c,o.i)).join("")+'</div>';
     html+='</div>';
   });
@@ -1899,17 +1902,17 @@ function personalBestHtml(fc){
     const heaviest=a.filter(c=>+c.gewicht_kg>0).sort((x,y)=>(+y.gewicht_kg)-(+x.gewicht_kg))[0];
     const len=longest?(longest.groesse_cm+' cm'+(longest.angelplatz?' · '+esc(longest.angelplatz):'')):'–';
     const wei=heaviest?(Number(heaviest.gewicht_kg).toLocaleString('de-DE')+' kg'+(heaviest.angelplatz?' · '+esc(heaviest.angelplatz):'')):'–';
-    return '<div class="pbrow"><b>'+esc(name)+'</b><span>📏 '+len+'</span><span>⚖️ '+wei+'</span></div>';
+    return '<div class="pbrow"><b>'+esc(name)+'</b><span>'+uiIcon('ruler')+' '+len+'</span><span>'+uiIcon('scale')+' '+wei+'</span></div>';
   }).join('');
-  return '<div class="statcard"><div class="stath">🏆 Personal Best je Fischart</div><div class="pblist">'+rows+'</div></div>';
+  return '<div class="statcard"><div class="stath">'+uiIcon('trophy')+' Personal Best je Fischart</div><div class="pblist">'+rows+'</div></div>';
 }
 function renderStats(){
   const box=$("statsBody"); if(!box) return;
   const fc=fishCatches();
   if(!fc.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fänge – sobald du welche einträgst, erscheint hier die Auswertung: beste Plätze und fängigste Köder je Fischart.</div>'; return; }
-  let html='<div class="statcard"><div class="stath">📊 Überblick <span class="statn">'+fc.length+' Fänge · '+loadCatches().length+' Trips</span></div>'+
-    statLine("🎣 Beste Plätze", topBy(fc, c=>c.angelplatz, 3), false)+
-    statLine("🪱 Fängigste Köder", topBy(fc, c=>c.koeder, 3), true)+'</div>';
+  let html='<div class="statcard"><div class="stath">'+uiIcon('chart')+' Überblick <span class="statn">'+fc.length+' Fänge · '+loadCatches().length+' Trips</span></div>'+
+    statLine(uiIcon('pin')+" Beste Plätze", topBy(fc, c=>c.angelplatz, 3), false)+
+    statLine(uiIcon('hook')+" Fängigste Köder", topBy(fc, c=>c.koeder, 3), true)+'</div>';
   html+=personalBestHtml(fc);
   html+=statsByFish().map(f=>
     '<div class="statcard"><div class="stath">'+esc(f.fisch)+' <span class="statn">'+f.total+' Fang'+(f.total===1?'':'e')+'</span></div>'+
@@ -1938,14 +1941,14 @@ function toggleHomeMap(){
   const m=$("mapCard"); if(!m) return;
   const hidden = (m.style.display==="none" || m.style.display==="");
   const b=$("homeMapBtn");
-  if(hidden){ ensureMapVisible(); if(b) b.textContent="🗺️ Karte ausblenden"; m.scrollIntoView({behavior:"smooth", block:"start"}); }
-  else { m.style.display="none"; if(b) b.textContent="🗺️ Karte anzeigen"; }
+  if(hidden){ ensureMapVisible(); setIconLabel(b,"map","Karte ausblenden"); m.scrollIntoView({behavior:"smooth", block:"start"}); }
+  else { m.style.display="none"; setIconLabel(b,"map","Karte anzeigen"); }
 }
 function fbTitle(){ const n=activeSpotName(); return (n? n+" " : "")+"Fangbuch"; }
 function updateFangbuchBtn(){
   const b=$("fangbuchBtn"); if(!b) return;
   const box=$("fangbuchBox"); const shown = box && box.style.display && box.style.display!=="none";
-  b.textContent="📒 "+fbTitle()+(shown?" ausblenden":" anzeigen");
+  b.innerHTML=iconLabel("book",fbTitle()+(shown?" ausblenden":" anzeigen"));
 }
 function onSpotSelect(id){ if(id) loadSpot(id); }
 function deleteActiveSpot(){

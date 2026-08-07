@@ -11,7 +11,7 @@ Die CSV liegt im LANGFORMAT vor (eine Zeile je Messgroesse):
   Messstellennummer;Messstellenbezeichnung;Messleitung;Datum;Bezeichnung;Wert;Einheit
 Je Messgroesse (Spalte "Bezeichnung") wird der Wert mit dem juengsten Datum genommen.
 
-Gedacht fuer GitHub Actions (alle 6 h), laeuft aber auch lokal:
+Gedacht fuer GitHub Actions (stuendlich), laeuft aber auch lokal:
     pip install playwright
     playwright install chromium
     python fetch_wasserwerte.py
@@ -76,20 +76,23 @@ BASE_DIR  = Path(__file__).resolve().parent
 JSON_FILE = BASE_DIR / "wasserwerte.json"
 GKD_COORDS_FILE = BASE_DIR / "gkd_coords.json"   # Cache: Stations-ID -> lat/lon
 NLWKN_COORDS_FILE = BASE_DIR / "nlwkn_coords.json"
+BERLIN_COORDS_FILE = BASE_DIR / "berlin_coords.json"
 CSV_DIR   = BASE_DIR / "wasserwerte_csv"
 CSV_DIR.mkdir(exist_ok=True)
 
 # Messgroesse (aus Spalte "Bezeichnung") -> (Anzeige-Label, Icon, Nachkommastellen)
+# Die App zeichnet die passenden einheitlichen SVG-Symbole selbst; deshalb werden
+# hier keine Emoji-Zeichen mehr in den Datensatz geschrieben.
 # Reihenfolge = Prioritaet: "sättigung" vor "sauerstoff" pruefen.
 BEZ_MAP = [
-    ("temperatur", ("Wassertemperatur", "\U0001F321️", 1)),
-    ("sättigung",  ("O₂-Sättigung",     "\U0001FAE7", 0)),
-    ("saettigung", ("O₂-Sättigung",     "\U0001FAE7", 0)),
-    ("sauerstoff", ("Sauerstoff",       "\U0001FAE7", 1)),
-    ("trüb",       ("Trübung",          "\U0001F32B️", 1)),
-    ("trueb",      ("Trübung",          "\U0001F32B️", 1)),
-    ("leitf",      ("Leitfähigkeit",    "⚡", 0)),
-    ("ph",         ("pH-Wert",          "⚗️", 2)),
+    ("temperatur", ("Wassertemperatur", "", 1)),
+    ("sättigung",  ("O₂-Sättigung",     "", 0)),
+    ("saettigung", ("O₂-Sättigung",     "", 0)),
+    ("sauerstoff", ("Sauerstoff",       "", 1)),
+    ("trüb",       ("Trübung",          "", 1)),
+    ("trueb",      ("Trübung",          "", 1)),
+    ("leitf",      ("Leitfähigkeit",    "", 0)),
+    ("ph",         ("pH-Wert",          "", 2)),
 ]
 ORDER = ["Wassertemperatur", "Sauerstoff", "O₂-Sättigung",
          "Trübung", "pH-Wert", "Leitfähigkeit"]
@@ -657,7 +660,7 @@ def enrich_gkd_with_nid_oxygen(stations):
             continue
         st.setdefault("items", []).append({
             "label": "Sauerstoff (Tagesminimum)", "value": fmt_value(val, 2),
-            "unit": "mg/l", "icon": "🫧", "time": dt.strftime("%d.%m.%Y")
+            "unit": "mg/l", "icon": "", "time": dt.strftime("%d.%m.%Y")
         })
         added += 1
     print(f"[Bayern/NID] {added} automatische Gütestationen mit Sauerstoff ergänzt")
@@ -932,11 +935,18 @@ def process_sachsen():
 
 
 # ---------------------------------------------------------- Berlin (Wasserportal) ----
-# CORS ist geschlossen -> serverseitig. Koordinaten stehen als m.Point([E,N],pkz,name,gewaesser)
-# (ETRS89/UTM33N) in der Kartenseite; aktuelle Temperaturwerte in der Tabellen-Seite.
-BERLIN_KARTE   = "https://wasserportal.berlin.de/messwerte.php?anzeige=karte&thema=owt"
-BERLIN_TABELLE = "https://wasserportal.berlin.de/messwerte.php?anzeige=tabelle&thema=owt"
-BERLIN_MAX_AGE_H = 24
+# Ausschliesslich aktuelle Online-Messwerte. Die periodischen Probenahmen (thema=opq)
+# werden bewusst nicht importiert. Das Portal liefert je Parameter eine Tabelle; die
+# Stammdatenseite enthaelt die Koordinaten in ETRS89/UTM33N.
+BERLIN_BASE = "https://wasserportal.berlin.de/"
+BERLIN_THEMES = [
+    ("owt", "Wassertemperatur", "°C", 1),
+    ("oog", "Sauerstoff", "mg/l", 1),
+    ("oph", "pH-Wert", "", 2),
+    ("olf", "Leitfähigkeit", "µS/cm", 0),
+]
+BERLIN_MAX_AGE_H = 48
+BERLIN_MAX_NEW_COORDS = 100
 
 def utm33_to_wgs84(E, N):
     """ETRS89 / UTM Zone 33N -> WGS84 (lat, lon), GRS80."""
@@ -955,52 +965,204 @@ def utm33_to_wgs84(E, N):
     lon=lon0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*ep2+24*T1**2)*D**5/120)/math.cos(phi1)
     return math.degrees(lat), math.degrees(lon)
 
-BERLIN_PT = re.compile(
-    r"m\.Point\(\[\s*([\d.]+)\s*,\s*([\d.]+)\s*\]\)"
-    r"[\s\S]{0,200}?pkz:\s*'([^']+)'"
-    r"[\s\S]{0,120}?name:\s*'([^']*)'"
-    r"[\s\S]{0,160}?gewaesser:\s*'([^']*)'")
+def parse_berlin_theme(page, label, unit, digits):
+    """Aktuelle Online-Werte einer Berliner Parametertabelle nach Stations-ID."""
+    out={}; now=datetime.now()
+    for row in re.findall(r"<tr[^>]*>([\s\S]*?)</tr>", page, re.I):
+        mh=re.search(r'href=["\'][^"\']*station\.php\?[^"\']*?station=([0-9A-Za-z_-]+)', row, re.I)
+        if not mh: continue
+        sid=mh.group(1)
+        cells=[clean_html(c) for c in re.findall(r"<td[^>]*>([\s\S]*?)</td>", row, re.I)]
+        if len(cells)<3: continue
+        date_i=-1; dt=None
+        for i,cell in enumerate(cells):
+            md=re.search(r"(\d{2}\.\d{2}\.\d{4})\s+(\d{2}:\d{2})(?::\d{2})?", cell)
+            if md:
+                dt=parse_dt(md.group(1)+" "+md.group(2)); date_i=i; break
+        if not dt or date_i<0: continue
+        age=(now-dt).total_seconds()
+        if age>BERLIN_MAX_AGE_H*3600 or age < -6*3600: continue
+        val=None
+        for cell in cells[date_i+1:]:
+            mv=re.search(r"-?\d+(?:[.,]\d+)?", cell)
+            if mv:
+                val=to_number(mv.group(0)); break
+        if val is None: continue
+        if cells[0].strip()==sid and len(cells)>2:
+            name=cells[1].strip(); river=cells[2].strip()
+        else:
+            name=cells[0].strip(); river=""
+        item={"label":label, "value":fmt_value(val,digits), "unit":unit,
+              "time":dt.strftime("%d.%m.%Y %H:%M"), "_dt":dt}
+        old=out.get(sid)
+        if not old or item["_dt"]>old["item"]["_dt"]:
+            out[sid]={"name":name, "river":river, "item":item}
+    return out
 
-def berlin_coords():
-    """{pkz: {lat,lon,name,river}} aus der Kartenseite."""
-    html=fetch_gkd_html(BERLIN_KARTE)
-    coords={}
-    for m in BERLIN_PT.finditer(html):
-        pkz=m.group(3)
-        if pkz in coords: continue
-        try: lat,lon=utm33_to_wgs84(float(m.group(1)), float(m.group(2)))
-        except Exception: continue
-        coords[pkz]={"lat":round(lat,5), "lon":round(lon,5), "name":m.group(4), "river":m.group(5)}
-    return coords
+def berlin_station_detail(sid):
+    url=urljoin(BERLIN_BASE, "station.php?anzeige=i&thema=owq&station="+str(sid)+"&sfrom=owt&sgrafik=ew")
+    page=fetch_gkd_html(url); fields={}
+    for row in re.findall(r"<tr[^>]*>([\s\S]*?)</tr>", page, re.I):
+        cells=[clean_html(c) for c in re.findall(r"<(?:th|td)[^>]*>([\s\S]*?)</(?:th|td)>", row, re.I)]
+        if len(cells)>=2 and cells[0] and cells[1] and cells[0] not in fields:
+            fields[cells[0]]=cells[1]
+    east=north=None
+    for key,value in fields.items():
+        if "Rechtswert" in key:
+            east=to_number(value)
+        elif "Hochwert" in key:
+            north=to_number(value)
+    if east is None or north is None: return None
+    lat,lon=utm33_to_wgs84(float(east),float(north))
+    return {"lat":round(lat,6), "lon":round(lon,6),
+            "name":fields.get("Messstellenname", ""), "river":fields.get("Gewässer", "")}
+
+def berlin_coords(station_ids):
+    cache=load_json_cache(BERLIN_COORDS_FILE); changed=False; added=0
+    for sid in station_ids:
+        if sid in cache and cache[sid].get("lat") is not None: continue
+        if added>=BERLIN_MAX_NEW_COORDS: break
+        try:
+            detail=berlin_station_detail(sid)
+            if detail:
+                cache[sid]=detail; changed=True; added+=1
+        except Exception as e:
+            print(f"      Berlin-Koordinaten {sid}: {e}")
+    if changed: save_json_cache(BERLIN_COORDS_FILE,cache)
+    return cache
 
 def process_berlin():
-    coords=berlin_coords()
-    html=fetch_gkd_html(BERLIN_TABELLE)
-    now=datetime.now(); results=[]
-    for row in re.split(r"<tr", html):
-        mp=re.search(r"<td[^>]*>\s*<a[^>]*>\s*([0-9A-Za-z_]+)\s*</a>", row)
-        if not mp: continue
-        pkz=mp.group(1)
-        cells=[re.sub(r"<[^>]+>"," ",c).replace("&nbsp;"," ").strip()
-               for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
-        joined=" ".join(cells)
-        md=re.search(r"(\d{2}\.\d{2}\.\d{4})\s+(\d{2}:\d{2})", joined)
-        mt=re.search(r"(-?\d+[.,]\d+)\s*°C", joined)          # Temperaturwert vor der Einheit
-        if not md or not mt: continue
-        dt=parse_dt(md.group(1)+" "+md.group(2))
-        if not dt or (now-dt).total_seconds() > BERLIN_MAX_AGE_H*3600: continue
-        c=coords.get(pkz)
+    merged={}
+    for theme,label,unit,digits in BERLIN_THEMES:
+        table_url=urljoin(BERLIN_BASE, "messwerte.php?anzeige=tabelle&thema="+theme)
+        rows=parse_berlin_theme(fetch_gkd_html(table_url),label,unit,digits)
+        for sid,rec in rows.items():
+            st=merged.setdefault(sid,{"name":rec["name"],"river":rec["river"],"items":[]})
+            if not st["name"]: st["name"]=rec["name"]
+            if not st["river"]: st["river"]=rec["river"]
+            st["items"].append(rec["item"])
+    coords=berlin_coords(sorted(merged))
+    results=[]; order={name:i for i,name in enumerate(ORDER)}
+    for sid,st in merged.items():
+        c=coords.get(sid)
         if not c: continue
-        val=to_number(mt.group(1))
-        if val is None: continue
+        items=sorted(st["items"],key=lambda x:order.get(x["label"],99))
+        newest=max(x["_dt"] for x in items)
+        for item in items: item.pop("_dt",None)
+        labels={x["label"] for x in items}
         results.append({
-            "id":"be-"+pkz, "name":(c["name"] or pkz), "lat":c["lat"], "lon":c["lon"], "river":c["river"],
-            "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
-            "items":[{"label":"Wassertemperatur", "value":fmt_value(val,1), "unit":"°C",
-                      "icon":"\U0001F321️", "time":dt.strftime("%d.%m.%Y %H:%M")}],
-            "history":{},
+            "id":"be-"+sid, "name":c.get("name") or st["name"] or sid,
+            "lat":c["lat"], "lon":c["lon"], "river":c.get("river") or st["river"],
+            "updated":newest.strftime("%d.%m.%Y %H:%M"), "items":items, "history":{},
+            "src":"berlin", "source_url":urljoin(BERLIN_BASE,"station.php?anzeige=i&thema=owq&station="+sid+"&sfrom=owt&sgrafik=ew"),
+            "params":{"wt":"Wassertemperatur" in labels, "o2":"Sauerstoff" in labels, "tr":"Trübung" in labels},
         })
-    print(f"[Berlin] {len(results)} Stationen mit Wassertemperatur ({len(coords)} Koordinaten)")
+    print(f"[Berlin] {len(results)} aktuelle Online-Stationen ({len(coords)} Koordinaten im Cache)")
+    return results
+
+
+# ---------------------------------------------------------- Saarland (SEBA Hydrocenter) ----
+# Oeffentlicher Nur-Lese-Zugang des im Landesauftrag betriebenen Online-Messnetzes.
+# Es werden nur die auf der Webmap aktuell sichtbaren Live-Sonden ausgelesen, keine
+# Laborwerte und keine periodischen Probenahmen.
+SAARLAND_LOGIN = "https://seba-hydrocenter.com/login?publicUser=unisaarland"
+SAARLAND_SOURCE = "https://www.gewaesser-monitoring.de/?Messdaten-Saar"
+SAARLAND_MAX_AGE_H = 48
+
+def saarland_river(title):
+    low=(title or "").lower()
+    for needle,river in (("blies","Blies"),("prims","Prims"),("theel","Theel"),
+                         ("ill","Ill"),("nied","Nied"),("mosel","Mosel"),("saar","Saar")):
+        if needle in low: return river
+    if "staustufe" in low: return "Saar"
+    return ""
+
+def process_saarland_live():
+    from playwright.sync_api import sync_playwright
+    results=[]; now=datetime.now()
+    with sync_playwright() as p:
+        browser=p.chromium.launch(headless=True)
+        page=browser.new_page(viewport={"width":1280,"height":850})
+        page.goto(SAARLAND_LOGIN,wait_until="domcontentloaded",timeout=90_000)
+        page.wait_for_url(re.compile(r"/webmap(?:\?.*)?$"),timeout=90_000)
+        page.wait_for_selector(".leaflet-marker-icon",timeout=60_000)
+        page.wait_for_timeout(1200)
+        markers=page.eval_on_selector_all(".leaflet-marker-icon", """els => {
+          const tiles=[...document.querySelectorAll('.leaflet-tile')];
+          const tile=tiles.find(e=>/\/(\d+)\/(\d+)\/(\d+)\.png/.test(e.src||''));
+          if(!tile) return [];
+          const tm=(tile.src||'').match(/\/(\d+)\/(\d+)\/(\d+)\.png/);
+          const tp=(tile.style.transform||'').match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px/);
+          if(!tm||!tp) return [];
+          const z=+tm[1], tx=+tm[2], ty=+tm[3], ox=tx*256-(+tp[1]), oy=ty*256-(+tp[2]);
+          const world=256*Math.pow(2,z);
+          return els.map((e,i)=>{
+            const mp=(e.style.transform||'').match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px/);
+            if(!mp) return null;
+            const gx=ox+(+mp[1]), gy=oy+(+mp[2]);
+            return {index:i,title:(e.title||'').trim(),
+              lon:gx/world*360-180,
+              lat:180/Math.PI*Math.atan(Math.sinh(Math.PI*(1-2*gy/world)))};
+          }).filter(Boolean);
+        }""")
+        for marker in markers:
+            title=marker.get("title","").strip()
+            if not title: continue
+            selector='.leaflet-marker-icon[title='+json.dumps(" "+title)+']'
+            loc=page.locator(selector)
+            if loc.count()!=1:
+                selector='.leaflet-marker-icon[title='+json.dumps(title)+']'; loc=page.locator(selector)
+            if loc.count()!=1: continue
+            try:
+                loc.press("Enter")
+                page.wait_for_selector(".leaflet-popup",timeout=10_000)
+                rows=page.eval_on_selector(".leaflet-popup", """p => [...p.querySelectorAll('tr')].map(tr => {
+                  const a=tr.querySelector('a[href*="visualization/"]');
+                  return {cells:[...tr.querySelectorAll('td')].map(td=>(td.innerText||'').trim().replace(/\s+/g,' ')),
+                    href:a ? a.getAttribute('href') : ''};
+                })""")
+            except Exception as e:
+                print(f"      Saarland-Popup {title}: {e}"); continue
+            items=[]; temp_series=""
+            for row in rows:
+                cells=row.get("cells") or []
+                if len(cells)<4: continue
+                pname=cells[0].lower()
+                if "mittelwert" in pname or "batter" in pname or "chlorophyll" in pname: continue
+                if "temperatur" in pname: label,unit,digits="Wassertemperatur","°C",1
+                elif "o2-konzentration" in pname: label,unit,digits="Sauerstoff","mg/l",1
+                elif "o2-sättigung" in pname or "o2-saettigung" in pname: label,unit,digits="O₂-Sättigung","%",0
+                elif "leitfähigkeit" in pname or "leitfaehigkeit" in pname: label,unit,digits="Leitfähigkeit","µS/cm",0
+                elif re.search(r"(^|\s)ph(\s|$)",pname): label,unit,digits="pH-Wert","",2
+                elif "trüb" in pname or "trueb" in pname: label,unit,digits="Trübung",cells[2],1
+                else: continue
+                val=to_number(cells[1]); dt=parse_dt(cells[3])
+                if val is None or not dt: continue
+                age=(now-dt).total_seconds()
+                if age>SAARLAND_MAX_AGE_H*3600 or age < -6*3600: continue
+                href=row.get("href") or ""
+                item={"label":label,"value":fmt_value(val,digits),"unit":unit,
+                      "time":dt.strftime("%d.%m.%Y %H:%M"),"_dt":dt}
+                if href: item["chart_url"]=urljoin("https://seba-hydrocenter.com/",href)
+                if label=="Wassertemperatur": temp_series=href
+                items.append(item)
+            if items:
+                newest=max(x["_dt"] for x in items)
+                for item in items: item.pop("_dt",None)
+                labels={x["label"] for x in items}
+                m_sid=re.search(r"visualization/(\d+)",temp_series or "")
+                sid=m_sid.group(1) if m_sid else re.sub(r"\W+","-",title.lower()).strip("-")
+                results.append({
+                    "id":"saar-live-"+str(sid), "name":re.sub(r"\s+20\d{2}\s*$","",title),
+                    "lat":round(float(marker["lat"]),6), "lon":round(float(marker["lon"]),6),
+                    "river":saarland_river(title), "updated":newest.strftime("%d.%m.%Y %H:%M"),
+                    "items":items, "history":{}, "src":"saarland-live", "source_url":SAARLAND_SOURCE,
+                    "params":{"wt":"Wassertemperatur" in labels,"o2":"Sauerstoff" in labels,"tr":"Trübung" in labels},
+                })
+            close=page.locator(".leaflet-popup-close-button")
+            if close.count()==1: close.click()
+        browser.close()
+    print(f"[Saarland] {len(results)} aktuelle Online-Stationen")
     return results
 
 
@@ -1036,7 +1198,7 @@ def process_nrw():
             "id": "nrw-"+sid, "name": name or sid, "lat": round(lat,5), "lon": round(lon,5), "river": river,
             "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
             "items": [{"label":"Wassertemperatur", "value":fmt_value(val,1), "unit":"°C",
-                       "icon":"\U0001F321️", "time": dt.strftime("%d.%m.%Y %H:%M") if dt else ""}],
+                       "icon":"", "time": dt.strftime("%d.%m.%Y %H:%M") if dt else ""}],
             "history": {},
         })
     print(f"[NRW] {len(results)} Stationen mit Wassertemperatur")
@@ -1139,9 +1301,9 @@ def process_undine():
             if not c: continue
             items=[]
             if temp_ok: items.append({"label":"Wassertemperatur", "value":fmt_value(d["t"],1), "unit":"°C",
-                                      "icon":"\U0001F321️", "time":dt.strftime("%d.%m.%Y %H:%M") if dt else d.get("d","")})
+                                      "icon":"", "time":dt.strftime("%d.%m.%Y %H:%M") if dt else d.get("d","")})
             if o2_ok: items.append({"label":"Sauerstoff", "value":fmt_value(d["o2"],1), "unit":"mg/l",
-                                    "icon":"\U0001FAE7", "time":dto.strftime("%d.%m.%Y %H:%M") if dto else d.get("d_o2","")})
+                                    "icon":"", "time":dto.strftime("%d.%m.%Y %H:%M") if dto else d.get("d_o2","")})
             results.append({
                 "id":"undine-"+region+"-"+key, "name":c["name"], "lat":c["lat"], "lon":c["lon"], "river":c["river"], "src":"undine",
                 "updated": datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M"),
@@ -1376,10 +1538,14 @@ def main():
         results.extend(process_sachsen())
     except Exception as e:
         print(f"      FEHLER Sachsen/BfUL: {e}")
-    try:                                   # Berlin (Wasserportal) – Oberflächen-Wassertemperatur
+    try:                                   # Berlin: aktuelle Temperatur-, O2-, pH- und Leitfähigkeitswerte
         results.extend(process_berlin())
     except Exception as e:
         print(f"      FEHLER Berlin: {e}")
+    try:                                   # Saarland: aktuelle Online-Gütesonden (SEBA/Uni Saarland)
+        results.extend(process_saarland_live())
+    except Exception as e:
+        print(f"      FEHLER Saarland/SEBA: {e}")
     try:                                   # NRW (LANUK/HYWIS) – Wassertemperatur
         results.extend(process_nrw())
     except Exception as e:

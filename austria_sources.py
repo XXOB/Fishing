@@ -36,7 +36,6 @@ SALZBURG_STATIONS_URL = (
     "https://www.salzburg.gv.at/ogd/943b7dda-5c3d-40d3-80de-f29a491a59fa/"
     "Abfluss_und_Seepegel.json"
 )
-AGES_BATHING_URL = "https://www.ages.at/typo3temp/badegewaesser_db.json"
 
 # Wird zuerst aus dem österreichweiten OGC-Feed gefüllt. Landesfeeds können
 # damit Messreihen (z. B. ZRXP) sicher über die HZB-Nummer georeferenzieren.
@@ -190,11 +189,9 @@ def _normalize_coords(x, y):
     return None
 
 
-def _item(label, value, unit, time="", digits=1, periodic=False):
+def _item(label, value, unit, time="", digits=1):
     item = {"label": label, "value": _fmt(value, digits), "unit": unit,
             "icon": "", "time": _time_text(time)}
-    if periodic:
-        item["periodic"] = True
     return item
 
 
@@ -534,98 +531,6 @@ def process_salzburg_open_data():
     return out
 
 
-def _bath_measure_date(row):
-    return _pick(row, "D", "Datum", "date", "Untersuchungsdatum")
-
-
-def process_ages_periodic():
-    """Alle österreichischen Badegewässer mit periodischen Untersuchungswerten."""
-    obj = _fetch_json(AGES_BATHING_URL)
-    states = obj.get("BUNDESLAENDER") or obj.get("bundeslaender") or []
-    out = []
-    quality_names = {1: "ausgezeichnet", 2: "gut", 3: "mangelhaft", 4: "Badeverbot"}
-    for state in states if isinstance(states, list) else []:
-        state_name = _pick(state, "BUNDESLAND", "name")
-        stations = _pick(state, "BADEGEWAESSER", "badestellen", "items")
-        if not isinstance(stations, list):
-            continue
-        for station in stations:
-            sid = str(_pick(station, "BADEGEWAESSERID", "id") or "").strip()
-            name = (_pick(station, "BADEGEWAESSERNAME", "BEZEICHNUNG", "NAME", "BADESTELLE")
-                    or _pick(station, "BADEGEWAESSER") or sid)
-            if isinstance(name, (dict, list)):
-                name = sid
-            coords = _coords_from_geometry(station)
-            if not coords:
-                lage = _pick(station, "LAGE", "KOORDINATEN", "coordinates")
-                if isinstance(lage, dict):
-                    coords = _coords_from_geometry(lage)
-                elif isinstance(lage, (list, tuple)) and len(lage) >= 2:
-                    coords = _normalize_coords(lage[0], lage[1])
-            if not coords:
-                continue
-            measurements = _pick(station, "MESSWERTE", "messwerte", "measurements")
-            if not isinstance(measurements, list) or not measurements:
-                continue
-            # AGES liefert den jüngsten Wert normalerweise zuerst. Die Sortierung
-            # über das deutsche Datum schützt zusätzlich vor Reihenfolgeänderungen.
-            def date_key(row):
-                s = str(_bath_measure_date(row) or "")
-                try: return datetime.strptime(s[:10], "%d.%m.%Y")
-                except ValueError: return datetime.min
-            latest = max(measurements, key=date_key)
-            when = _bath_measure_date(latest)
-            waterbody = (_pick(station, "GEWAESSER", "WASSERKOERPER", "SEE", "FLUSS") or name)
-            if not _pick(station, "GEWAESSER", "WASSERKOERPER", "SEE", "FLUSS") and "," in str(name):
-                waterbody = str(name).split(",", 1)[0].strip()
-            page = ("https://www.ages.at/umwelt/wasser/badegewaesser-monitoring?uid=" + sid)
-            st = _empty_station(
-                "at-ages-" + sid, name, coords[0], coords[1], waterbody or state_name,
-                "at-ages", page, "Bestätigung für kommerzielle Nutzung ausstehend",
-                "AGES/BMASGPK",
-            )
-            st["periodic"] = True
-            st["updated"] = _time_text(when) or _now_text()
-            temp = _pick(latest, "W", "Wassertemperatur", "temperature")
-            if _number(temp) is not None:
-                st["items"].append(_item("Wassertemperatur", temp, "°C", when, 1, True))
-                st["params"]["wt"] = True
-                history = []
-                for meas in measurements:
-                    val = _number(_pick(meas, "W", "Wassertemperatur", "temperature"))
-                    if val is not None:
-                        history.append({"t": _time_text(_bath_measure_date(meas)), "v": val})
-                if history:
-                    st["history"]["Wassertemperatur"] = history
-            sight = _pick(latest, "S", "Sichttiefe", "visibility")
-            if _number(sight) is not None:
-                st["items"].append(_item("Sichttiefe", sight, "m", when, 1, True))
-            enterococci = _pick(latest, "E", "Enterokokken")
-            if _number(enterococci) is not None:
-                st["items"].append(_item("Enterokokken", enterococci, "KBE/100 ml", when, 0, True))
-            ecoli = _pick(latest, "E_C", "EColi", "EscherichiaColi")
-            if _number(ecoli) is not None:
-                st["items"].append(_item("E. coli", ecoli, "KBE/100 ml", when, 0, True))
-            quality = _number(_pick(latest, "A", "Wasserqualitaet", "Wasserqualität"))
-            if quality is not None:
-                qname = quality_names.get(int(quality), str(int(quality)))
-                st["items"].append({"label": "Badewasserqualität", "value": qname,
-                                    "unit": "", "icon": "", "time": _time_text(when),
-                                    "periodic": True})
-            # Manche Länder liefern bei Badeuntersuchungen zusätzlich pH/O2.
-            oxygen = _pick(latest, "O2", "O2Saettigung", "Sauerstoffsaettigung")
-            if _number(oxygen) is not None:
-                st["items"].append(_item("O₂-Sättigung", oxygen, "%", when, 0, True))
-                st["params"]["o2"] = True
-            ph = _pick(latest, "PH", "pH")
-            if _number(ph) is not None:
-                st["items"].append(_item("pH-Wert", ph, "", when, 1, True))
-            if st["items"]:
-                out.append(st)
-    print(f"[Österreich/AGES] {len(out)} periodisch untersuchte Badegewässer")
-    return out
-
-
 def process_austria_sources():
     """Alle aktivierten Österreich-Adapter; eine defekte Quelle stoppt keine andere."""
     out = []
@@ -635,7 +540,6 @@ def process_austria_sources():
         ("Oberösterreich", process_ooe_live),
         ("Kärnten", process_kaernten_live),
         ("Salzburg", process_salzburg_open_data),
-        ("AGES Badegewässer", process_ages_periodic),
     )
     for name, processor in processors:
         try:

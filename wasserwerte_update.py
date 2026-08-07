@@ -48,16 +48,17 @@ CSV_DIR    = BASE_DIR / "wasserwerte_csv"             # Ablage der heruntergelad
 CSV_DIR.mkdir(exist_ok=True)
 
 # Zuordnung: Kennwort im Spaltennamen -> (Anzeige-Label, Standard-Einheit, Icon)
+# Die Oberfläche verwendet einheitliche SVG-Symbole und keine Emojis.
 # (Reihenfolge = Prioritaet; "saettigung" muss vor "sauerstoff" geprueft werden.)
 PARAM_MAP = [
-    ("temperatur",        ("Wassertemperatur", "°C",   "\U0001F321️")),
-    ("saettigung",        ("O₂-Sättigung", "%",   "\U0001FAE7")),
-    ("sättigung",    ("O₂-Sättigung", "%",   "\U0001FAE7")),
-    ("sauerstoff",        ("Sauerstoff",     "mg/l",        "\U0001FAE7")),
-    ("trübung",      ("Trübung",   "",            "\U0001F32B️")),
-    ("truebung",          ("Trübung",   "",            "\U0001F32B️")),
-    ("leitf",             ("Leitfähigkeit", "µS/cm", "⚡")),
-    ("ph",                ("pH-Wert",        "",            "⚗️")),
+    ("temperatur",        ("Wassertemperatur", "°C",   "")),
+    ("saettigung",        ("O₂-Sättigung", "%",   "")),
+    ("sättigung",    ("O₂-Sättigung", "%",   "")),
+    ("sauerstoff",        ("Sauerstoff",     "mg/l",        "")),
+    ("trübung",      ("Trübung",   "",            "")),
+    ("truebung",          ("Trübung",   "",            "")),
+    ("leitf",             ("Leitfähigkeit", "µS/cm", "")),
+    ("ph",                ("pH-Wert",        "",            "")),
 ]
 
 
