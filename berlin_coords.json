@@ -1,0 +1,380 @@
+{
+  "111": {
+    "lat": 52.429738,
+    "lon": 13.688949,
+    "name": "MS Rahnsdorf",
+    "river": ""
+  },
+  "139": {
+    "lat": 52.513935,
+    "lon": 13.410772,
+    "name": "MPS Fischerinsel",
+    "river": ""
+  },
+  "151": {
+    "lat": 52.520471,
+    "lon": 13.31268,
+    "name": "MPS Caprivibr�cke",
+    "river": ""
+  },
+  "161": {
+    "lat": 52.536159,
+    "lon": 13.216279,
+    "name": "MS Sophienwerder",
+    "river": ""
+  },
+  "211": {
+    "lat": 52.374305,
+    "lon": 13.653469,
+    "name": "MS Schm�ckwitz",
+    "river": ""
+  },
+  "414": {
+    "lat": 52.444603,
+    "lon": 13.32978,
+    "name": "MPS Teltowkanal",
+    "river": ""
+  },
+  "421": {
+    "lat": 52.405703,
+    "lon": 13.251171,
+    "name": "MS Teltow-Werft",
+    "river": ""
+  },
+  "504": {
+    "lat": 52.484758,
+    "lon": 13.444504,
+    "name": "MPS Neuk�llner Schifffahrtskanal",
+    "river": ""
+  },
+  "509": {
+    "lat": 52.499042,
+    "lon": 13.383273,
+    "name": "MPS Landwehrkanal",
+    "river": ""
+  },
+  "5800106": {
+    "lat": 52.563423,
+    "lon": 13.361417,
+    "name": "Sch�fersee",
+    "river": ""
+  },
+  "5800107": {
+    "lat": 52.447384,
+    "lon": 13.23039,
+    "name": "Am Wolfsschluchtkanal",
+    "river": ""
+  },
+  "5800301": {
+    "lat": 52.485183,
+    "lon": 13.264957,
+    "name": "Dianasee",
+    "river": ""
+  },
+  "5800302": {
+    "lat": 52.446837,
+    "lon": 13.271821,
+    "name": "Dreipfuhl",
+    "river": ""
+  },
+  "5800303": {
+    "lat": 52.570165,
+    "lon": 13.292592,
+    "name": "Flughafensee",
+    "river": ""
+  },
+  "5800304": {
+    "lat": 52.46672,
+    "lon": 13.25738,
+    "name": "Grunewaldsee",
+    "river": ""
+  },
+  "5800305": {
+    "lat": 52.459206,
+    "lon": 13.112822,
+    "name": "Gro� Glienicker See",
+    "river": ""
+  },
+  "5800306": {
+    "lat": 52.49566,
+    "lon": 13.280513,
+    "name": "Halensee",
+    "river": ""
+  },
+  "5800308": {
+    "lat": 52.484277,
+    "lon": 13.257157,
+    "name": "Hundekehlesee",
+    "river": ""
+  },
+  "5800309": {
+    "lat": 52.50853,
+    "lon": 13.292551,
+    "name": "Lietzensee",
+    "river": ""
+  },
+  "5800310": {
+    "lat": 52.441189,
+    "lon": 13.234641,
+    "name": "Waldsee Zehlendorf",
+    "river": ""
+  },
+  "5800312": {
+    "lat": 52.542703,
+    "lon": 13.330792,
+    "name": "Pl�tzensee",
+    "river": ""
+  },
+  "5800315": {
+    "lat": 52.548917,
+    "lon": 13.486704,
+    "name": "Obersee",
+    "river": ""
+  },
+  "5800316": {
+    "lat": 52.549226,
+    "lon": 13.480706,
+    "name": "Orankesee",
+    "river": ""
+  },
+  "5800317": {
+    "lat": 52.50146,
+    "lon": 13.547458,
+    "name": "Biesdorfer Baggersee",
+    "river": ""
+  },
+  "5800318": {
+    "lat": 52.57276,
+    "lon": 13.485249,
+    "name": "Malchower See",
+    "river": ""
+  },
+  "5800320": {
+    "lat": 52.530976,
+    "lon": 13.475188,
+    "name": "Fennpfuhl",
+    "river": ""
+  },
+  "5800321": {
+    "lat": 52.542819,
+    "lon": 13.279261,
+    "name": "Jungfernheideteich",
+    "river": ""
+  },
+  "5803200": {
+    "lat": 52.52448,
+    "lon": 13.205033,
+    "name": "Tiefwerder",
+    "river": ""
+  },
+  "5803500": {
+    "lat": 52.430277,
+    "lon": 13.123929,
+    "name": "Pfaueninsel",
+    "river": ""
+  },
+  "5819901": {
+    "lat": 52.622747,
+    "lon": 13.3505,
+    "name": "L�bars",
+    "river": ""
+  },
+  "5826701": {
+    "lat": 52.402495,
+    "lon": 13.703589,
+    "name": "Neue Fahlenbergbr�cke",
+    "river": ""
+  },
+  "5827101": {
+    "lat": 52.429549,
+    "lon": 13.688954,
+    "name": "F�hre Rahnsdorf",
+    "river": ""
+  },
+  "5827700": {
+    "lat": 52.536168,
+    "lon": 13.216279,
+    "name": "Sophienwerder",
+    "river": ""
+  },
+  "5861101": {
+    "lat": 52.468792,
+    "lon": 13.623116,
+    "name": "Am Reitweg",
+    "river": ""
+  },
+  "5861200": {
+    "lat": 52.464214,
+    "lon": 13.621404,
+    "name": "Wiesengrund",
+    "river": ""
+  },
+  "5862811": {
+    "lat": 52.373742,
+    "lon": 13.653001,
+    "name": "Schm�ckwitz US",
+    "river": ""
+  },
+  "5864700": {
+    "lat": 52.539924,
+    "lon": 13.581667,
+    "name": "Hellersdorf",
+    "river": ""
+  },
+  "5864800": {
+    "lat": 52.512196,
+    "lon": 13.573424,
+    "name": "Wuhletal",
+    "river": ""
+  },
+  "5865000": {
+    "lat": 52.497513,
+    "lon": 13.56889,
+    "name": "Honsfelder Br�cke",
+    "river": ""
+  },
+  "5865200": {
+    "lat": 52.472427,
+    "lon": 13.567319,
+    "name": "Hoppendorfer Stra�e",
+    "river": ""
+  },
+  "5865900": {
+    "lat": 52.525568,
+    "lon": 13.516606,
+    "name": "Allee der Kosmonauten",
+    "river": ""
+  },
+  "5866301": {
+    "lat": 52.510444,
+    "lon": 13.338572,
+    "name": "Zoo",
+    "river": ""
+  },
+  "5866403": {
+    "lat": 52.548357,
+    "lon": 13.276153,
+    "name": "Nonnengraben",
+    "river": ""
+  },
+  "5866700": {
+    "lat": 52.46607,
+    "lon": 13.45379,
+    "name": "Schleuse Neuk�lln OP",
+    "river": ""
+  },
+  "5866800": {
+    "lat": 52.466753,
+    "lon": 13.454428,
+    "name": "Schleuse Neuk�lln UP",
+    "river": ""
+  },
+  "5867000": {
+    "lat": 52.646957,
+    "lon": 13.521222,
+    "name": "R�ntgental",
+    "river": ""
+  },
+  "5867003": {
+    "lat": 52.634382,
+    "lon": 13.421779,
+    "name": "Blankenfelde",
+    "river": ""
+  },
+  "5867100": {
+    "lat": 52.611664,
+    "lon": 13.451929,
+    "name": "Krontaler Stra�e",
+    "river": ""
+  },
+  "5867101": {
+    "lat": 52.603124,
+    "lon": 13.449248,
+    "name": "Flaischlenstra�e",
+    "river": ""
+  },
+  "5867201": {
+    "lat": 52.59126,
+    "lon": 13.435878,
+    "name": "Verteiler OP",
+    "river": ""
+  },
+  "5867202": {
+    "lat": 52.591106,
+    "lon": 13.435795,
+    "name": "Verteiler UP",
+    "river": ""
+  },
+  "5867300": {
+    "lat": 52.583875,
+    "lon": 13.430236,
+    "name": "Heinersdorf",
+    "river": ""
+  },
+  "5867301": {
+    "lat": 52.588488,
+    "lon": 13.441852,
+    "name": "Venturigerinne",
+    "river": ""
+  },
+  "5867401": {
+    "lat": 52.568588,
+    "lon": 13.389894,
+    "name": "B�rgerpark",
+    "river": ""
+  },
+  "5867500": {
+    "lat": 52.566469,
+    "lon": 13.387464,
+    "name": "K�hnemannstra�e",
+    "river": ""
+  },
+  "5867600": {
+    "lat": 52.542521,
+    "lon": 13.373314,
+    "name": "Sch�nwalder Str.",
+    "river": ""
+  },
+  "5867601": {
+    "lat": 52.538124,
+    "lon": 13.369953,
+    "name": "Eisstadion",
+    "river": ""
+  },
+  "5867700": {
+    "lat": 52.593378,
+    "lon": 13.431565,
+    "name": "Pasewalker Br�cke",
+    "river": ""
+  },
+  "5867900": {
+    "lat": 52.594163,
+    "lon": 13.288869,
+    "name": "Eisenbahnbr�cke",
+    "river": ""
+  },
+  "5869700": {
+    "lat": 52.487196,
+    "lon": 13.644868,
+    "name": "Krummendammbr�cke",
+    "river": ""
+  },
+  "5870100": {
+    "lat": 52.419975,
+    "lon": 13.303196,
+    "name": "Lichterfelde",
+    "river": ""
+  },
+  "5870400": {
+    "lat": 52.41073,
+    "lon": 13.143873,
+    "name": "Alsenbr�cke",
+    "river": ""
+  },
+  "601": {
+    "lat": 52.538542,
+    "lon": 13.345032,
+    "name": "MPS Berlin-Spandauer-Schifffahrtskanal",
+    "river": ""
+  }
+}
