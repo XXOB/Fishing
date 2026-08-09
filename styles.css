@@ -324,6 +324,67 @@ body{padding-bottom:82px}
 .biterec{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;color:var(--text)}
 .biterec b{color:var(--water)}
 
+/* Apple-inspirierte HMI: klare Materialien, große Touch-Ziele und ruhige Animationen */
+:root{
+  --bg:#000;--bg2:#111113;--card:rgba(28,28,30,.88);--card2:rgba(44,44,46,.9);
+  --line:rgba(255,255,255,.105);--text:#f5f5f7;--muted:#a1a1aa;--muted2:#747480;
+  --water:#64d2ff;--primary:#0a84ff;--primary2:#0a84ff;
+  --shadow:0 10px 34px rgba(0,0,0,.34);
+}
+html{background:#000}
+body{background:radial-gradient(900px 520px at 8% -10%,rgba(10,132,255,.18),transparent 62%) fixed #000}
+button,input,select{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation}
+.logo{background:linear-gradient(145deg,#0a84ff,#3157e8);border-radius:13px;box-shadow:0 8px 24px rgba(10,132,255,.32)}
+.btn-primary{min-height:46px;border-radius:12px;background:#0a84ff;box-shadow:0 7px 22px rgba(10,132,255,.24)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary:active,.map-add-spot:active,.tabbtn:active{transform:scale(.97);opacity:.86}
+.spotrow,.emptycard,.mapcard,.fbcard,.tile,.qtile,.statcard,.biteitem,.baitcat{
+  background:var(--card);border-color:var(--line);box-shadow:var(--shadow);backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+}
+.spotrow{border-radius:14px}
+.spotopen{min-height:64px}
+.spotdel,.stadel,.cmx{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.maphost{width:100%}
+.home-map-host{margin-top:20px}
+.spot-map-host{margin-top:8px}
+.mapstage{position:relative;isolation:isolate}
+.home-map-card .sect{margin-top:18px}
+.home-map-card #map{height:430px}
+.map-add-spot{
+  position:absolute;left:50%;bottom:22px;z-index:600;transform:translateX(-50%);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;
+  color:#fff;background:rgba(10,132,255,.94);border:1px solid rgba(255,255,255,.22);border-radius:23px;
+  font-size:15px;font-weight:700;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.38);
+  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);cursor:pointer;
+}
+.map-add-spot:hover{background:#0a84ff}
+.mapmeta{background:rgba(28,28,30,.76);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.mapmeta .btns{gap:2px;padding:3px;background:rgba(118,118,128,.2);border-radius:11px}
+.mapmeta button,.mapmeta a.b{min-height:34px;border:0;border-radius:8px;background:transparent;padding:6px 10px}
+.mapmeta button.active{background:rgba(255,255,255,.14);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+#markHint{background:rgba(10,132,255,.14)!important;color:#9bdcff!important;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#map.leaflet-container,#map.leaflet-grab{cursor:default!important}
+#map.leaflet-dragging,#map.leaflet-dragging *{cursor:grabbing!important}
+#map .leaflet-marker-icon,#map .leaflet-interactive{cursor:pointer}
+.leaflet-control-zoom{border:0!important;border-radius:11px!important;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.28)!important}
+.leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important;color:#0a84ff!important;background:rgba(245,245,247,.9)!important;border-color:rgba(60,60,67,.18)!important}
+.sensor-cluster-wrap{background:none;border:0}
+.sensor-cluster{width:var(--cluster-size);height:var(--cluster-size);padding:3px;border-radius:50%;background:var(--cluster-ring);box-shadow:0 7px 22px rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.72)}
+.sensor-cluster span{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(28,28,30,.9);color:#fff;font-size:12px;font-weight:750;letter-spacing:-.2px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.tabbar{background:rgba(20,20,22,.82);border-top-color:rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(170%);-webkit-backdrop-filter:blur(28px) saturate(170%);box-shadow:0 -1px 0 rgba(0,0,0,.34)}
+.tabbtn{min-height:52px;border-radius:11px;transition:transform .12s ease,color .12s ease}
+.tabbtn.active{color:#0a84ff}
+.fbfield input,.fbfield select,.baitadd input,.baitadd select,.baitvaradd input,.stabar input,.stabar select{min-height:44px;border-radius:10px;background:rgba(118,118,128,.13);border-color:rgba(255,255,255,.12)}
+.cmbox{background:rgba(28,28,30,.96);border-color:rgba(255,255,255,.14);border-radius:20px;backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)}
+@media(max-width:700px){
+  .cmodal{align-items:flex-end;padding:0}
+  .cmbox{max-width:none;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .home-map-card #map{height:360px}
+  .map-add-spot{bottom:18px}
+}
+
 @media(max-width:520px){
   .tile .val{font-size:26px}
   h1{font-size:18px}

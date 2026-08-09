@@ -739,7 +739,7 @@ function importJSON(ev){
 }
 
 /* ---- Leaflet-Karte ---- */
-let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null, STATION_MARKER=null;
+let MAP=null, CATCH_LAYER=null, SELECT_MARKER=null;
 let STATIONS_LAYER=null, SPOTS_LAYER=null, STATIONS_VISIBLE=false, SPOTS_VISIBLE=true, SPOT_PICK=false, STATION_PICK=false;
 let STATION_MINWERTE=false;   // false = alle Stationen, true = nur mit >= 2 Werten
 let PO_PARAMS=null, PO_LOADING=false;            // uuid -> {wt,o2,tr}
@@ -775,10 +775,15 @@ function initMap(){
   addStationDots(); addSpotMarkers();
   if(STATIONS_VISIBLE) STATIONS_LAYER.addTo(MAP);
   if(SPOTS_VISIBLE) SPOTS_LAYER.addTo(MAP);
-  STATION_MARKER=L.circleMarker([CUR.lat,CUR.lon],{radius:7,color:"#38bdf8",weight:2,fillColor:"#38bdf8",fillOpacity:.9})
-    .addTo(MAP).bindPopup("Pegel "+CUR.name);
+  MAP.createPane("selectionPane");
+  MAP.getPane("selectionPane").style.zIndex="690";
+  MAP.getPane("selectionPane").style.pointerEvents="none";
   CATCH_LAYER=L.layerGroup().addTo(MAP);
-  MAP.on("moveend", addStationDots);
+  let stationRedrawTimer=null;
+  MAP.on("moveend", ()=>{
+    clearTimeout(stationRedrawTimer);
+    stationRedrawTimer=setTimeout(addStationDots,70);
+  });
   MAP.on("click", e=>{
     if(STATION_PICK){
       STATION_PICK=false; const hb=$("markHint"); if(hb) hb.style.display="none";
@@ -818,6 +823,37 @@ function pieIcon(segs, r){
   const svg='<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';
   return L.divIcon({className:"pie-ic", html:svg, iconSize:[size,size], iconAnchor:[c,c]});
 }
+function stationClusterIcon(count,segs){
+  const size=count>=100?52:(count>=20?46:40), n=Math.max(1,segs.length);
+  const stops=segs.length ? segs.map((d,i)=>d[1]+" "+((i/n)*360)+"deg "+(((i+1)/n)*360)+"deg").join(",") : "#9aa3ab 0deg 360deg";
+  const html='<div class="sensor-cluster" style="--cluster-size:'+size+'px;--cluster-ring:conic-gradient('+stops+')"><span>'+count+'</span></div>';
+  return L.divIcon({className:"sensor-cluster-wrap",html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+}
+function clusterStationList(list){
+  if(!MAP) return list;
+  const zoom=MAP.getZoom()||6;
+  if(zoom>=11 || list.length<2) return list;
+  const cell=zoom<=6?86:(zoom<=8?70:54), buckets=new Map();
+  for(const o of list){
+    const p=MAP.project([o.s.lat,o.s.lon],zoom);
+    const key=Math.floor(p.x/cell)+":"+Math.floor(p.y/cell);
+    if(!buckets.has(key)) buckets.set(key,[]);
+    buckets.get(key).push(o);
+  }
+  const out=[];
+  for(const group of buckets.values()){
+    if(group.length===1){ out.push(group[0]); continue; }
+    const keys=new Set(), segs=[];
+    let lat=0,lon=0;
+    for(const o of group){
+      lat+=+o.s.lat; lon+=+o.s.lon;
+      for(const seg of o.segs){ if(!keys.has(seg[0])){ keys.add(seg[0]); segs.push(seg); } }
+    }
+    segs.sort((a,b)=>SEG_DEF.findIndex(x=>x[0]===a[0])-SEG_DEF.findIndex(x=>x[0]===b[0]));
+    out.push({cluster:true,count:group.length,lat:lat/group.length,lon:lon/group.length,segs});
+  }
+  return out;
+}
 function addStationDots(){
   if(!STATIONS_LAYER) return;
   STATIONS_LAYER.clearLayers();
@@ -846,12 +882,20 @@ function addStationDots(){
   }
   let list=pts.map(s=>({s, segs:segList(s.p)})).filter(o=>o.segs.length>0);
   // Filter: sichtbarer Ausschnitt + optional nur Stationen mit >= 2 Werten
-  try{ if(MAP){ const b=MAP.getBounds(); list=list.filter(o=>b.contains([o.s.lat,o.s.lon])); } }catch(e){}
+  try{ if(MAP){ const b=MAP.getBounds().pad(.15); list=list.filter(o=>b.contains([o.s.lat,o.s.lon])); } }catch(e){}
   if(STATION_MINWERTE) list=list.filter(o=>o.segs.length>=2);
   // Deutschlandweit sind inzwischen deutlich mehr als 500 Pegel- und Gütepunkte
   // vorhanden. Der alte 500er-Schnitt ließ vor allem später geladene Landesnetze weg.
   if(list.length>2500) list=list.slice(0,2500);
+  list=clusterStationList(list);
   for(const o of list){
+    if(o.cluster){
+      const mk=L.marker([o.lat,o.lon],{icon:stationClusterIcon(o.count,o.segs),keyboard:true});
+      mk.bindTooltip(o.count+" Messstationen · antippen zum Vergrößern");
+      mk.on("click",()=>MAP.setView([o.lat,o.lon],Math.min((MAP.getZoom()||6)+2,12)));
+      STATIONS_LAYER.addLayer(mk);
+      continue;
+    }
     const names=o.segs.map(d=>d[2]).join("+");
     const mk=L.marker([o.s.lat,o.s.lon],{icon:pieIcon(o.segs, o.s.r)});
     mk.bindTooltip((o.s.guete?"Gütestation ":"Pegel ")+o.s.name+" · "+(o.s.river||"")+" · "+names);
@@ -898,9 +942,10 @@ function setSelectedLocation(lat, lon, acc, pan){
   CURRENT_GPS={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6), genauigkeit_m: (acc==null? null : Math.round(acc)) };
   if(MAP && window.L){
     if(!SELECT_MARKER){
-      SELECT_MARKER=L.circleMarker([lat,lon],{radius:8,color:"#fbbf24",weight:3,fillColor:"#fbbf24",fillOpacity:.55}).addTo(MAP);
+      SELECT_MARKER=L.circleMarker([lat,lon],{pane:"selectionPane",radius:10,color:"#fff",weight:3,fillColor:"#fbbf24",fillOpacity:.9}).addTo(MAP);
       SELECT_MARKER.bindPopup("Gewählter Fangort");
     } else SELECT_MARKER.setLatLng([lat,lon]);
+    if(SELECT_MARKER.bringToFront) SELECT_MARKER.bringToFront();
     if(pan){ try{ MAP.setView([lat,lon], Math.max(MAP.getZoom()||13, 15)); }catch(e){} }
   }
   const extra = CURRENT_GPS.genauigkeit_m!=null ? " (Handy, ±"+CURRENT_GPS.genauigkeit_m+" m)" : " (auf Karte gewählt)";
@@ -935,14 +980,15 @@ let MARKING=false, PROV=null, PROV_MARKER=null;
 function markOnMap(){
   MARKING=true; removeProv();
   if(!MAP) initMap();
-  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+" Tippe auf die Karte an die Stelle deines Fangs."; hb.style.display="block"; }
+  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('target')+" Tippe auf die Karte an die Stelle deines Fangs."; hb.style.display="block"; }
   const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"});
 }
 function setProvFangort(lat, lon){                 // erst provisorisch – muss bestätigt werden
   PROV={ lat:+(+lat).toFixed(6), lon:+(+lon).toFixed(6) };
   if(MAP && window.L){
-    if(!PROV_MARKER){ PROV_MARKER=L.circleMarker([lat,lon],{radius:9,color:"#fbbf24",weight:2,dashArray:"4 3",fillColor:"#fbbf24",fillOpacity:.25}).addTo(MAP); }
+    if(!PROV_MARKER){ PROV_MARKER=L.circleMarker([lat,lon],{pane:"selectionPane",radius:12,color:"#fff",weight:3,fillColor:"#fbbf24",fillOpacity:.82}).addTo(MAP); }
     else PROV_MARKER.setLatLng([lat,lon]);
+    if(PROV_MARKER.bringToFront) PROV_MARKER.bringToFront();
   }
   const hb=$("markHint");
   if(hb){ hb.innerHTML=uiIcon('pin')+' Fangort hier setzen? <button class="mhbtn" onclick="confirmFangort()">'+uiIcon('check')+' Bestätigen</button><button class="mhbtn sec" onclick="cancelFangort()">'+uiIcon('close')+' Abbrechen</button>'; hb.style.display="block"; }
@@ -956,13 +1002,28 @@ function confirmFangort(){
   if(hb){ hb.innerHTML=uiIcon('check')+' Fangort gesetzt · für einen weiteren Ort erneut tippen · <a href="#" onclick="scrollToSave();return false;">Fang speichern</a> · <a href="#" onclick="stopMarking();return false;">fertig</a>'; hb.style.display="block"; }
   // MARKING bleibt aktiv – der nächste Fangort kann direkt markiert werden
 }
-function cancelFangort(){ removeProv(); const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+' Tippe auf die Karte an die Stelle deines Fangs.'; hb.style.display="block"; } }
+function cancelFangort(){ removeProv(); const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('target')+' Tippe auf die Karte an die Stelle deines Fangs.'; hb.style.display="block"; } }
 function stopMarking(){ MARKING=false; removeProv(); const hb=$("markHint"); if(hb) hb.style.display="none"; }
 function scrollToSave(){ const b=document.getElementById("fbSaveBtn"); if(b) b.scrollIntoView({behavior:"smooth", block:"center"}); }
 function centerOnActiveSpot(){
   if(!MAP) return;
   const sp=activeSpot(); const ll = sp ? spotLatLon(sp) : [WXPOS.lat, WXPOS.lon];
   try{ MAP.setView(ll, Math.max(MAP.getZoom()||13, 13)); }catch(e){}
+}
+function mountMapCard(hostId,isHome){
+  const host=$(hostId), card=$("mapCard"), add=$("mapAddSpot");
+  if(host&&card&&card.parentElement!==host) host.appendChild(card);
+  if(card) card.classList.toggle("home-map-card",!!isHome);
+  if(add) add.style.display=isHome?"inline-flex":"none";
+}
+function centerHomeMap(){
+  if(!MAP) return;
+  const points=loadSpots().map(spotLatLon).filter(x=>x&&isFinite(x[0])&&isFinite(x[1]));
+  try{
+    if(points.length>1) MAP.fitBounds(points,{padding:[34,34],maxZoom:13});
+    else if(points.length===1) MAP.setView(points[0],13);
+    else MAP.setView([51.3,10.4],6);
+  }catch(e){}
 }
 function renderTable(){
   const box=$("fbTable"); if(!box) return;
@@ -1328,7 +1389,7 @@ function pegAuto(){
 function pegPickMap(){
   hidePegEdit(); STATION_PICK=true;
   ensureMapVisible();
-  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+" Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
+  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('target')+" Tippe die gewünschte Pegel-Station an (grauer Punkt)."; hb.style.display="block"; }
   setTimeout(()=>{ const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
 function applyWaterType(sp){
@@ -1360,9 +1421,8 @@ function reflectStation(){
   applyWaterType(sp);
 }
 function updateStationMarker(){
-  if(!MAP || !STATION_MARKER) return;
-  STATION_MARKER.setLatLng([CUR.lat,CUR.lon]).bindPopup("Pegel "+CUR.name);
-  try{ MAP.setView([WXPOS.lat, WXPOS.lon], MAP.getZoom()||13); }catch(e){}
+  // Der dauerhaft sichtbare blaue Pegelpunkt wurde entfernt. Zugeordnete
+  // Stationen erscheinen nur noch in der einschaltbaren Sensor-Ebene.
 }
 function activateStationFor(uuid){ const s=STATIONS.find(x=>x.uuid===uuid); if(s){ CUR=s; delete HIST.pegel; delete HIST.durchfluss; delete HIST.wx; } }
 /* gespeicherte Angelplätze */
@@ -1385,8 +1445,7 @@ function newSpotOnMap(){
   SPOT_PICK=true;
   ensureMapVisible();
   setAddMapView();
-  const b=$("homeMapBtn"); if(b && $("homeView") && $("homeView").style.display!=="none") setIconLabel(b,"map","Karte ausblenden");
-  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('hand')+" Tippe auf deinen Angelplatz auf der Karte – danach kannst du ihn benennen."; hb.style.display="block"; }
+  const hb=$("markHint"); if(hb){ hb.innerHTML=uiIcon('target')+" Tippe auf deinen Angelplatz auf der Karte – danach kannst du ihn benennen."; hb.style.display="block"; }
   setTimeout(()=>{ setAddMapView(); const m=document.getElementById("map"); if(m) m.scrollIntoView({behavior:"smooth", block:"center"}); }, 120);
 }
 function pickAuto(){
@@ -1473,8 +1532,7 @@ function renderSpotList(){
   if(!spots.length){ box.innerHTML=
     '<div class="emptycard"><div class="emptyicon">'+PIN_SVG+'</div>'+
     '<div class="emptytitle">Noch kein Angelplatz gespeichert</div>'+
-    '<div class="emptydesc">Wähle deinen Platz auf der Karte aus, wenn du ihn hinzufügen möchtest. Eine Standortfreigabe ist nicht nötig.</div>'+
-    '<button class="btn-primary" onclick="newSpotOnMap()">Angelplatz hinzufügen</button></div>'; return; }
+    '<div class="emptydesc">Wähle deinen Platz auf der Karte unten aus. Eine Standortfreigabe ist nicht nötig.</div></div>'; return; }
   box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">'+uiIcon('pin')+' '+esc(s.name)+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span>'+
     '<span class="spotcond" id="cond_'+s.id+'">Bedingungen …</span></button>'+
@@ -1529,9 +1587,11 @@ function showTrips(){
 function showHome(){
   hideAllViews();
   const h=$("homeView"); if(h) h.style.display="block";
-  const b=$("homeMapBtn"); setIconLabel(b,"map","Karte anzeigen");
   renderSpotList();
   renderTripBanner();
+  mountMapCard("homeMapHost",true);
+  ensureMapVisible();
+  setTimeout(()=>{ try{ if(MAP){ MAP.invalidateSize(); centerHomeMap(); } }catch(e){} },100);
   setActiveTab("places");
 }
 /* --- Tab 2: Fangbücher (Liste je Angelplatz + Gesamt) --- */
@@ -1924,6 +1984,7 @@ function openSpot(id){
   if(id) activateSpotById(id);
   hideAllViews();
   const sv=$("spotView"), mc=$("mapCard");
+  mountMapCard("spotMapHost",false);
   if(sv) sv.style.display="block";
   if(mc) mc.style.display="block";
   initMap();
@@ -1938,11 +1999,8 @@ function ensureMapVisible(){
   setTimeout(()=>{ try{ if(MAP) MAP.invalidateSize(); }catch(e){} }, 80);
 }
 function toggleHomeMap(){
-  const m=$("mapCard"); if(!m) return;
-  const hidden = (m.style.display==="none" || m.style.display==="");
-  const b=$("homeMapBtn");
-  if(hidden){ ensureMapVisible(); setIconLabel(b,"map","Karte ausblenden"); m.scrollIntoView({behavior:"smooth", block:"start"}); }
-  else { m.style.display="none"; setIconLabel(b,"map","Karte anzeigen"); }
+  mountMapCard("homeMapHost",true);
+  ensureMapVisible();
 }
 function fbTitle(){ const n=activeSpotName(); return (n? n+" " : "")+"Fangbuch"; }
 function updateFangbuchBtn(){
