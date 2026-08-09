@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=44">
+<link rel="stylesheet" href="styles.css?v=45">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -18,8 +18,6 @@
   <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-4"/></symbol>
   <symbol id="i-line-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/></symbol>
   <symbol id="i-pie" viewBox="0 0 24 24"><path d="M11 3a9 9 0 1 0 9 9h-9Z"/><path d="M14 3.6A9 9 0 0 1 20.4 10H14Z"/></symbol>
-  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z"/></symbol>
-  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M18.5 9A7 7 0 1 0 19 15"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -68,8 +66,6 @@
   </div>
 </header>
 
-<div id="tripBanner" class="tripbanner" style="display:none"></div>
-
 <div id="fbIndexView" style="display:none">
   <div class="sect">Fangbücher</div>
   <div id="fbIndexList" class="spotlist"></div>
@@ -111,34 +107,15 @@
   <div id="homeMapHost" class="maphost home-map-host"></div>
 </div>
 
-<div id="tripsView" style="display:none">
-  <div class="pagelabel">Angeltrips</div>
-  <h2 class="pagetitle">Trips</h2>
-  <p class="pagedesc">Starte einen Trip, trag deine Fänge direkt ein – beim Beenden wird ohne Fang automatisch ein fangloser Tag gespeichert.</p>
-  <button class="btn-primary block btn-trip" onclick="openTripModal()"><svg class="uiicon"><use href="#i-play"/></svg> Angeltrip starten</button>
-  <div class="sect" id="tripSect" style="display:none">Meine Trips</div>
-  <div id="tripList" class="spotlist"></div>
-</div>
-
 <div id="spotView" style="display:none">
 <div class="datatop">
   <div class="updated" id="updated">lädt …</div>
   <button class="refresh" onclick="loadAll()"><svg class="uiicon"><use href="#i-refresh"/></svg> Aktualisieren</button>
 </div>
 <div class="stabar">
-  <div class="staleft">
-    <div class="starow">
-      <select id="spotSelect" onchange="onSpotSelect(this.value)"></select>
-      <button class="stadel" onclick="deleteActiveSpot()" title="Angelplatz löschen" aria-label="Angelplatz löschen"><svg class="uiicon"><use href="#i-close"/></svg></button>
-    </div>
-    <div class="starow">
-      <button id="pegBtn" class="pegbtn" onclick="togglePegEdit()"><span id="pegPrefix">Pegelstation:</span> <b id="staPegName">–</b> <span class="pegic" id="pegEditHint"><svg class="uiicon"><use href="#i-edit"/></svg> ändern</span></button>
-      <span id="pegEdit" class="pegedit" style="display:none">
-        <button onclick="pegPickList()"><svg class="uiicon"><use href="#i-list"/></svg> Station wählen</button>
-        <button onclick="pegPickMap()"><svg class="uiicon"><use href="#i-map"/></svg> auf Karte</button>
-        <button onclick="pegAuto()"><svg class="uiicon"><use href="#i-pin"/></svg> automatisch</button>
-      </span>
-    </div>
+  <div class="spot-title-only">
+    <span>Angelplatz</span>
+    <strong id="spotTitle">–</strong>
   </div>
 </div>
 
@@ -306,15 +283,12 @@
 <div id="statsView" style="display:none">
   <div class="sect">Statistik</div>
   <div id="statsBody"></div>
-  <button type="button" class="secttoggle" onclick="toggleTripSuccess()"><svg class="uiicon"><use href="#i-line-chart"/></svg> Erfolgsquote der Trips</button>
-  <div id="tripSuccessBox" style="display:none"></div>
   <button type="button" class="secttoggle" onclick="toggleFishPie()"><svg class="uiicon"><use href="#i-pie"/></svg> Fische nach Anteil</button>
   <div id="fishPieBox" style="display:none"></div>
 </div>
 
 <nav class="tabbar" id="tabbar">
   <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="tx">Angelplätze</span></button>
-  <button class="tabbtn" id="tabTrips" onclick="showTrips()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9h17M8 3v3M16 3v3"/></svg></span><span class="tx">Trips</span></button>
   <button class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5V20.5M12 8h4M12 12h4"/></svg></span><span class="tx">Fangbücher</span></button>
   <button class="tabbtn" id="tabBait" onclick="showBaitList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v9a4 4 0 1 1-8 0"/><path d="M13 4.5 15 3l2 1.5"/><circle cx="7" cy="12.4" r="1"/></svg></span><span class="tx">Köder</span></button>
   <button class="tabbtn" id="tabStats" onclick="showStats()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-4"/></svg></span><span class="tx">Statistik</span></button>
@@ -367,32 +341,9 @@
   </div>
 </div>
 
-<div id="endTripModal" class="cmodal" style="display:none">
-  <div class="cmbox">
-    <div class="cmhead"><span>Trip beenden</span></div>
-    <div class="fbnote" style="margin-bottom:14px">Hast du (noch) einen Fang, den du eintragen möchtest?</div>
-    <div class="fbactions">
-      <button class="fbsave" onclick="endTripYes()"><svg class="uiicon"><use href="#i-fish"/></svg> Ja, Fang eintragen</button>
-      <button class="fbblank" onclick="endTripNo()">Nein, Trip beenden</button>
-    </div>
-  </div>
-</div>
-
-<div id="tripModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripModal()">
-  <div class="cmbox">
-    <div class="cmhead"><span>Angeltrip starten</span><button class="cmx" onclick="closeTripModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="fbfield"><label>Angelplatz</label><select id="trip_spot"></select></div>
-    <div class="fbnote" style="margin-top:10px">Während des Trips gespeicherte Fänge landen automatisch im Fangbuch dieses Platzes.</div>
-    <div class="fbactions" style="margin-top:14px">
-      <button class="btn-primary" onclick="confirmStartTrip()"><svg class="uiicon"><use href="#i-play"/></svg> Starten</button>
-      <button class="backbtn" onclick="closeTripModal()">Abbrechen</button>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=44"></script>
+<script src="app.js?v=45"></script>
 </body>
 </html>

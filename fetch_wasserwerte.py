@@ -27,7 +27,7 @@ import html as html_lib
 import zipfile
 import xml.etree.ElementTree as ET
 import urllib.request
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -1370,20 +1370,35 @@ def post_json(url, payload, timeout=120):
 
 def process_switzerland_bafu():
     """Alle aktiven BAFU-Stationen und deren Live-Parameter aus der offenen GraphQL-API."""
-    query="""
+    # Metadaten und Livewerte getrennt abrufen. Die frühere kombinierte, ungefilterte
+    # data_live-Abfrage überschritt regelmäßig das 10.000-Zeilen-Limit und ließ dann
+    # das komplette Schweizer Netz aus wasserwerte.json verschwinden.
+    station_query="""
     { water { observations {
       stations(where:{status:{_eq:\"Aufgebaut\"}}, limit:10000) {
         no name siteName riverName latitude longitude status
       }
-      data_live(limit:10000) { stationNo parameterName timestamp value releaseStatus }
     } } }
     """
-    obj=post_json(BAFU_API,{"query":query},180)
-    if obj.get("errors"): raise RuntimeError("BAFU GraphQL: "+str(obj["errors"])[:500])
-    root=obj.get("data",{}).get("water",{}).get("observations",{})
-    stations={str(s.get("no")):s for s in root.get("stations",[]) if s.get("latitude") is not None}
+    station_obj=post_json(BAFU_API,{"query":station_query},120)
+    if station_obj.get("errors"): raise RuntimeError("BAFU Stationen: "+str(station_obj["errors"])[:500])
+    station_rows=station_obj.get("data",{}).get("water",{}).get("observations",{}).get("stations",[])
+    stations={str(s.get("no")):s for s in station_rows if s.get("latitude") is not None}
+
+    since=(datetime.now(timezone.utc)-timedelta(hours=3)).isoformat().replace("+00:00","Z")
+    live_query="""
+    { water { observations {
+      data_live(
+        where:{timestamp:{_gte:\"%s\"},parameterName:{_in:[\"W\",\"Q\",\"WT\"]}},
+        order_by:{timestamp:desc}, limit:10000
+      ) { stationNo parameterName timestamp value releaseStatus }
+    } } }
+    """ % since
+    live_obj=post_json(BAFU_API,{"query":live_query},120)
+    if live_obj.get("errors"): raise RuntimeError("BAFU Livewerte: "+str(live_obj["errors"])[:500])
+    live_rows=live_obj.get("data",{}).get("water",{}).get("observations",{}).get("data_live",[])
     grouped={}
-    for row in root.get("data_live",[]):
+    for row in live_rows:
         sid=str(row.get("stationNo") or ""); code=str(row.get("parameterName") or "").upper()
         if sid not in stations: continue
         # Die API dokumentiert WT/W/Q. Weitere Qualitätscodes werden mitgenommen,
@@ -1420,7 +1435,9 @@ def process_switzerland_bafu():
 # -------------------------------------- Niederlande (Rijkswaterstaat WFS) ----
 RWS_LATEST_CSV=("https://geo.rijkswaterstaat.nl/services/ogc/hws/DDAPI20/ows?"
                 "SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&"
-                "TYPENAME=locatiesmetlaatstewaarneming&outputFormat=csv")
+                "TYPENAME=locatiesmetlaatstewaarneming&outputFormat=csv&"
+                "format_options=csvseparator:semicolon")
+RWS_FILTER_TERMS=("Temperatuur","Zuurstof","Troebel","Waterhoogte","Waterstand","Debiet","Afvoer")
 
 def _pick(row, *names):
     low={str(k).lower():v for k,v in row.items()}
@@ -1430,8 +1447,21 @@ def _pick(row, *names):
 
 def process_netherlands_rws():
     """Alle letzten relevanten RWS-Beobachtungen, inklusive Nordsee/Wattenmeer."""
-    raw=fetch_bytes(RWS_LATEST_CSV).decode("utf-8-sig","replace")
-    rows=list(csv.DictReader(io.StringIO(raw)))
+    # Der ungefilterte WFS-Export ist inzwischen so groß, dass er regelmäßig in
+    # einen Gateway-Timeout läuft. Deshalb nur die benötigten Live-Parameter
+    # einzeln laden und anschließend je Standort zusammenführen.
+    rows=[]
+    for term in RWS_FILTER_TERMS:
+        cql="PARAMETER_WAT_OMSCHRIJVING ILIKE '%%%s%%'" % term
+        url=RWS_LATEST_CSV+"&CQL_FILTER="+quote(cql,safe="")
+        try:
+            raw=fetch_bytes(url).decode("utf-8-sig","replace")
+            delimiter=";" if raw.splitlines() and raw.splitlines()[0].count(";")>raw.splitlines()[0].count(",") else ","
+            rows.extend(csv.DictReader(io.StringIO(raw),delimiter=delimiter))
+        except Exception as e:
+            print(f"      RWS {term}: {e}")
+    if not rows:
+        raise RuntimeError("RWS-WFS lieferte für keinen Live-Parameter Daten")
     grouped={}
     for row in rows:
         desc=str(_pick(row,"parameter_wat_omschrijving","PARAMETER_WAT_OMSCHRIJVING","omschrijving") or "")
@@ -1478,6 +1508,25 @@ def write_json(stations):
         "stations": stations,
     }
     JSON_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def retain_cached_neighbor_networks(stations):
+    """Nachbarland-Netze bei einer vorübergehend gestörten Behörde nicht löschen."""
+    try:
+        old=json.loads(JSON_FILE.read_text(encoding="utf-8"))
+        old_rows=old.get("stations",[]) if isinstance(old,dict) else []
+    except Exception:
+        return stations
+    prefixes=("ch-bafu-","nl-rws-","at-")
+    ids=[str(s.get("id") or "") for s in stations]
+    for prefix in prefixes:
+        if any(i.startswith(prefix) for i in ids):
+            continue
+        cached=[s for s in old_rows if str(s.get("id") or "").startswith(prefix)]
+        if cached:
+            print(f"[Cache] {len(cached)} Stationen für {prefix} beibehalten")
+            stations.extend(cached)
+    return stations
 
 
 def process_station(st):
@@ -1574,6 +1623,7 @@ def main():
     if not results:
         print("Keine Station erfolgreich abgerufen.")
         sys.exit(2)
+    results=retain_cached_neighbor_networks(results)
     print(f"Schreibe wasserwerte.json ({len(results)} Station(en)) ...")
     write_json(results)
     print("Fertig.")
