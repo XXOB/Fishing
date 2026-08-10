@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=49">
+<link rel="stylesheet" href="styles.css?v=50">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -310,7 +310,7 @@
 </nav>
 
 <footer>
-  <div><strong>Datenquellen:</strong>
+  <div id="dataSourcesFooter" style="display:none"><strong>Datenquellen:</strong>
     Pegel &amp; Durchfluss: <a href="https://pegelonline.wsv.de" target="_blank" rel="noopener">PEGELONLINE (WSV)</a> ·
     Wetter: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo (DWD)</a> ·
     Wasserqualität: amtliche Landes-, Bundes- und Nachbarland-Messnetze; Quelle und Messzeit stehen an der jeweiligen Station.
@@ -341,9 +341,21 @@
 <div id="tripEndModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripEnd()">
   <div class="cmbox">
     <div class="cmhead"><span>Trip beenden</span><button class="cmx" onclick="closeTripEnd()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="fbfield"><label>Deine Tripbewertung</label>
-      <select id="tripRating"><option value="">Bitte wählen</option><option value="schlecht">Schlecht</option><option value="mittel">Mittel</option><option value="gut">Gut</option></select>
-    </div>
+    <fieldset class="trip-rating" aria-label="Deine Tripbewertung">
+      <legend>Deine Tripbewertung</legend>
+      <input type="radio" name="tripRating" id="tripRatingBad" value="schlecht">
+      <label for="tripRatingBad" title="Schlecht">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8 16c1.6-2.2 6.4-2.2 8 0"/></svg><span>Schlecht</span>
+      </label>
+      <input type="radio" name="tripRating" id="tripRatingOkay" value="mittel">
+      <label for="tripRatingOkay" title="Mittel">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8.5 15h7"/></svg><span>Mittel</span>
+      </label>
+      <input type="radio" name="tripRating" id="tripRatingGood" value="gut">
+      <label for="tripRatingGood" title="Gut">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8 14c1.6 2.2 6.4 2.2 8 0"/></svg><span>Gut</span>
+      </label>
+    </fieldset>
     <div class="trip-end-actions">
       <button class="btn-primary" onclick="endTripWithCatch()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eingeben</button>
       <button class="backbtn" id="tripNoCatchBtn" onclick="endTripWithoutCatch()"><svg class="uiicon"><use href="#i-ban"/></svg> Fanglos beenden</button>
@@ -384,6 +396,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=49"></script>
+<script src="app.js?v=50"></script>
 </body>
 </html>

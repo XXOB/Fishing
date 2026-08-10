@@ -500,12 +500,19 @@ function renderActiveTrip(){
     '<button class="trip-stop" onclick="openTripEnd()">'+uiIcon('circle-check')+' Trip beenden</button></div>';
 }
 function renderFavorites(){
-  const box=$("favoriteList"); if(!box) return; const spots=loadSpots(), trips=loadTrips();
-  if(!spots.length){ box.innerHTML='<div class="emptycard"><div class="emptytitle">Noch keine Angelplätze</div><div class="emptydesc">Lege zuerst unter „Angelplätze“ einen Platz an.</div></div>'; return; }
-  const visits={}; trips.forEach(t=>{ if(t.spotId!=null) visits[String(t.spotId)]=(visits[String(t.spotId)]||0)+1; });
-  const ranked=spots.slice().sort((a,b)=>(visits[String(b.id)]||0)-(visits[String(a.id)]||0)||String(a.name).localeCompare(String(b.name),"de")).slice(0,3);
-  box.innerHTML=ranked.map((s,i)=>{ const n=visits[String(s.id)]||0;
-    return '<button class="favorite-card" onclick="openSpot('+s.id+')"><span class="favorite-rank">'+(i+1)+'</span><span><b>'+esc(s.name)+'</b><small>'+spotWaterLabel(s)+' · '+n+(n===1?' Trip':' Trips')+'</small></span>'+uiIcon('chevron-right')+'</button>'; }).join("");
+  const box=$("favoriteList"); if(!box) return; const spots=loadSpots();
+  if(!spots.length){
+    box.innerHTML='<button class="emptycard empty-spot-cta" onclick="openNewSpotMap()">'+
+      '<div class="emptyicon">'+PIN_SVG+'</div><div class="emptytitle">Lege einen Angelplatz an</div>'+ 
+      '<div class="emptydesc">Öffnet „Angelplätze verwalten“ direkt auf der Karte.</div></button>';
+    return;
+  }
+  const ranked=spots.slice().sort((a,b)=>dayCountForSpot(b.name)-dayCountForSpot(a.name)||fishCountForSpot(b.name)-fishCountForSpot(a.name)||String(a.name).localeCompare(String(b.name),"de")).slice(0,3);
+  box.innerHTML=ranked.map((s,i)=>
+    '<button class="favorite-card" onclick="openSpot('+s.id+')"><span class="favorite-rank">'+(i+1)+'</span>'+ 
+    '<span class="favorite-info"><b>'+esc(s.name)+'</b><small>'+spotWaterLabel(s)+'</small></span>'+ 
+    countBadge(fishCountForSpot(s.name),dayCountForSpot(s.name))+uiIcon('chevron-right')+'</button>'
+  ).join("");
 }
 function showStart(){ hideAllViews(); const v=$("startView"); if(v) v.style.display="block"; renderFavorites(); renderActiveTrip(); setActiveTab("start"); window.scrollTo({top:0,behavior:"smooth"}); }
 function openTripStart(){
@@ -523,12 +530,13 @@ function confirmTripStart(){
 }
 function tripAddCatch(){ const t=activeTrip(); if(!t) return; openSpot(t.spotId); openFangbuchForm(); }
 function openTripEnd(){
-  const t=activeTrip(); if(!t) return; const r=$("tripRating"); if(r) r.value=t.rating||"";
+  const t=activeTrip(); if(!t) return;
+  document.querySelectorAll('input[name="tripRating"]').forEach(r=>{ r.checked=!!t.rating&&r.value===t.rating; });
   const hadFish=tripCatchRecords(t.id).some(isFish), b=$("tripNoCatchBtn"); if(b) b.innerHTML=hadFish?uiIcon('circle-check')+' Ohne weiteren Fang beenden':uiIcon('ban')+' Fanglos beenden';
   const m=$("tripEndModal"); if(m) m.style.display="flex";
 }
 function closeTripEnd(){ const m=$("tripEndModal"); if(m) m.style.display="none"; }
-function selectedTripRating(){ const r=$("tripRating")?$("tripRating").value:""; if(!r) alert("Bitte bewerte den Trip mit schlecht, mittel oder gut."); return r; }
+function selectedTripRating(){ const el=document.querySelector('input[name="tripRating"]:checked'), r=el?el.value:""; if(!r) alert("Bitte wähle einen Smiley für deine Tripbewertung."); return r; }
 function endTripWithCatch(){
   const rating=selectedTripRating(), t=activeTrip(); if(!rating||!t) return; t.rating=rating; t.pending_end=true; saveActiveTrip(t); closeTripEnd(); tripAddCatch();
 }
@@ -757,9 +765,21 @@ let CATCH_VIEW_SPOT = null;   // Name des Angelplatzes, oder null = Gesamtfangbu
 function isFish(c){ return !c.kein_fang && !!c.fischart; }
 function countFishingDays(arr){ return new Set((arr||[]).map(c=>c.datum).filter(Boolean)).size; }
 function fishCountForSpot(name){ return loadCatches().filter(c=>c.angelplatz===name && isFish(c)).length; }
-function dayCountForSpot(name){ return countFishingDays(loadCatches().filter(c=>c.angelplatz===name)); }
+function localDateKey(iso){
+  const d=new Date(iso); if(!isFinite(d.getTime())) return "";
+  const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
+}
+function dayCountForSpot(name){
+  const days=new Set(loadCatches().filter(c=>c.angelplatz===name).map(c=>c.datum).filter(Boolean));
+  loadTrips().filter(t=>t.end_iso&&t.spotName===name).forEach(t=>{ const d=localDateKey(t.start_iso); if(d) days.add(d); });
+  return days.size;
+}
 function totalFish(){ return loadCatches().filter(isFish).length; }
-function totalDays(){ return countFishingDays(loadCatches()); }
+function totalDays(){
+  const days=new Set(loadCatches().map(c=>c.datum).filter(Boolean));
+  loadTrips().filter(t=>t.end_iso).forEach(t=>{ const d=localDateKey(t.start_iso); if(d) days.add(d); });
+  return days.size;
+}
 function countBadge(fish, days){
   return '<span class="countbadge" title="Fänge · Angeltage"><span class="fishico">'+uiIcon('fish')+'</span>'+fish+
     ' <span class="dayico">'+uiIcon('calendar')+'</span>'+days+'</span>';
@@ -1706,8 +1726,8 @@ function renderSpotList(){
   const box=$("spotList"); if(!box) return;
   const spots=loadSpots();
   if(!spots.length){ box.innerHTML=
-    '<div class="emptycard"><div class="emptyicon">'+PIN_SVG+'</div>'+
-    '<div class="emptytitle">Noch kein Angelplatz gespeichert</div>'+
+    '<div class="emptycard"><div class="emptyicon">'+PIN_SVG+'</div>'+ 
+    '<div class="emptytitle">Lege einen Angelplatz an</div>'+ 
     '<div class="emptydesc">Wähle deinen Platz auf der Karte unten aus. Eine Standortfreigabe ist nicht nötig.</div></div>'; return; }
   box.innerHTML=spots.map(s=>'<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">'+uiIcon('pin')+' '+esc(s.name)+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span>'+
@@ -1764,7 +1784,10 @@ async function loadSpotConditions(){
   }));
 }
 /* Ansichten: Start · Angelplätze · Angelplatzdaten · Fangbücher · Köder · Statistik */
-function hideAllViews(){ ["startView","homeView","spotView","mapCard","fbIndexView","catchListView","baitView","statsView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
+function hideAllViews(){
+  ["startView","homeView","spotView","mapCard","fbIndexView","catchListView","baitView","statsView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; });
+  const src=$("dataSourcesFooter"); if(src) src.style.display="none";
+}
 function showHome(){
   hideAllViews();
   clearCatchMarkers();
@@ -1774,6 +1797,10 @@ function showHome(){
   ensureMapVisible();
   setTimeout(()=>{ try{ if(MAP){ MAP.invalidateSize(); centerHomeMap(); } }catch(e){} },100);
   setActiveTab("places");
+}
+function openNewSpotMap(){
+  showHome();
+  setTimeout(()=>newSpotOnMap(),180);
 }
 /* --- Tab 2: Fangbücher (Liste je Angelplatz + Gesamt) --- */
 function showFangbuchList(){
@@ -2080,6 +2107,7 @@ function openSpot(id){
   mountMapCard("spotMapHost",false);
   if(sv) sv.style.display="block";
   if(mc) mc.style.display="block";
+  const src=$("dataSourcesFooter"); if(src) src.style.display="block";
   initMap();
   setTimeout(()=>{ try{ if(MAP){ MAP.invalidateSize(); centerOnActiveSpot(); } }catch(e){} }, 90);
   setActiveTab("places");
