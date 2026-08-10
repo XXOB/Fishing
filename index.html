@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=46">
+<link rel="stylesheet" href="styles.css?v=47">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -199,8 +199,6 @@
     <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht" oninput="showFishRules()" onchange="showFishRules()"></div>
     <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
     <div class="fbfield"><label>Gewicht (kg, optional)</label><input id="f_gewicht" type="number" min="0" step="0.1" inputmode="decimal"></div>
-    <div class="fbfield"><label>Verwertung</label>
-      <select id="f_verwertung"><option value="">—</option><option value="entnommen">entnommen</option><option value="freigelassen">freigelassen</option><option value="abgegangen">abgegangen</option></select></div>
   </div>
   <div id="fishRules" class="rulehint" style="display:none"></div>
   <div class="fbrow">
@@ -244,11 +242,9 @@
 <div class="fbtoolbar">
   <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
   <div class="fbtools">
-    <button type="button" class="fbtool" id="filterBtn" onclick="toggleFbFilter()"><svg class="uiicon"><use href="#i-pin"/></svg> nur: aktueller Platz</button>
     <button type="button" class="fbtool" id="listBtn" onclick="toggleList()">Fänge anzeigen</button>
     <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()"><svg class="uiicon"><use href="#i-table"/></svg> Tabelle anzeigen</button>
-    <button type="button" class="fbtool" onclick="exportJSON()"><svg class="uiicon"><use href="#i-download"/></svg> JSON</button>
-    <button type="button" class="fbtool" onclick="exportCSV()"><svg class="uiicon"><use href="#i-download"/></svg> CSV</button>
+    <button type="button" class="fbtool" onclick="exportCSV()"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
     <button type="button" class="fbtool" onclick="document.getElementById('importFile').click()"><svg class="uiicon"><use href="#i-upload"/></svg> Import</button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importJSON(event)">
   </div>
@@ -301,7 +297,7 @@
     Wasserqualität: amtliche Landes-, Bundes- und Nachbarland-Messnetze; Quelle und Messzeit stehen an der jeweiligen Station.
   </div>
   <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil!</div>
-  <div style="margin-top:6px">Dein Fangbuch wird nur lokal in diesem Browser gespeichert – nichts wird hochgeladen. Für ein Backup oder eine spätere Auswertung nutze den Export als JSON oder CSV.</div>
+  <div style="margin-top:6px">Dein Fangbuch wird nur lokal in diesem Browser gespeichert – nichts wird hochgeladen. Für ein Backup oder eine spätere Auswertung nutze den Download im CSV-Format.</div>
 </footer>
 
 <div id="stationModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeStationPicker()">
@@ -344,6 +340,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=46"></script>
+<script src="app.js?v=47"></script>
 </body>
 </html>

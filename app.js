@@ -358,9 +358,11 @@ async function loadLiveWQ(){
     const items=[{label:"Wassertemperatur", value:(+last.value).toFixed(1).replace(".",","), unit:"°C", icon:"", time:hhmm2(last.timestamp)}];
     const history={ "Wassertemperatur": histFromPO(wt) };
     for(const sh of ["O2","LF","PH"]){    // Zusatzwerte, wenn die Station sie hat
-      try{ const m=await getJSON(PO_BASE+"/stations/"+stn.uuid+"/"+sh+"/measurements.json?start=PT6H");
+      try{ const span=sh==="O2"?"P8D":"PT6H";
+        const m=await getJSON(PO_BASE+"/stations/"+stn.uuid+"/"+sh+"/measurements.json?start="+span);
         if(m && m.length){ const def=PO_TS_MAP[sh], l=m[m.length-1];
-          items.push({label:def[0], value:(+l.value).toFixed(def[3]).replace(".",","), unit:def[1], icon:def[2], time:hhmm2(l.timestamp)}); }
+          items.push({label:def[0], value:(+l.value).toFixed(def[3]).replace(".",","), unit:def[1], icon:def[2], time:hhmm2(l.timestamp)});
+          if(sh==="O2") history[def[0]]=histFromPO(m); }
       }catch(e){}
     }
     window.LIVEWQ={ station:stn.name, dist:d, items, history, updated:items[0].time };
@@ -445,7 +447,7 @@ function mergeHessen(){
 async function hlnugVal(sid,param,from,to){
   try{ const cd=await fetch(HLNUG_BASE+"getStationChartData/"+sid+"/"+param+"/"+from+"/"+to+"?pad=1&valueType=1").then(r=>r.json());
     const s=cd&&cd[0]; const d=(s&&s.data||[]).filter(p=>p[1]!=null); const last=d[d.length-1];
-    return last ? {v:last[1], t:last[0]} : null; }catch(e){ return null; }
+    return last ? {v:last[1], t:last[0], history:d.map(p=>({t:new Date(+p[0]).toISOString().slice(0,16),v:+p[1]}))} : null; }catch(e){ return null; }
 }
 async function loadHessen(){
   if(window.HESSENWQ && window.HESSENWQ.length) return;      // nur einmal laden
@@ -454,7 +456,7 @@ async function loadHessen(){
   if(!conti.length) return;
   let max=0; try{ const mm=await fetch(HLNUG_BASE+"getStationMinMaxTime/"+conti[0].stationId+"/1").then(r=>r.json()); max=mm&&mm.max; }catch(e){}
   if(!max) max=Math.floor(Date.now()/1000);
-  const from=max-90000, to=max+3600;
+  const from=max-8*86400, to=max+3600;
   const out=[];
   await Promise.all(conti.map(async st=>{
     const sid=st.stationId;
@@ -465,8 +467,10 @@ async function loadHessen(){
     const place=(parts[1]||"").replace(/Messstation.*/,"").trim();
     const items=[{label:"Wassertemperatur", value:(+wt.v).toFixed(1).replace(".",","), unit:"°C", icon:"", time:nizTime(wt.t)}];
     if(o2) items.push({label:"Sauerstoff", value:(+o2.v).toFixed(1).replace(".",","), unit:"mg/l", icon:"", time:nizTime(o2.t)});
+    const history={"Wassertemperatur":wt.history||[]};
+    if(o2) history["Sauerstoff"]=o2.history||[];
     out.push({ id:"he-"+sid, name:(place||river), lat:+st.lat, lon:+st.lon, river, betreiber:"HLNUG", src:"hlnug",
-               updated:items[0].time, items, history:{} });
+               updated:items[0].time, items, history });
   }));
   window.HESSENWQ=out; mergeHessen();
 }
@@ -475,14 +479,11 @@ async function loadHessen(){
 const CATCH_KEY = "rheincheck_faenge_v1";
 function loadCatches(){ try{ return JSON.parse(localStorage.getItem(CATCH_KEY)) || []; }catch(e){ return []; } }
 function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
-let FB_FILTER="spot";   // "spot" = nur aktiver Angelplatz, "all" = alle
 function catchesForView(){
   const all=loadCatches();
-  if(FB_FILTER==="spot"){ const n=activeSpotName(); if(n) return all.filter(c=>c.angelplatz===n); }
-  return all;
+  const n=activeSpotName();
+  return n ? all.filter(c=>c.angelplatz===n) : [];
 }
-function toggleFbFilter(){ FB_FILTER = (FB_FILTER==="spot") ? "all" : "spot"; updateFilterBtn(); refreshFangbuch(); }
-function updateFilterBtn(){ const b=$("filterBtn"); if(!b) return; const n=activeSpotName(); setIconLabel(b,"pin",(FB_FILTER==="spot") ? ("nur: "+(n||"aktueller Platz")) : "alle Plätze"); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function deNum(s){ if(s==null) return null; const n=parseFloat(String(s).replace(/\./g,'').replace(',','.')); return isNaN(n)? String(s) : n; }
 
@@ -546,7 +547,6 @@ function buildRecord(blank){
     fischart: blank ? "" : $("f_art").value.trim(),
     groesse_cm: (!blank && $("f_groesse").value) ? +$("f_groesse").value : null,
     gewicht_kg: (!blank && $("f_gewicht").value) ? +$("f_gewicht").value : null,
-    verwertung: blank ? "" : ($("f_verwertung")?$("f_verwertung").value:""),
     koeder: k.label,
     koeder_basis: k.base,
     koeder_variante: k.variante,
@@ -589,7 +589,7 @@ function saveCatch(opts){
   saveCatches(arr);
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value="";
   if($("f_koeder_base")) $("f_koeder_base").value=""; onKoederBaseChange();
-  if($("f_methode")) $("f_methode").value=""; if($("f_verwertung")) $("f_verwertung").value="";
+  if($("f_methode")) $("f_methode").value="";
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
@@ -609,7 +609,6 @@ function editCatch(id){
   EDIT_CATCH_ID=c.id;
   $("f_art").value=c.fischart||""; $("f_groesse").value=c.groesse_cm==null?"":c.groesse_cm;
   $("f_gewicht").value=c.gewicht_kg==null?"":c.gewicht_kg;
-  if($("f_verwertung")) $("f_verwertung").value=c.verwertung||"";
   $("f_datum").value=c.datum||""; $("f_zeit").value=c.uhrzeit||""; $("f_notiz").value=c.notiz||"";
   populateKoeder();
   if($("f_koeder_base")) $("f_koeder_base").value=c.koeder_basis||c.koeder||"";
@@ -655,7 +654,6 @@ function catchCard(c){
   if(c.angelplatz) context.push("Angelplatz: "+c.angelplatz);
   if(c.gewaesser) context.push("Gewässer: "+c.gewaesser);
   if(c.gps&&c.gps.lat!=null) context.push("Fangort: "+c.gps.lat+", "+c.gps.lon);
-  if(c.verwertung) extra.push("Verwertung: "+c.verwertung);
   if(c.methode) extra.push("Methode: "+c.methode);
   if(c.mondphase&&c.mondphase.name) extra.push("Mondphase: "+c.mondphase.name);
   if(c.notiz) extra.push("Notiz: „"+c.notiz+"“");
@@ -708,15 +706,14 @@ function download(name,text,type){
   const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(u),1500);
 }
-function exportJSON(){ download("faenge_rheincheck.json", JSON.stringify(loadCatches(),null,2), "application/json"); }
 function W_(c,k){ return c.wetter&&c.wetter[k]!=null? c.wetter[k] : ""; }
 function A_(c,k){ return c.wasser&&c.wasser[k]!=null? c.wasser[k] : ""; }
 function exportCSV(){
-  const arr=loadCatches();
+  const arr=catchesForView();
   const cols=[
     ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
     ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
-    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["methode",c=>c.methode],["verwertung",c=>c.verwertung||""],["notiz",c=>c.notiz],
+    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
     ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
     ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
     ["lufttemp_c",c=>W_(c,"lufttemperatur_c")],["gefuehlt_c",c=>W_(c,"gefuehlt_c")],["wind_kmh",c=>W_(c,"wind_kmh")],
@@ -730,7 +727,8 @@ function exportCSV(){
   const cell=v=>{ if(v==null)v=""; v=String(v).replace(/"/g,'""'); return /[";\n]/.test(v)?'"'+v+'"':v; };
   const head=cols.map(c=>c[0]).join(";");
   const body=arr.map(c=>cols.map(col=>cell(col[1](c))).join(";")).join("\n");
-  download("faenge_rheincheck.csv", "﻿"+head+"\n"+body, "text/csv;charset=utf-8");
+  const spot=(activeSpotName()||"angelplatz").replace(/[^a-z0-9äöüß_-]+/gi,"_").replace(/^_+|_+$/g,"");
+  download("fangbuch_"+(spot||"angelplatz")+".csv", "﻿"+head+"\n"+body, "text/csv;charset=utf-8");
 }
 function importJSON(ev){
   const f=ev.target.files[0]; if(!f) return;
@@ -1132,7 +1130,6 @@ function initFangbuch(){
   if($("f_datum")) $("f_datum").value = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
   if($("f_zeit")) $("f_zeit").value = pad(now.getHours())+':'+pad(now.getMinutes());
   populateCatchSpots();
-  updateFilterBtn();
   updateFangbuchBtn();
   renderBaitList();
   refreshFangbuch();
@@ -1151,8 +1148,8 @@ const CHART_DEFS={
   press:      {title:"Luftdruck",      unit:"hPa",  color:"#fbbf24", src:"wx:pressure_msl"},
   cloud:      {title:"Bewölkung",      unit:"%",    color:"#8ea2be", src:"wx:cloud_cover"}
 };
-const WQ_UNIT={"Wassertemperatur":"°C","O₂-Sättigung":"%","Trübung":"TE"};
-const WQ_COLOR={"Wassertemperatur":"#fbbf24","O₂-Sättigung":"#4ade80","Trübung":"#8ea2be"};
+const WQ_UNIT={"Wassertemperatur":"°C","Sauerstoff":"mg/l","O₂-Sättigung":"%","Trübung":"TE","Schwebstoff":"g/m³"};
+const WQ_COLOR={"Wassertemperatur":"#fbbf24","Sauerstoff":"#3b82f6","O₂-Sättigung":"#4ade80","Trübung":"#8ea2be","Schwebstoff":"#8a5a2b"};
 function defFor(key){
   if(CHART_DEFS[key]) return CHART_DEFS[key];
   if(key.indexOf("wq:")===0){ const l=key.slice(3); return {title:l, unit:WQ_UNIT[l]||"", color:WQ_COLOR[l]||"#38bdf8", src:key}; }
@@ -1537,7 +1534,7 @@ function activateSpotById(id, latlon){
   const ll = latlon || spotLatLon(sp);
   WXPOS={ lat:ll[0], lon:ll[1] };
   reflectStation(); updateStationMarker(); centerOnActiveSpot(); populateCatchSpots(); renderSpots();
-  updateFilterBtn(); updateFangbuchBtn(); refreshFangbuch();
+  updateFangbuchBtn(); refreshFangbuch();
   loadAll();
 }
 function loadSpot(id){ activateSpotById(id); }
