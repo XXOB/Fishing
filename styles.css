@@ -71,12 +71,16 @@ h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
 .stpick{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 12px;font-size:14px;text-align:left;cursor:pointer}
 .stpick small{color:var(--muted2)}
 .stpick:hover{background:#25344a;border-color:#37496a}
+.stpick-none{color:#f5f5f7;background:#242426;border-color:rgba(255,255,255,.18);font-weight:700}
 .spotlist{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
 .spotrow{display:flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
 .spotopen{flex:1;background:none;border:0;color:var(--text);text-align:left;padding:13px 15px;font-size:15px;font-weight:600;cursor:pointer}
 .spotopen small{color:var(--muted2);font-weight:400}
 .spotopen:hover{background:#0e1622}
 .spotedit,.spotdel{background:none;border:0;color:var(--muted2);padding:13px 10px;cursor:pointer;font-size:13px}
+.spotactions{display:flex;flex-direction:column;align-self:stretch;justify-content:center;border-left:1px solid var(--line)}
+.spotactions .spotedit,.spotactions .spotdel{padding:5px 10px;min-height:32px}
+.spotactions .spotedit{border-bottom:1px solid var(--line)}
 .spotedit:hover{color:var(--water)}
 .spotdel:hover{color:var(--red)}
 .homebtns{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
@@ -181,6 +185,8 @@ footer a{color:var(--muted)}
   padding:8px 10px;font-size:14px;font-family:inherit}
 .fbfield input:focus,.fbfield select:focus{outline:none;border-color:var(--water)}
 .fbfield select:disabled{opacity:.55}
+select{color-scheme:dark!important;color:#f5f5f7!important;background-color:#1c1c1e!important}
+select option,select optgroup{color:#f5f5f7!important;background:#1c1c1e!important}
 .fbbtn{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
   padding:8px 10px;font-size:13px;cursor:pointer;width:100%}
 .fbbtn:hover{background:#25344a}
@@ -201,6 +207,15 @@ footer a{color:var(--muted)}
 .fbitem .cond{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
 .fbitem .del{background:none;border:0;color:var(--muted2);cursor:pointer;font-size:12px;white-space:nowrap}
 .fbitem .del:hover{color:var(--red)}
+.catchdetails{margin-top:9px;border-top:1px solid var(--line);padding-top:7px}
+.catchdetails summary{display:inline-flex;align-items:center;gap:6px;color:var(--water);font-size:12.5px;font-weight:700;cursor:pointer;list-style:none;user-select:none}
+.catchdetails summary::-webkit-details-marker{display:none}
+.catchdetails summary::after{content:"›";font-size:17px;line-height:1;transition:transform .15s}
+.catchdetails[open] summary::after{transform:rotate(90deg)}
+.catchdetailbody{display:flex;flex-direction:column;gap:8px;margin-top:9px;padding:10px 11px;background:rgba(118,118,128,.09);border-radius:10px}
+.catchdetailgroup{display:grid;grid-template-columns:minmax(92px,auto) 1fr;gap:10px;font-size:12.5px;line-height:1.45}
+.catchdetailgroup b{color:var(--muted2)}
+.catchdetailgroup span{color:var(--text)}
 .fbwrap{overflow-x:auto;margin-top:8px}
 .fbtable{width:100%;border-collapse:collapse;font-size:12.5px}
 .fbtable th,.fbtable td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -322,6 +337,14 @@ body{padding-bottom:82px}
 .statline{font-size:13.5px;color:var(--text);margin-top:8px;line-height:1.5}
 .statline .statk{display:block;color:var(--muted2);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .statline b{color:var(--water)}
+.successcard{background:linear-gradient(145deg,rgba(48,209,88,.13),var(--card))}
+.successpct{font-size:36px;font-weight:800;letter-spacing:-1px;color:#30d158;margin-top:10px}
+.pbtablewrap{overflow-x:auto;margin-top:10px}
+.pbtable{width:100%;border-collapse:collapse;font-size:13px}
+.pbtable th,.pbtable td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.pbtable thead th{color:var(--muted2);font-size:10.5px;text-transform:uppercase;letter-spacing:.45px}
+.pbtable tbody th{color:var(--text);font-weight:700}
+.pbtable tbody td{color:var(--muted)}
 .biterec{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;color:var(--text)}
 .biterec b{color:var(--water)}
 

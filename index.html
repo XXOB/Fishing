@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=45">
+<link rel="stylesheet" href="styles.css?v=46">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -130,7 +130,7 @@
 <button type="button" class="secttoggle" id="biteBtn" onclick="toggleBite()"><svg class="uiicon"><use href="#i-target"/></svg> Beißwetter anzeigen</button>
 <div id="biteBox" style="display:none"></div>
 
-<div class="sect" id="pegelSect">Fluss · Pegel Mainz (PEGELONLINE)</div>
+<div class="sect" id="pegelSect">Fluss · Messstation Mainz (PEGELONLINE)</div>
 <div class="grid" id="pegelGrid">
   <div class="tile clickable" id="tilePegel" onclick="openChart('pegel')">
     <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-ruler"/></svg></span> Pegelstand</div>
@@ -306,8 +306,8 @@
 
 <div id="stationModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeStationPicker()">
   <div class="cmbox">
-    <div class="cmhead"><span id="cmTitle">Pegelstation wählen</span><button class="cmx" onclick="closeStationPicker()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="fbnote" style="margin-bottom:10px">Nächste Stationen mit Fluss und Entfernung. Wähle die passende – am Main z. B. eine Main-Station, auch wenn eine Rhein-Station näher ist.</div>
+    <div class="cmhead"><span id="cmTitle">Messstation wählen</span><button class="cmx" onclick="closeStationPicker()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <div class="fbnote" style="margin-bottom:10px">Nächste Messstationen mit Gewässer und Entfernung. Wähle die passende oder „Keine Messstation“.</div>
     <div id="stPickList" class="stpicklist"></div>
   </div>
 </div>
@@ -333,7 +333,7 @@
       </select>
     </div>
     <div class="fbfield" id="as_gwrow" style="margin-top:10px;display:none"><label>Gewässername</label><input id="as_gw" placeholder="z. B. Bodensee"></div>
-    <div class="fbnote" id="as_hint" style="margin-top:10px">Für Flüsse wählst du danach die passende Pegelstation.</div>
+    <div class="fbnote" id="as_hint" style="margin-top:10px">Für Flüsse kannst du danach eine passende Messstation wählen – oder keine Messstation verwenden.</div>
     <div class="fbactions" style="margin-top:14px">
       <button class="btn-primary" onclick="confirmAddSpot()">Weiter</button>
       <button class="backbtn" onclick="closeAddSpot()">Abbrechen</button>
@@ -344,6 +344,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=45"></script>
+<script src="app.js?v=46"></script>
 </body>
 </html>
