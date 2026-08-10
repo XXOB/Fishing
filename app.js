@@ -672,7 +672,7 @@ function catchCard(c){
 }
 function renderCatches(){
   const arr=catchesForView().sort((a,b)=>((b.datum||"")+(b.uhrzeit||"")).localeCompare((a.datum||"")+(a.uhrzeit||"")));
-  const cnt=$("fbCount"); if(cnt){ const f=arr.filter(isFish).length, d=countFishingDays(arr); cnt.textContent = f+" Fang"+(f===1?"":"e")+" · "+d+" Angeltag"+(d===1?"":"e"); }
+  const cnt=$("fbCount"); if(cnt){ const f=arr.filter(isFish).length, d=countFishingDays(arr); cnt.textContent = f+(f===1?" Fang":" Fänge")+" · "+d+" Angeltag"+(d===1?"":"e"); }
   const box=$("fbList"); if(!box) return;
   if(!arr.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge – trag deinen ersten Fang oben ein.</div>'; return; }
   box.innerHTML = arr.map(catchCard).join("");
@@ -708,8 +708,13 @@ function download(name,text,type){
 }
 function W_(c,k){ return c.wetter&&c.wetter[k]!=null? c.wetter[k] : ""; }
 function A_(c,k){ return c.wasser&&c.wasser[k]!=null? c.wasser[k] : ""; }
-function exportCSV(){
-  const arr=catchesForView();
+function catchesForExport(scope){
+  if(scope==="all") return loadCatches();
+  if(scope==="view") return CATCH_VIEW_SPOT ? loadCatches().filter(c=>c.angelplatz===CATCH_VIEW_SPOT) : loadCatches();
+  return catchesForView();
+}
+function exportCSV(scope){
+  const arr=catchesForExport(scope||"spot");
   const cols=[
     ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
     ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
@@ -727,19 +732,77 @@ function exportCSV(){
   const cell=v=>{ if(v==null)v=""; v=String(v).replace(/"/g,'""'); return /[";\n]/.test(v)?'"'+v+'"':v; };
   const head=cols.map(c=>c[0]).join(";");
   const body=arr.map(c=>cols.map(col=>cell(col[1](c))).join(";")).join("\n");
-  const spot=(activeSpotName()||"angelplatz").replace(/[^a-z0-9äöüß_-]+/gi,"_").replace(/^_+|_+$/g,"");
-  download("fangbuch_"+(spot||"angelplatz")+".csv", "﻿"+head+"\n"+body, "text/csv;charset=utf-8");
+  const label=scope==="all" ? "alle_fangbuecher" : (scope==="view" ? (CATCH_VIEW_SPOT||"alle_fangbuecher") : (activeSpotName()||"angelplatz"));
+  const safe=label.replace(/[^a-z0-9äöüß_-]+/gi,"_").replace(/^_+|_+$/g,"");
+  download("fangbuch_"+(safe||"angelplatz")+".csv", "﻿"+head+"\n"+body, "text/csv;charset=utf-8");
 }
-function importJSON(ev){
+function openCatchUpload(){ const f=$("importFile"); if(f) f.click(); }
+function parseCatchCSV(text){
+  text=String(text||"").replace(/^﻿/,"");
+  const rows=[]; let row=[], cell="", quoted=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(quoted){
+      if(ch==='"' && text[i+1]==='"'){ cell+='"'; i++; }
+      else if(ch==='"') quoted=false;
+      else cell+=ch;
+    } else if(ch==='"') quoted=true;
+    else if(ch===';'){ row.push(cell); cell=""; }
+    else if(ch==='\n'){ row.push(cell); rows.push(row); row=[]; cell=""; }
+    else if(ch!=='\r') cell+=ch;
+  }
+  if(cell!==""||row.length){ row.push(cell); rows.push(row); }
+  if(rows.length<2) return [];
+  const head=rows.shift().map(x=>x.trim());
+  return rows.filter(r=>r.some(x=>String(x).trim()!=="")).map((r,i)=>{
+    const o={}; head.forEach((h,j)=>o[h]=r[j]==null?"":r[j]); return catchFromCSV(o,i);
+  });
+}
+function catchFromCSV(o,i){
+  const val=k=>o[k]==null?"":String(o[k]).trim();
+  const num=k=>{ const s=val(k).replace(",","."); return s===""?null:(isNaN(+s)?null:+s); };
+  const put=(obj,key,value)=>{ if(value!==""&&value!=null) obj[key]=value; };
+  const c={
+    id:val("id")||Date.now()+i, erfasst_iso:"", datum:val("datum"), uhrzeit:val("uhrzeit"),
+    kein_fang:/^(1|true|ja)$/i.test(val("kein_fang")), gewaesser:val("gewaesser"),
+    gewaessertyp:val("gewaessertyp"), fischart:val("fischart"), angelplatz:val("angelplatz"),
+    groesse_cm:num("groesse_cm"), gewicht_kg:num("gewicht_kg"), gewicht_g:num("gewicht_g"),
+    koeder:val("koeder"), koeder_basis:val("koeder_basis"), koeder_variante:val("koeder_variante"),
+    methode:val("methode"), notiz:val("notiz"), wetter:{}, wasser:{}
+  };
+  const lat=num("gps_lat"), lon=num("gps_lon"), acc=num("gps_genauigkeit_m");
+  if(lat!=null&&lon!=null) c.gps={lat,lon,genauigkeit_m:acc}; else c.gps=null;
+  const moon=val("mondphase"), illum=num("mond_illum_pct");
+  c.mondphase=(moon||illum!=null)?{name:moon,illumination_pct:illum}:null;
+  [["lufttemperatur_c","lufttemp_c"],["gefuehlt_c","gefuehlt_c"],["wind_kmh","wind_kmh"],
+   ["windrichtung","windrichtung"],["boen_kmh","boen_kmh"],["luftdruck_hpa","luftdruck_hpa"],
+   ["luftdruck_tendenz_3h_hpa","luftdruck_tendenz_3h_hpa"],["bewoelkung_pct","bewoelkung_pct"],
+   ["luftfeuchte_pct","luftfeuchte_pct"],["niederschlag_mm_h","niederschlag_mm_h"]].forEach(x=>put(c.wetter,x[0],num(x[1])));
+  put(c.wetter,"wetterlage",val("wetterlage"));
+  [["pegelstand_cm","pegel_cm"],["durchfluss_m3s","durchfluss_m3s"],["wassertemperatur_c","wassertemp_c"],
+   ["wassertemperatur_modell_c","wassertemp_modell_c"],["sauerstoff_mgl","sauerstoff_mgl"],
+   ["o2_saettigung_pct","o2_saettigung_pct"],["truebung","truebung"],["ph","ph"],
+   ["leitfaehigkeit_uScm","leitfaehigkeit_uScm"]].forEach(x=>put(c.wasser,x[0],num(x[1])));
+  put(c.wasser,"pegel_stufe",val("pegel_stufe"));
+  return c;
+}
+function importCatchFile(ev){
   const f=ev.target.files[0]; if(!f) return;
   const rd=new FileReader();
   rd.onload=()=>{
     try{
-      const data=JSON.parse(rd.result); if(!Array.isArray(data)) throw 0;
-      const cur=loadCatches(), ids=new Set(cur.map(x=>x.id)); let added=0;
-      data.forEach(r=>{ if(r&&r.id!=null&&!ids.has(r.id)){ cur.push(r); ids.add(r.id); added++; } });
-      saveCatches(cur); refreshFangbuch(); alert(added+" Fänge importiert.");
-    }catch(e){ alert("Import fehlgeschlagen: keine gültige Fangbuch-JSON."); }
+      const raw=String(rd.result||""), isJson=/\.json$/i.test(f.name)||/^\s*\[/.test(raw);
+      const data=isJson?JSON.parse(raw):parseCatchCSV(raw); if(!Array.isArray(data)) throw 0;
+      const cur=loadCatches(), ids=new Set(cur.map(x=>String(x.id))); let added=0;
+      data.forEach((r,i)=>{
+        if(!r) return; delete r.verwertung;
+        if(r.id==null||r.id==="") r.id=Date.now()+i;
+        if(ids.has(String(r.id))) return;
+        cur.push(r); ids.add(String(r.id)); added++;
+      });
+      saveCatches(cur); refreshFangbuch();
+      alert(added+(added===1?" Fang":" Fänge")+" hochgeladen.");
+    }catch(e){ alert("Upload fehlgeschlagen: Bitte eine gültige Fangbuch-CSV- oder JSON-Datei wählen."); }
     ev.target.value="";
   };
   rd.readAsText(f);
@@ -1702,20 +1765,21 @@ function addCatchFromList(){
 }
 /* --- Tab 3: Köder-Liste --- */
 const BAIT_KEY="deepfish_koeder_v1";
-/* Köder: Oberstruktur (Kunst/Natur/Sonstige) -> Kategorie -> Varianten [{size,color}] */
-const BAIT_GROUPS=[{key:"kunst",name:"Kunstköder"},{key:"natur",name:"Naturköder"},{key:"sonstige",name:"Sonstige"}];
+/* Köder: Oberstruktur (Kunst/Natur) -> Kategorie -> Varianten [{size,color}] */
+const BAIT_GROUPS=[{key:"kunst",name:"Kunstköder"},{key:"natur",name:"Naturköder"}];
 function baitGroup(base){
   const s=String(base||"").toLowerCase();
   if(/gummi|shad|wobbler|crank|jerk|spinner|blinker|spoon|l(ö|oe)ffel|twister|fliege|streamer|nymphe|popper|jig|chatter|kunst/.test(s)) return "kunst";
   if(/wurm|made|mais|boilie|brot|teig|k(ä|ae)se|k(ö|oe)derfisch|k(ö|oe)fi|fischfetzen|pellet|dendro|garnele|bienenmade|leber|natur/.test(s)) return "natur";
-  return "sonstige";
+  return "natur";
 }
 function loadBaits(){
   let raw=[]; try{ raw=JSON.parse(localStorage.getItem(BAIT_KEY))||[]; }catch(e){ raw=[]; }
   const cats=[], idx={};
   const cat=(base, group)=>{ base=String(base||"").trim(); if(!base) return null; const k=base.toLowerCase();
-    if(!(k in idx)){ idx[k]=cats.length; cats.push({base, group: group||baitGroup(base), variants:[]}); }
-    else if(group){ cats[idx[k]].group=group; } return cats[idx[k]]; };
+    group=(group==="kunst"||group==="natur")?group:baitGroup(base);
+    if(!(k in idx)){ idx[k]=cats.length; cats.push({base, group, variants:[]}); }
+    else cats[idx[k]].group=group; return cats[idx[k]]; };
   const addV=(c,size,color)=>{ if(!c) return; size=(size||"").trim(); color=(color||"").trim(); if(!size&&!color) return;
     const key=(size+"|"+color).toLowerCase(); if(!c.variants.some(v=>(v.size+"|"+v.color).toLowerCase()===key)) c.variants.push({size,color}); };
   raw.forEach(it=>{
@@ -1734,7 +1798,7 @@ function ensureBaitSeed(){                         // Standardköder als Startpu
   if(!loadBaits().length) saveBaits(DEFAULT_BAITS.slice());
   localStorage.setItem(BAIT_INIT_KEY,"1");
 }
-const BAIT_GROUP_OPEN={kunst:true, natur:true, sonstige:true};
+const BAIT_GROUP_OPEN={kunst:false, natur:false};
 function toggleBaitGroup(k){ BAIT_GROUP_OPEN[k]=!(BAIT_GROUP_OPEN[k]!==false); renderBaitList(); }
 function variantLabel(base, v){ return base + (v&&v.size?(" "+v.size):"") + (v&&v.color?(", "+v.color):""); }
 /* Anzahl Fänge je Köder: Kategorie = alle Varianten (Präfix), Variante = exakt. Nur echte Fänge. */
@@ -1905,7 +1969,7 @@ function tripSuccessHtml(all){
   });
   const trips=Object.values(groups), successful=trips.filter(a=>a.some(isFish)).length;
   const pct=trips.length?Math.round(successful/trips.length*100):0;
-  return '<div class="statcard successcard"><div class="stath">'+uiIcon('line-chart')+' Erfolgreiche Trips <span class="statn">aus Fangdaten</span></div>'+
+  return '<div class="statcard successcard"><div class="stath">'+uiIcon('line-chart')+' Erfolgreiche Trips</div>'+
     '<div class="successpct">'+pct+' %</div><div class="statline">'+successful+' von '+trips.length+' Angeltagen mit mindestens einem Fang</div></div>';
 }
 function renderStats(){
@@ -1914,12 +1978,13 @@ function renderStats(){
   if(!all.length){ box.innerHTML='<div class="fbnote" style="padding:10px 4px">Noch keine Fangdaten vorhanden.</div>'; return; }
   let html=tripSuccessHtml(all);
   if(!fc.length){ box.innerHTML=html+'<div class="fbnote" style="padding:10px 4px">Noch keine Fänge – bisher sind nur Angeltage ohne Fang gespeichert.</div>'; return; }
-  html+='<div class="statcard"><div class="stath">'+uiIcon('chart')+' Überblick <span class="statn">'+fc.length+' Fänge · '+totalDays()+' Angeltage</span></div>'+
+  const days=totalDays();
+  html+='<div class="statcard"><div class="stath">'+uiIcon('chart')+' Überblick <span class="statn">'+fc.length+(fc.length===1?' Fang':' Fänge')+' · '+days+(days===1?' Angeltag':' Angeltage')+'</span></div>'+
     statLine(uiIcon('pin')+" Beste Plätze", topBy(fc, c=>c.angelplatz, 3), false)+
     statLine(uiIcon('hook')+" Fängigste Köder", topBy(fc, c=>c.koeder, 3), true)+'</div>';
   html+=personalBestHtml(fc);
   html+=statsByFish().map(f=>
-    '<div class="statcard"><div class="stath">'+esc(f.fisch)+' <span class="statn">'+f.total+' Fang'+(f.total===1?'':'e')+'</span></div>'+
+    '<div class="statcard"><div class="stath">'+esc(f.fisch)+' <span class="statn">'+f.total+(f.total===1?' Fang':' Fänge')+'</span></div>'+
     statLine("Beste Plätze", f.spots, false)+
     statLine("Fängigste Köder", f.baits, true)+'</div>').join("");
   box.innerHTML=html;

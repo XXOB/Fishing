@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=47">
+<link rel="stylesheet" href="styles.css?v=48">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -66,14 +66,24 @@
   </div>
 </header>
 
+<input type="file" id="importFile" accept=".csv,text/csv,.json,application/json" style="display:none" onchange="importCatchFile(event)">
+
 <div id="fbIndexView" style="display:none">
   <div class="sect">Fangbücher</div>
+  <div class="fbio">
+    <button type="button" class="fbtool" onclick="exportCSV('all')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
+    <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
+  </div>
   <div id="fbIndexList" class="spotlist"></div>
 </div>
 
 <div id="catchListView" style="display:none">
   <button class="backbtn" id="catchBackBtn" onclick="catchListBack()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Fangbücher</button>
   <div class="sect" id="catchListTitle" style="margin-top:14px">Fangbuch</div>
+  <div class="fbio">
+    <button type="button" class="fbtool" onclick="exportCSV('view')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
+    <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
+  </div>
   <button type="button" class="navbtn" onclick="addCatchFromList()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eintragen</button>
   <div id="catchList"></div>
 </div>
@@ -85,11 +95,10 @@
     <select id="baitCatGroup">
       <option value="kunst">Kunstköder</option>
       <option value="natur">Naturköder</option>
-      <option value="sonstige">Sonstige</option>
     </select>
     <button onclick="addCategory()">+ Köder</button>
   </div>
-  <div class="fbnote" style="margin:0 0 10px 2px">Köder sind in Kunst-/Naturköder &amp; Sonstige gruppiert. Tippe einen Köder an, um Varianten (Größe, Farbe) anzulegen. Das Fisch-Symbol zeigt die Fänge je Köder.</div>
+  <div class="fbnote" style="margin:0 0 10px 2px">Köder sind in Kunst- und Naturköder gruppiert. Öffne eine Gruppe und tippe einen Köder an, um Varianten (Größe, Farbe) anzulegen. Das Fisch-Symbol zeigt die Fänge je Köder.</div>
   <div id="baitList" class="spotlist"></div>
   <datalist id="baitBaseList">
     <option>Tauwurm</option><option>Rotwurm</option><option>Made</option><option>Mais</option>
@@ -244,9 +253,8 @@
   <div class="fbtools">
     <button type="button" class="fbtool" id="listBtn" onclick="toggleList()">Fänge anzeigen</button>
     <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()"><svg class="uiicon"><use href="#i-table"/></svg> Tabelle anzeigen</button>
-    <button type="button" class="fbtool" onclick="exportCSV()"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
-    <button type="button" class="fbtool" onclick="document.getElementById('importFile').click()"><svg class="uiicon"><use href="#i-upload"/></svg> Import</button>
-    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importJSON(event)">
+    <button type="button" class="fbtool" onclick="exportCSV('spot')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
+    <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
   </div>
 </div>
 <div id="fbTable" style="display:none"></div>
@@ -340,6 +348,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=47"></script>
+<script src="app.js?v=48"></script>
 </body>
 </html>
