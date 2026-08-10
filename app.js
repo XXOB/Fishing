@@ -479,6 +479,76 @@ async function loadHessen(){
 const CATCH_KEY = "rheincheck_faenge_v1";
 function loadCatches(){ try{ return JSON.parse(localStorage.getItem(CATCH_KEY)) || []; }catch(e){ return []; } }
 function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
+const TRIPS_KEY="deepfish_trips_v2", ACTIVE_TRIP_KEY="deepfish_active_trip_v2";
+function loadTrips(){ try{ return JSON.parse(localStorage.getItem(TRIPS_KEY))||[]; }catch(e){ return []; } }
+function saveTrips(a){ localStorage.setItem(TRIPS_KEY,JSON.stringify(a)); }
+function activeTrip(){ try{ return JSON.parse(localStorage.getItem(ACTIVE_TRIP_KEY))||null; }catch(e){ return null; } }
+function saveActiveTrip(t){ if(t) localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify(t)); else localStorage.removeItem(ACTIVE_TRIP_KEY); renderActiveTrip(); }
+function tripDuration(start,end){
+  const s=new Date(start).getTime(), e=end?new Date(end).getTime():Date.now();
+  if(!isFinite(s)) return "00:00:00";
+  let n=Math.max(0,Math.floor((e-s)/1000)), h=Math.floor(n/3600); n%=3600;
+  const m=Math.floor(n/60), sec=n%60, p=x=>String(x).padStart(2,"0"); return p(h)+":"+p(m)+":"+p(sec);
+}
+function tripCatchRecords(id){ return loadCatches().filter(c=>String(c.trip_id||"")===String(id)); }
+function renderActiveTrip(){
+  const box=$("activeTripBanner"); if(!box) return; const t=activeTrip();
+  if(!t){ box.style.display="none"; box.innerHTML=""; return; }
+  box.style.display="flex";
+  box.innerHTML='<div class="active-trip-info"><span>Aktiver Trip</span><b>'+esc(t.spotName||"Angelplatz")+'</b><strong>'+tripDuration(t.start_iso)+'</strong></div>'+ 
+    '<div class="active-trip-actions"><button onclick="tripAddCatch()">'+uiIcon('fish')+' Fang eintragen</button>'+ 
+    '<button class="trip-stop" onclick="openTripEnd()">'+uiIcon('circle-check')+' Trip beenden</button></div>';
+}
+function renderFavorites(){
+  const box=$("favoriteList"); if(!box) return; const spots=loadSpots(), trips=loadTrips();
+  if(!spots.length){ box.innerHTML='<div class="emptycard"><div class="emptytitle">Noch keine Angelplätze</div><div class="emptydesc">Lege zuerst unter „Angelplätze“ einen Platz an.</div></div>'; return; }
+  const visits={}; trips.forEach(t=>{ if(t.spotId!=null) visits[String(t.spotId)]=(visits[String(t.spotId)]||0)+1; });
+  const ranked=spots.slice().sort((a,b)=>(visits[String(b.id)]||0)-(visits[String(a.id)]||0)||String(a.name).localeCompare(String(b.name),"de")).slice(0,3);
+  box.innerHTML=ranked.map((s,i)=>{ const n=visits[String(s.id)]||0;
+    return '<button class="favorite-card" onclick="openSpot('+s.id+')"><span class="favorite-rank">'+(i+1)+'</span><span><b>'+esc(s.name)+'</b><small>'+spotWaterLabel(s)+' · '+n+(n===1?' Trip':' Trips')+'</small></span>'+uiIcon('chevron-right')+'</button>'; }).join("");
+}
+function showStart(){ hideAllViews(); const v=$("startView"); if(v) v.style.display="block"; renderFavorites(); renderActiveTrip(); setActiveTab("start"); window.scrollTo({top:0,behavior:"smooth"}); }
+function openTripStart(){
+  if(activeTrip()){ alert("Es läuft bereits ein Trip."); return; }
+  const spots=loadSpots(); if(!spots.length){ alert("Lege zuerst einen Angelplatz an."); showHome(); return; }
+  const sel=$("tripSpotSelect"); if(sel) sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+  const a=activeSpot(); if(sel&&a) sel.value=String(a.id);
+  const m=$("tripStartModal"); if(m) m.style.display="flex";
+}
+function closeTripStart(){ const m=$("tripStartModal"); if(m) m.style.display="none"; }
+function confirmTripStart(){
+  const id=$("tripSpotSelect")?$("tripSpotSelect").value:"", sp=loadSpots().find(s=>String(s.id)===String(id)); if(!sp) return;
+  const t={id:Date.now(),spotId:sp.id,spotName:sp.name,gewaesser:sp.gewaesser||sp.river||"",start_iso:new Date().toISOString(),end_iso:null,duration_s:null,rating:"",pending_end:false};
+  const all=loadTrips(); all.push(t); saveTrips(all); saveActiveTrip(t); closeTripStart(); openSpot(sp.id);
+}
+function tripAddCatch(){ const t=activeTrip(); if(!t) return; openSpot(t.spotId); openFangbuchForm(); }
+function openTripEnd(){
+  const t=activeTrip(); if(!t) return; const r=$("tripRating"); if(r) r.value=t.rating||"";
+  const hadFish=tripCatchRecords(t.id).some(isFish), b=$("tripNoCatchBtn"); if(b) b.innerHTML=hadFish?uiIcon('circle-check')+' Ohne weiteren Fang beenden':uiIcon('ban')+' Fanglos beenden';
+  const m=$("tripEndModal"); if(m) m.style.display="flex";
+}
+function closeTripEnd(){ const m=$("tripEndModal"); if(m) m.style.display="none"; }
+function selectedTripRating(){ const r=$("tripRating")?$("tripRating").value:""; if(!r) alert("Bitte bewerte den Trip mit schlecht, mittel oder gut."); return r; }
+function endTripWithCatch(){
+  const rating=selectedTripRating(), t=activeTrip(); if(!rating||!t) return; t.rating=rating; t.pending_end=true; saveActiveTrip(t); closeTripEnd(); tripAddCatch();
+}
+async function endTripWithoutCatch(){
+  const rating=selectedTripRating(), t=activeTrip(); if(!rating||!t) return;
+  if(!tripCatchRecords(t.id).length){
+    activateSpotById(t.spotId); await loadAll(); const now=new Date(), p=n=>String(n).padStart(2,"0");
+    if($("f_datum")) $("f_datum").value=now.getFullYear()+"-"+p(now.getMonth()+1)+"-"+p(now.getDate());
+    if($("f_zeit")) $("f_zeit").value=p(now.getHours())+":"+p(now.getMinutes());
+    const rec=buildRecord(true); rec.trip_id=t.id; rec.trip_bewertung=rating; const arr=loadCatches(); arr.push(rec); saveCatches(arr);
+  }
+  closeTripEnd(); finalizeTrip(rating);
+}
+function finalizeTrip(rating){
+  const t=activeTrip(); if(!t) return; const end=new Date(); t.rating=rating||t.rating||"mittel"; t.end_iso=end.toISOString();
+  t.duration_s=Math.max(0,Math.round((end.getTime()-new Date(t.start_iso).getTime())/1000)); t.pending_end=false;
+  const all=loadTrips(), i=all.findIndex(x=>String(x.id)===String(t.id)); if(i>=0) all[i]=t; else all.push(t); saveTrips(all);
+  const catches=loadCatches(); catches.forEach(c=>{ if(String(c.trip_id||"")===String(t.id)) c.trip_bewertung=t.rating; }); saveCatches(catches);
+  saveActiveTrip(null); refreshFangbuch(); showStart();
+}
 function catchesForView(){
   const all=loadCatches();
   const n=activeSpotName();
@@ -536,6 +606,7 @@ function buildRecord(blank){
   const mp=moonPhase(dObj);
   const sp=activeSpot();
   const k=readKoeder();
+  const tr=activeTrip();
   return {
     id: Date.now(),
     erfasst_iso: new Date().toISOString(),
@@ -550,6 +621,8 @@ function buildRecord(blank){
     koeder: k.label,
     koeder_basis: k.base,
     koeder_variante: k.variante,
+    trip_id: tr?tr.id:null,
+    trip_bewertung: tr?(tr.rating||""):"",
     methode: ($("f_methode") ? $("f_methode").value.trim() : ""),
     notiz: $("f_notiz").value.trim(),
     gps: CURRENT_GPS,
@@ -583,6 +656,7 @@ function saveCatch(opts){
       // Beim Bearbeiten bleiben die damals gespeicherten Bedingungen erhalten.
       rec.id=old.id; rec.erfasst_iso=old.erfasst_iso;
       rec.wetter=old.wetter; rec.wasser=old.wasser; rec.mondphase=old.mondphase;
+      rec.trip_id=old.trip_id||rec.trip_id; rec.trip_bewertung=old.trip_bewertung||rec.trip_bewertung;
       arr[i]=rec;
     } else arr.push(rec);
   } else arr.push(rec);
@@ -598,6 +672,7 @@ function saveCatch(opts){
   refreshFangbuch();
   const bt=$(blank?"fbBlankBtn":"fbSaveBtn");
   if(bt){ const o=bt.innerHTML; setIconLabel(bt,"check",wasEdit?"Änderungen gespeichert":(blank?"Angeltag gespeichert":"Fang gespeichert")); setTimeout(()=>{ if(EDIT_CATCH_ID==null) setIconLabel(bt,"fish","Fang speichern"); else bt.innerHTML=o; }, 1500); }
+  const tr=activeTrip(); if(tr&&tr.pending_end&&!wasEdit) finalizeTrip(tr.rating);
 }
 function saveBlank(){ saveCatch({blank:true}); }
 
@@ -655,6 +730,7 @@ function catchCard(c){
   if(c.gewaesser) context.push("Gewässer: "+c.gewaesser);
   if(c.gps&&c.gps.lat!=null) context.push("Fangort: "+c.gps.lat+", "+c.gps.lon);
   if(c.methode) extra.push("Methode: "+c.methode);
+  if(c.trip_bewertung) extra.push("Tripbewertung: "+c.trip_bewertung);
   if(c.mondphase&&c.mondphase.name) extra.push("Mondphase: "+c.mondphase.name);
   if(c.notiz) extra.push("Notiz: „"+c.notiz+"“");
   const title = c.kein_fang
@@ -664,9 +740,9 @@ function catchCard(c){
     (esc(c.datum||"")+' '+esc(c.uhrzeit||"")+(c.koeder?' · Köder: '+esc(c.koeder):''));
   const group=(label,arr)=>arr.length?'<div class="catchdetailgroup"><b>'+label+'</b><span>'+esc(arr.join(" · "))+'</span></div>':'';
   const details=group("Ort",context)+group("Wasserdaten",water)+group("Wetter",weather)+group("Weitere Angaben",extra);
-  return '<div class="fbitem'+(c.kein_fang?' blank':'')+'"><div class="h"><span class="fish">'+title+'</span>'+
-    '<span class="catchacts"><button class="editmini" onclick="editCatch('+c.id+')">bearbeiten</button>'+
-    '<button class="del" onclick="deleteCatch('+c.id+')">'+uiIcon('close')+' löschen</button></span></div>'+
+  return '<div class="fbitem'+(c.kein_fang?' blank':'')+'"><div class="h"><span class="fish">'+title+'</span>'+ 
+    '<span class="catchacts"><button class="catchicon editmini" title="Bearbeiten" aria-label="Fang bearbeiten" onclick="editCatch('+c.id+')">'+uiIcon('edit')+'</button>'+ 
+    '<button class="catchicon del" title="Löschen" aria-label="Fang löschen" onclick="deleteCatch('+c.id+')">'+uiIcon('close')+'</button></span></div>'+ 
     '<div class="when">'+short+'</div>'+
     '<details class="catchdetails"><summary>Details</summary><div class="catchdetailbody">'+(details||'<span class="fbnote">Keine weiteren Angaben.</span>')+'</div></details></div>';
 }
@@ -718,7 +794,7 @@ function exportCSV(scope){
   const cols=[
     ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
     ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
-    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
+    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["trip_id",c=>c.trip_id||""],["trip_bewertung",c=>c.trip_bewertung||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
     ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
     ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
     ["lufttemp_c",c=>W_(c,"lufttemperatur_c")],["gefuehlt_c",c=>W_(c,"gefuehlt_c")],["wind_kmh",c=>W_(c,"wind_kmh")],
@@ -768,6 +844,7 @@ function catchFromCSV(o,i){
     gewaessertyp:val("gewaessertyp"), fischart:val("fischart"), angelplatz:val("angelplatz"),
     groesse_cm:num("groesse_cm"), gewicht_kg:num("gewicht_kg"), gewicht_g:num("gewicht_g"),
     koeder:val("koeder"), koeder_basis:val("koeder_basis"), koeder_variante:val("koeder_variante"),
+    trip_id:val("trip_id")||null, trip_bewertung:val("trip_bewertung"),
     methode:val("methode"), notiz:val("notiz"), wetter:{}, wasser:{}
   };
   const lat=num("gps_lat"), lon=num("gps_lon"), acc=num("gps_genauigkeit_m");
@@ -1686,8 +1763,8 @@ async function loadSpotConditions(){
     }catch(e){ if(amp){ amp.className="ampelbadge lg-amber"; amp.innerHTML=uiIcon('minus')+' n/v'; } if(el) el.textContent="Bedingungen n/v"; }
   }));
 }
-/* Ansichten: Start (Liste) · Angelplatz (Daten) · Mein Fangbuch (alle Fänge) */
-function hideAllViews(){ ["homeView","spotView","mapCard","fbIndexView","catchListView","baitView","statsView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
+/* Ansichten: Start · Angelplätze · Angelplatzdaten · Fangbücher · Köder · Statistik */
+function hideAllViews(){ ["startView","homeView","spotView","mapCard","fbIndexView","catchListView","baitView","statsView"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
 function showHome(){
   hideAllViews();
   clearCatchMarkers();
@@ -1909,7 +1986,7 @@ function onKoederBaseChange(){
 }
 /* --- Tab-Leiste (aktiver Reiter) --- */
 function setActiveTab(which){
-  const map={places:"tabPlaces", fb:"tabFb", bait:"tabBait", stats:"tabStats"};
+  const map={start:"tabStart", places:"tabPlaces", fb:"tabFb", bait:"tabBait", stats:"tabStats"};
   Object.values(map).forEach(id=>{ const e=$(id); if(e) e.classList.remove("active"); });
   const el=$(map[which]); if(el) el.classList.add("active");
 }
@@ -1961,6 +2038,13 @@ function personalBestHtml(fc){
   return '<div class="statcard"><div class="stath">'+uiIcon('trophy')+' Personal Best je Fischart</div><div class="pbtablewrap"><table class="pbtable"><thead><tr><th>Fischart</th><th>Längster Fang</th><th>Schwerster Fang</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 function tripSuccessHtml(all){
+  const stored=loadTrips().filter(t=>t.end_iso);
+  if(stored.length){
+    const successful=stored.filter(t=>tripCatchRecords(t.id).some(isFish)).length;
+    const pct=Math.round(successful/stored.length*100);
+    return '<div class="statcard successcard"><div class="stath">'+uiIcon('line-chart')+' Erfolgreiche Trips</div>'+ 
+      '<div class="successpct">'+pct+' %</div><div class="statline">'+successful+' von '+stored.length+' Trips mit mindestens einem Fang</div></div>';
+  }
   const groups={};
   (all||[]).forEach(c=>{
     if(!c.datum) return;
@@ -2090,7 +2174,9 @@ async function boot(){
   loadHessen().then(()=>{ renderQuality(); if(typeof addStationDots==="function") addStationDots(); }); // Hessen-Wassergüte (HLNUG)
   initFangbuch();                             // Formular, Karte (Stationen + Angelplätze)
   loadQuality();                             // Länder- und Nachbarland-Sensoren schon auf der Startkarte laden
-  showHome();                                 // Startbildschirm: Angelplätze
+  showStart();                                // Startbildschirm: Lieblingsplätze und Tripstart
+  renderActiveTrip();
+  setInterval(renderActiveTrip,1000);
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
 }
 boot();

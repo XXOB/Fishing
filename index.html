@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=48">
+<link rel="stylesheet" href="styles.css?v=49">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -68,6 +68,16 @@
 
 <input type="file" id="importFile" accept=".csv,text/csv,.json,application/json" style="display:none" onchange="importCatchFile(event)">
 
+<div id="activeTripBanner" class="active-trip-banner" style="display:none"></div>
+
+<div id="startView">
+  <div class="pagelabel">Start</div>
+  <h2 class="pagetitle">Deine Lieblingsplätze</h2>
+  <p class="pagedesc">Deine drei am häufigsten besuchten Angelplätze.</p>
+  <div id="favoriteList" class="favorite-list"></div>
+  <button type="button" class="btn-primary start-trip-btn" onclick="openTripStart()"><svg class="uiicon"><use href="#i-calendar"/></svg> Trip starten</button>
+</div>
+
 <div id="fbIndexView" style="display:none">
   <div class="sect">Fangbücher</div>
   <div class="fbio">
@@ -108,7 +118,7 @@
   </datalist>
 </div>
 
-<div id="homeView">
+<div id="homeView" style="display:none">
   <div class="pagelabel">Meine Angelplätze</div>
   <h2 class="pagetitle">Angelplätze verwalten</h2>
   <p class="pagedesc">Erstelle deine Spots und lege fest, welche Messstellen verwendet werden.</p>
@@ -292,6 +302,7 @@
 </div>
 
 <nav class="tabbar" id="tabbar">
+  <button class="tabbtn" id="tabStart" onclick="showStart()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5M9 20v-6h6v6"/></svg></span><span class="tx">Start</span></button>
   <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="tx">Angelplätze</span></button>
   <button class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5V20.5M12 8h4M12 12h4"/></svg></span><span class="tx">Fangbücher</span></button>
   <button class="tabbtn" id="tabBait" onclick="showBaitList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v9a4 4 0 1 1-8 0"/><path d="M13 4.5 15 3l2 1.5"/><circle cx="7" cy="12.4" r="1"/></svg></span><span class="tx">Köder</span></button>
@@ -313,6 +324,31 @@
     <div class="cmhead"><span id="cmTitle">Messstation wählen</span><button class="cmx" onclick="closeStationPicker()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <div class="fbnote" style="margin-bottom:10px">Nächste Messstationen mit Gewässer und Entfernung. Wähle die passende oder „Keine Messstation“.</div>
     <div id="stPickList" class="stpicklist"></div>
+  </div>
+</div>
+
+<div id="tripStartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripStart()">
+  <div class="cmbox">
+    <div class="cmhead"><span>Trip starten</span><button class="cmx" onclick="closeTripStart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <div class="fbfield"><label>Angelplatz</label><select id="tripSpotSelect"></select></div>
+    <div class="fbactions" style="margin-top:14px">
+      <button class="btn-primary" onclick="confirmTripStart()"><svg class="uiicon"><use href="#i-calendar"/></svg> Starten</button>
+      <button class="backbtn" onclick="closeTripStart()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="tripEndModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripEnd()">
+  <div class="cmbox">
+    <div class="cmhead"><span>Trip beenden</span><button class="cmx" onclick="closeTripEnd()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <div class="fbfield"><label>Deine Tripbewertung</label>
+      <select id="tripRating"><option value="">Bitte wählen</option><option value="schlecht">Schlecht</option><option value="mittel">Mittel</option><option value="gut">Gut</option></select>
+    </div>
+    <div class="trip-end-actions">
+      <button class="btn-primary" onclick="endTripWithCatch()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eingeben</button>
+      <button class="backbtn" id="tripNoCatchBtn" onclick="endTripWithoutCatch()"><svg class="uiicon"><use href="#i-ban"/></svg> Fanglos beenden</button>
+      <button class="backbtn" onclick="closeTripEnd()">Weiter angeln</button>
+    </div>
   </div>
 </div>
 
@@ -348,6 +384,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=48"></script>
+<script src="app.js?v=49"></script>
 </body>
 </html>

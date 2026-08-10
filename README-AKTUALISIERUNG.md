@@ -1,4 +1,4 @@
-DeepFish HMI v47
+DeepFish HMI v49
 =================
 
 Enthaltene Ersatzdateien:
@@ -7,15 +7,17 @@ Enthaltene Ersatzdateien:
 - styles.css
 
 Installation:
-Diese drei Dateien im GitHub-Repository im Hauptverzeichnis ersetzen, committen und pushen.
+Diese drei Dateien im Hauptverzeichnis des GitHub-Repositories ersetzen, committen und pushen.
 
 Änderungen:
-- Sauerstoff-Verlauf bis 7 Tage für Messstationen mit automatischer O2-Zeitreihe.
-- PEGELONLINE-O2 wird für acht Tage abgerufen; vorhandene amtliche O2-Historien werden im Diagramm genutzt.
-- Ein einziger Button „Download“ erzeugt eine CSV-Datei für den aktuell geöffneten Angelplatz.
-- Umschalter „nur: Angelplatz / alle Plätze“ entfernt; in dieser Ansicht werden nur Daten des aktiven Angelplatzes gezeigt.
-- Feld „Verwertung“ vollständig aus Eingabe, Detailansicht und CSV entfernt.
-- Cache-Version 47.
-
-Hinweis:
-Ein Sauerstoff-Diagramm erscheint nur, wenn die jeweilige amtliche Quelle eine automatische Zeitreihe bereitstellt. Einzelne aktuelle O2-Messwerte ohne Verlauf bleiben als Zahlenwert sichtbar.
+- Fangbearbeitung verwendet nur noch Stift- und X-Symbole.
+- Neuer Startbildschirm mit den drei am häufigsten besuchten Angelplätzen.
+- Neuer Start-Reiter in der unteren Navigation.
+- Trip starten mit Angelplatzauswahl und laufender Stoppuhr.
+- Während eines Trips können Fänge direkt eingetragen werden.
+- Beim Beenden: Fang eingeben oder fanglos abschließen.
+- Pflichtbewertung schlecht/mittel/gut wird bei jedem beendeten Trip gespeichert.
+- Fanglose Trips erzeugen automatisch einen Fangbuch-Leereintrag mit Bedingungen.
+- Tripbewertung wird in Fangdetails und CSV gespeichert.
+- Statistik nutzt gespeicherte Trips für die Erfolgsquote.
+- Cache-Version 49.
