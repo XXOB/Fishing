@@ -454,3 +454,29 @@ button{touch-action:manipulation}
   #map{height:300px}
   .tabbtn .tx{font-size:10px}
 }
+
+/* Fangbuch-Ablauf: Liste zuerst, danach getrennte Eingabeaktionen */
+.fangbook-entry-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 10px}
+.fangbook-entry-actions button{min-height:48px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px}
+.catch-form-panel{animation:panel-in .2s ease both}
+.inline-rating-panel{margin:10px 0 16px;padding:16px;background:rgba(28,28,30,.9);border:1px solid rgba(255,255,255,.12);border-radius:16px;animation:panel-in .2s ease both}
+.rating-heading{margin:0 0 12px;color:var(--text);font-size:17px;font-weight:750;text-align:center}
+.smiley-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rating-choice{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.13);border-radius:15px;background:rgba(118,118,128,.14);color:var(--muted);font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:transform .12s ease,border-color .15s ease,background .15s ease,color .15s ease}
+.rating-choice:hover,.rating-choice:focus-visible{border-color:#0a84ff;background:rgba(10,132,255,.18);color:#64d2ff;outline:none}
+.rating-choice:active{transform:scale(.97)}
+.rating-choice svg{width:48px;height:48px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.rating-choice svg circle:not(:first-child){fill:currentColor;stroke:none}
+.trip-rating-heading{margin-top:8px;font-size:20px}
+.trip-smileys .rating-choice{min-height:118px}
+.trip-smileys .rating-choice svg{width:58px;height:58px}
+.trip-close{width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;border-radius:50%!important;background:rgba(255,69,58,.18)!important;border:1px solid rgba(255,105,97,.55)!important;color:#ff6961!important}
+.trip-close .uiicon{width:25px;height:25px}
+.trip-close:hover{background:rgba(255,69,58,.3)!important;color:#fff!important}
+@keyframes panel-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:560px){
+  .fangbook-entry-actions{grid-template-columns:1fr}
+  .smiley-actions{gap:7px}
+  .rating-choice{min-height:88px}
+  .trip-smileys .rating-choice{min-height:104px}
+}

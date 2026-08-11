@@ -531,24 +531,21 @@ function confirmTripStart(){
 function tripAddCatch(){ const t=activeTrip(); if(!t) return; openSpot(t.spotId); openFangbuchForm(); }
 function openTripEnd(){
   const t=activeTrip(); if(!t) return;
-  document.querySelectorAll('input[name="tripRating"]').forEach(r=>{ r.checked=!!t.rating&&r.value===t.rating; });
-  const hadFish=tripCatchRecords(t.id).some(isFish), b=$("tripNoCatchBtn"); if(b) b.innerHTML=hadFish?uiIcon('circle-check')+' Ohne weiteren Fang beenden':uiIcon('ban')+' Fanglos beenden';
   const m=$("tripEndModal"); if(m) m.style.display="flex";
 }
 function closeTripEnd(){ const m=$("tripEndModal"); if(m) m.style.display="none"; }
-function selectedTripRating(){ const el=document.querySelector('input[name="tripRating"]:checked'), r=el?el.value:""; if(!r) alert("Bitte wähle einen Smiley für deine Tripbewertung."); return r; }
-function endTripWithCatch(){
-  const rating=selectedTripRating(), t=activeTrip(); if(!rating||!t) return; t.rating=rating; t.pending_end=true; saveActiveTrip(t); closeTripEnd(); tripAddCatch();
-}
-async function endTripWithoutCatch(){
-  const rating=selectedTripRating(), t=activeTrip(); if(!rating||!t) return;
-  if(!tripCatchRecords(t.id).length){
-    activateSpotById(t.spotId); await loadAll(); const now=new Date(), p=n=>String(n).padStart(2,"0");
-    if($("f_datum")) $("f_datum").value=now.getFullYear()+"-"+p(now.getMonth()+1)+"-"+p(now.getDate());
-    if($("f_zeit")) $("f_zeit").value=p(now.getHours())+":"+p(now.getMinutes());
-    const rec=buildRecord(true); rec.trip_id=t.id; rec.trip_bewertung=rating; const arr=loadCatches(); arr.push(rec); saveCatches(arr);
-  }
-  closeTripEnd(); finalizeTrip(rating);
+let ENDING_TRIP=false;
+async function rateAndEndTrip(rating){
+  const t=activeTrip(); if(!t||!rating||ENDING_TRIP) return; ENDING_TRIP=true;
+  try{
+    if(!tripCatchRecords(t.id).length){
+      activateSpotById(t.spotId); await loadAll(); const now=new Date(), p=n=>String(n).padStart(2,"0");
+      if($("f_datum")) $("f_datum").value=now.getFullYear()+"-"+p(now.getMonth()+1)+"-"+p(now.getDate());
+      if($("f_zeit")) $("f_zeit").value=p(now.getHours())+":"+p(now.getMinutes());
+      const rec=buildRecord(true); rec.trip_id=t.id; rec.trip_bewertung=rating; const arr=loadCatches(); arr.push(rec); saveCatches(arr);
+    }
+    closeTripEnd(); finalizeTrip(rating);
+  } finally { ENDING_TRIP=false; }
 }
 function finalizeTrip(rating){
   const t=activeTrip(); if(!t) return; const end=new Date(); t.rating=rating||t.rating||"mittel"; t.end_iso=end.toISOString();
@@ -652,10 +649,12 @@ function resetCatchEdit(){
   setIconLabel(b,"fish","Fang speichern");
   if(c) c.style.display="none";
 }
+function clearFishRules(){ const box=$("fishRules"); if(box){ box.style.display="none"; box.innerHTML=""; } }
 function saveCatch(opts){
   opts=opts||{};
   const blank = opts.blank || !$("f_art").value.trim();   // ohne Fischart => Leereintrag (Angeltag)
   const rec=buildRecord(blank);
+  if(opts.rating) rec.trip_bewertung=opts.rating;
   const arr=loadCatches();
   if(EDIT_CATCH_ID!=null){
     const i=arr.findIndex(c=>String(c.id)===String(EDIT_CATCH_ID));
@@ -676,13 +675,24 @@ function saveCatch(opts){
   $("f_zeit").value=pad(now.getHours())+':'+pad(now.getMinutes());
   clearSelectedLocation();
   const wasEdit=EDIT_CATCH_ID!=null; resetCatchEdit();
+  clearFishRules();
   populateCatchSpots();
   refreshFangbuch();
   const bt=$(blank?"fbBlankBtn":"fbSaveBtn");
   if(bt){ const o=bt.innerHTML; setIconLabel(bt,"check",wasEdit?"Änderungen gespeichert":(blank?"Angeltag gespeichert":"Fang gespeichert")); setTimeout(()=>{ if(EDIT_CATCH_ID==null) setIconLabel(bt,"fish","Fang speichern"); else bt.innerHTML=o; }, 1500); }
   const tr=activeTrip(); if(tr&&tr.pending_end&&!wasEdit) finalizeTrip(tr.rating);
+  const form=$("catchFormPanel"); if(form) form.style.display="none";
+  const add=$("catchFormToggle"); if(add) setIconLabel(add,"fish","Fang eintragen");
+  const blankPanel=$("blankRatingPanel"); if(blankPanel) blankPanel.style.display="none";
 }
-function saveBlank(){ saveCatch({blank:true}); }
+function saveBlank(){ showBlankRating(); }
+function showBlankRating(){
+  const panel=$("blankRatingPanel"), form=$("catchFormPanel"); if(!panel) return;
+  if(form) form.style.display="none";
+  panel.style.display=(panel.style.display==="none"||!panel.style.display)?"block":"none";
+  const add=$("catchFormToggle"); if(add) setIconLabel(add,"fish","Fang eintragen");
+}
+function saveBlankWithRating(rating){ saveCatch({blank:true,rating:rating}); }
 
 function editCatch(id){
   const c=loadCatches().find(x=>String(x.id)===String(id)); if(!c) return;
@@ -1492,6 +1502,10 @@ function toggleFangbuch(){
   const box=$("fangbuchBox"); if(!box) return;
   const show=(box.style.display==="none"||!box.style.display);
   box.style.display = show?"block":"none";
+  if(show){
+    const list=$("fbList"); if(list) list.style.display="block";
+    renderCatches();
+  }
   updateFangbuchBtn();
 }
 
@@ -1856,8 +1870,20 @@ function renderFishPie(){
 }
 /* Fang direkt aus einem Fangbuch eintragen: passenden Angelplatz öffnen + Formular aufklappen */
 function openFangbuchForm(){
-  const box=$("fangbuchBox"); if(box){ box.style.display="block"; updateFangbuchBtn(); }
+  const box=$("fangbuchBox"), form=$("catchFormPanel"), blank=$("blankRatingPanel");
+  if(box){ box.style.display="block"; updateFangbuchBtn(); }
+  if(form) form.style.display="block";
+  if(blank) blank.style.display="none";
+  const add=$("catchFormToggle"); if(add) setIconLabel(add,"chevron-up","Fangformular schließen");
   setTimeout(()=>{ const el=$("f_art"); if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); try{ el.focus(); }catch(e){} } }, 160);
+}
+function toggleCatchForm(){
+  const form=$("catchFormPanel"), blank=$("blankRatingPanel"), add=$("catchFormToggle"); if(!form) return;
+  const show=form.style.display==="none"||!form.style.display;
+  form.style.display=show?"block":"none";
+  if(blank) blank.style.display="none";
+  if(add) setIconLabel(add,show?"chevron-up":"fish",show?"Fangformular schließen":"Fang eintragen");
+  if(show) setTimeout(()=>{ const el=$("f_art"); if(el){ el.scrollIntoView({behavior:"smooth",block:"center"}); try{el.focus();}catch(e){} } },120);
 }
 function addCatchFromList(){
   const spots=loadSpots();

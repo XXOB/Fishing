@@ -1,23 +1,13 @@
-DeepFish HMI v49
-=================
-
-Enthaltene Ersatzdateien:
-- app.js
-- index.html
-- styles.css
-
-Installation:
-Diese drei Dateien im Hauptverzeichnis des GitHub-Repositories ersetzen, committen und pushen.
+﻿DeepFish HMI v51
 
 Änderungen:
-- Fangbearbeitung verwendet nur noch Stift- und X-Symbole.
-- Neuer Startbildschirm mit den drei am häufigsten besuchten Angelplätzen.
-- Neuer Start-Reiter in der unteren Navigation.
-- Trip starten mit Angelplatzauswahl und laufender Stoppuhr.
-- Während eines Trips können Fänge direkt eingetragen werden.
-- Beim Beenden: Fang eingeben oder fanglos abschließen.
-- Pflichtbewertung schlecht/mittel/gut wird bei jedem beendeten Trip gespeichert.
-- Fanglose Trips erzeugen automatisch einen Fangbuch-Leereintrag mit Bedingungen.
-- Tripbewertung wird in Fangdetails und CSV gespeichert.
-- Statistik nutzt gespeicherte Trips für die Erfolgsquote.
-- Cache-Version 49.
+- Fangbuch zeigt beim Öffnen sofort die Fangliste.
+- „Fang eintragen“ öffnet und schließt das vollständige Fangformular.
+- „Angeltag ohne Fang“ zeigt drei Bewertungen; ein Smiley speichert den Tag sofort.
+- Schonmaß- und Schonzeit-Hinweis wird nach dem Speichern geschlossen.
+- Trip beenden zeigt nur noch „Bewerte Deinen Trip“ und drei Smilies.
+- Ein Smiley beendet den Trip sofort; ohne vorherigen Fang wird automatisch ein fangloser Angeltag gespeichert.
+- Das größere rote X bricht den Abschluss ab und setzt den laufenden Trip fort.
+
+Einspielen:
+app.js, index.html und styles.css im Repository ersetzen, committen und pushen.
