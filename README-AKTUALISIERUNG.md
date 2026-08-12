@@ -1,13 +1,24 @@
-﻿DeepFish HMI v51
+﻿DeepFish HMI v52 – Supabase-Konto und Cloud-Synchronisierung
 
-Änderungen:
-- Fangbuch zeigt beim Öffnen sofort die Fangliste.
-- „Fang eintragen“ öffnet und schließt das vollständige Fangformular.
-- „Angeltag ohne Fang“ zeigt drei Bewertungen; ein Smiley speichert den Tag sofort.
-- Schonmaß- und Schonzeit-Hinweis wird nach dem Speichern geschlossen.
-- Trip beenden zeigt nur noch „Bewerte Deinen Trip“ und drei Smilies.
-- Ein Smiley beendet den Trip sofort; ohne vorherigen Fang wird automatisch ein fangloser Angeltag gespeichert.
-- Das größere rote X bricht den Abschluss ab und setzt den laufenden Trip fort.
+Enthalten:
+- Registrierung mit E-Mail und Passwort
+- Anmeldung, Abmeldung und Passwort-Zurücksetzung
+- Kontobutton und sichtbarer Synchronisierungsstatus
+- automatische Erstmigration vorhandener LocalStorage-Daten
+- automatische Synchronisierung von Angelplätzen, Fängen, Ködern und Trips
+- Zusammenführen lokaler und bereits vorhandener Cloud-Daten beim ersten Login
+- Offline-Weiterarbeit; Änderungen werden beim nächsten Login/Sync hochgeladen
+- manueller Button „Jetzt synchronisieren“
+- ausschließlich der öffentliche Publishable Key ist im Client enthalten
 
-Einspielen:
-app.js, index.html und styles.css im Repository ersetzen, committen und pushen.
+Erster Test:
+1. Dateien app.js, index.html und styles.css in das Repository übernehmen.
+2. Committen und pushen.
+3. GitHub Pages öffnen und oben rechts „Anmelden“ wählen.
+4. „Konto erstellen“ drücken und Bestätigungs-E-Mail öffnen.
+5. Danach anmelden. Vorhandene lokale DeepFish-Daten werden automatisch in app_state gespeichert.
+6. In Supabase unter Table Editor > app_state kontrollieren, ob eine Zeile angelegt wurde.
+
+Wichtig:
+- Die SQL-Tabelle app_state und die RLS-Regeln müssen zuvor angelegt sein.
+- Niemals einen Secret Key oder service_role Key in app.js eintragen.

@@ -480,3 +480,28 @@ button{touch-action:manipulation}
   .rating-choice{min-height:88px}
   .trip-smileys .rating-choice{min-height:104px}
 }
+
+/* Konto und Supabase-Cloud */
+.account-area{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
+.account-btn{min-height:40px;max-width:260px;display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(255,255,255,.13);border-radius:11px;background:rgba(118,118,128,.14);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-btn:hover{border-color:rgba(10,132,255,.55);background:rgba(10,132,255,.15)}
+.account-btn .uiicon{flex:0 0 auto}
+.cloud-status{font-size:11px;color:var(--muted2);white-space:nowrap}
+.cloud-status.ok{color:#30d158}.cloud-status.syncing{color:#64d2ff}.cloud-status.error{color:#ff6961}
+.auth-box{max-width:480px}
+.auth-intro{margin:2px 0 16px;color:var(--muted);font-size:13px;line-height:1.5}
+.auth-actions{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+.auth-actions button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;gap:7px}
+.auth-link{border:0;background:transparent;color:#64d2ff;font-size:13px;cursor:pointer}
+.auth-link:hover{text-decoration:underline}
+.auth-message{margin-top:14px;padding:11px 12px;border:1px solid rgba(48,209,88,.35);border-radius:11px;background:rgba(48,209,88,.1);color:#7ee89a;font-size:12.5px;line-height:1.45}
+.auth-message.error{border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.11);color:#ff8b84}
+.account-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(118,118,128,.12)}
+.account-card>.uiicon{width:30px;height:30px;color:#64d2ff}
+.account-card div{display:flex;flex-direction:column;min-width:0}.account-card small{color:var(--muted2);font-size:11px}.account-card strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+@media(max-width:620px){
+  header{align-items:flex-start}
+  .account-area{width:100%;justify-content:space-between}
+  .account-btn{max-width:70%}
+  .cloud-status{overflow:hidden;text-overflow:ellipsis}
+}

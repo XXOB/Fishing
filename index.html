@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeepFish</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=51">
+<link rel="stylesheet" href="styles.css?v=52">
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -55,6 +55,8 @@
   <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 13v4M8 20h8M10 17h4"/></symbol>
   <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v17M5 6h14M8 6 4 13h8ZM16 6l-4 7h8ZM8 21h8"/></symbol>
   <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 11V6a1.5 1.5 0 0 1 3 0v5-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v6-3a1.5 1.5 0 0 1 3 0v5c0 4-3 7-7 7h-1c-2.5 0-4-1.5-5-3l-3-4a1.7 1.7 0 0 1 2.5-2.2Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></symbol>
+  <symbol id="i-cloud-sync" viewBox="0 0 24 24"><path d="M6.5 18h11a4.5 4.5 0 0 0 .5-9A6.5 6.5 0 0 0 5.8 10.5 3.8 3.8 0 0 0 6.5 18Z"/><path d="m9 13 2-2 2 2M11 11v5M17 15l-2 2-2-2M15 17v-5"/></symbol>
 </svg>
 <header>
   <div class="brand">
@@ -64,9 +66,42 @@
       <div class="sub">Angelplätze &amp; Live-Bedingungen an deutschen Gewässern</div>
     </div>
   </div>
+  <div class="account-area">
+    <span id="cloudStatus" class="cloud-status">Lokal gespeichert</span>
+    <button type="button" id="accountBtn" class="account-btn" onclick="openAuthModal()"><svg class="uiicon"><use href="#i-user"/></svg> Anmelden</button>
+  </div>
 </header>
 
 <input type="file" id="importFile" accept=".csv,text/csv,.json,application/json" style="display:none" onchange="importCatchFile(event)">
+
+<div id="authModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeAuthModal()">
+  <div class="cmbox auth-box">
+    <div class="cmhead"><span>DeepFish-Konto</span><button class="cmx" onclick="closeAuthModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <div id="authLoggedOut">
+      <p class="auth-intro">Melde dich an, damit Angelplätze und Fangbuch sicher zwischen deinen Geräten synchronisiert werden.</p>
+      <div class="fbfield"><label>E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
+      <div class="fbfield" style="margin-top:10px"><label>Passwort</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Mindestens 8 Zeichen"></div>
+      <div class="auth-actions">
+        <button type="button" class="btn-primary" onclick="authSignIn()">Anmelden</button>
+        <button type="button" class="backbtn" onclick="authSignUp()">Konto erstellen</button>
+        <button type="button" class="auth-link" onclick="authResetPassword()">Passwort vergessen</button>
+      </div>
+    </div>
+    <div id="authLoggedIn" style="display:none">
+      <div class="account-card"><svg class="uiicon"><use href="#i-user"/></svg><div><small>Angemeldet als</small><strong id="authUserEmail">–</strong></div></div>
+      <div class="auth-actions">
+        <button type="button" class="btn-primary" onclick="manualCloudSync()"><svg class="uiicon"><use href="#i-cloud-sync"/></svg> Jetzt synchronisieren</button>
+        <button type="button" class="backbtn" onclick="authSignOut()">Abmelden</button>
+      </div>
+    </div>
+    <div id="authRecovery" style="display:none">
+      <p class="auth-intro">Lege jetzt ein neues Passwort fest.</p>
+      <div class="fbfield"><label>Neues Passwort</label><input id="authNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mindestens 8 Zeichen"></div>
+      <div class="auth-actions"><button type="button" class="btn-primary" onclick="authUpdatePassword()">Passwort speichern</button></div>
+    </div>
+    <div id="authMessage" class="auth-message" style="display:none"></div>
+  </div>
+</div>
 
 <div id="activeTripBanner" class="active-trip-banner" style="display:none"></div>
 
@@ -374,7 +409,7 @@
 
 <div id="chartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeChart()">
   <div class="cmbox">
-    <div class="cmhead"><span id="cmTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <div class="cmhead"><span id="chartTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <div class="cmtabs"><button id="cmt24" onclick="setChartRange('24h')">24 Stunden</button><button id="cmt7" onclick="setChartRange('7d')">7 Tage</button></div>
     <div class="cmcanvas"><canvas id="cmChart"></canvas></div>
     <div id="cmMeta" class="fbnote"></div>
@@ -403,7 +438,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=51"></script>
+<script src="app.js?v=52"></script>
 </body>
 </html>

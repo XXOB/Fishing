@@ -22,6 +22,151 @@ function uiIcon(name, extra){ return '<svg class="uiicon'+(extra?' '+extra:'')+'
 function iconLabel(name,text){ return uiIcon(name)+' '+hesc(text); }
 function setIconLabel(el,name,text){ if(el) el.innerHTML=iconLabel(name,text); }
 
+/* ===================== Supabase-Konto & Cloud-Synchronisierung ===================== */
+const SUPABASE_URL="https://mcekltbtndpzjahwypze.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
+const CLOUD_DIRTY_KEY="deepfish_cloud_dirty_v1", CLOUD_SEEN_KEY="deepfish_cloud_seen_v1";
+let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
+
+function setCloudStatus(text,state){
+  const el=$("cloudStatus"); if(!el) return; el.textContent=text||""; el.className="cloud-status "+(state||"");
+}
+function authMessage(text,isError){
+  const el=$("authMessage"); if(!el) return;
+  el.textContent=text||""; el.style.display=text?"block":"none"; el.className="auth-message"+(isError?" error":"");
+}
+function renderAccountUI(){
+  const b=$("accountBtn");
+  if(b) b.innerHTML=CLOUD_USER?uiIcon("cloud-sync")+" "+hesc(CLOUD_USER.email||"Konto"):uiIcon("user")+" Anmelden";
+  const out=$("authLoggedOut"), inn=$("authLoggedIn"), rec=$("authRecovery"), mail=$("authUserEmail");
+  if(out) out.style.display=(!CLOUD_USER&&!AUTH_RECOVERY)?"block":"none";
+  if(inn) inn.style.display=(CLOUD_USER&&!AUTH_RECOVERY)?"block":"none";
+  if(rec) rec.style.display=AUTH_RECOVERY?"block":"none";
+  if(mail) mail.textContent=CLOUD_USER?CLOUD_USER.email||"–":"–";
+  if(!CLOUD_USER) setCloudStatus("Lokal gespeichert","");
+}
+function openAuthModal(){ authMessage(""); renderAccountUI(); const m=$("authModal"); if(m) m.style.display="flex"; }
+function closeAuthModal(){ const m=$("authModal"); if(m) m.style.display="none"; authMessage(""); }
+
+function cloudPayload(){
+  return {version:1,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),trips:loadTrips(),active_trip:activeTrip()};
+}
+function payloadHasUserData(p){ return !!(p&&((p.spots&&p.spots.length)||(p.catches&&p.catches.length)||(p.trips&&p.trips.length))); }
+function mergeRows(cloud,local,keyFn){
+  const out=[], seen=new Set();
+  [...(cloud||[]),...(local||[])].forEach(x=>{ const k=String(keyFn(x)); if(seen.has(k)){ const i=out.findIndex(y=>String(keyFn(y))===k); if(i>=0) out[i]=x; } else { seen.add(k); out.push(x); } });
+  return out;
+}
+function mergeBaitState(cloud,local){
+  const out=[];
+  [...(cloud||[]),...(local||[])].forEach(cat=>{
+    if(!cat||!cat.base) return; let hit=out.find(x=>x.base===cat.base);
+    if(!hit){ hit={base:cat.base,group:cat.group||baitGroup(cat.base),variants:[]}; out.push(hit); }
+    if(cat.group) hit.group=cat.group;
+    (cat.variants||[]).forEach(v=>{ const k=String(v.size||"")+"|"+String(v.color||""); if(!hit.variants.some(x=>String(x.size||"")+"|"+String(x.color||"")===k)) hit.variants.push(v); });
+  });
+  return out;
+}
+function mergeCloudPayload(cloud,local){
+  return {version:1,
+    spots:mergeRows(cloud&&cloud.spots,local&&local.spots,x=>x.id!=null?x.id:x.name),
+    catches:mergeRows(cloud&&cloud.catches,local&&local.catches,x=>x.id),
+    baits:mergeBaitState(cloud&&cloud.baits,local&&local.baits),
+    trips:mergeRows(cloud&&cloud.trips,local&&local.trips,x=>x.id),
+    active_trip:(local&&local.active_trip)||(cloud&&cloud.active_trip)||null};
+}
+function applyCloudPayload(p){
+  if(!p) return; CLOUD_APPLYING=true;
+  try{
+    if(Array.isArray(p.spots)){
+      localStorage.setItem(SPOTS_KEY,JSON.stringify(p.spots));
+      const active=localStorage.getItem(ACTIVE_KEY), valid=p.spots.some(s=>String(s.id)===String(active));
+      if(!valid){ if(p.spots[0]) localStorage.setItem(ACTIVE_KEY,String(p.spots[0].id)); else localStorage.removeItem(ACTIVE_KEY); }
+    }
+    if(Array.isArray(p.catches)) localStorage.setItem(CATCH_KEY,JSON.stringify(p.catches));
+    if(Array.isArray(p.baits)) localStorage.setItem(BAIT_KEY,JSON.stringify(p.baits));
+    if(Array.isArray(p.trips)) localStorage.setItem(TRIPS_KEY,JSON.stringify(p.trips));
+    if(p.active_trip) localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify(p.active_trip)); else localStorage.removeItem(ACTIVE_TRIP_KEY);
+  } finally { CLOUD_APPLYING=false; }
+  try{ renderSpots(); populateCatchSpots(); populateKoeder(); renderBaitList(); refreshFangbuch(); renderFavorites(); renderActiveTrip(); }catch(e){}
+}
+function markCloudDirty(){
+  if(CLOUD_APPLYING) return; localStorage.setItem(CLOUD_DIRTY_KEY,String(Date.now()));
+  if(CLOUD_READY&&CLOUD_USER){ clearTimeout(CLOUD_TIMER); CLOUD_TIMER=setTimeout(()=>syncCloudNow(false),1200); }
+  else setCloudStatus("Lokal geändert","");
+}
+async function syncCloudNow(force){
+  if(!SUPA||!CLOUD_USER) return false;
+  if(!force&&!localStorage.getItem(CLOUD_DIRTY_KEY)) return true;
+  setCloudStatus("Synchronisiere …","syncing");
+  const now=new Date().toISOString(), payload=cloudPayload();
+  const {data,error}=await SUPA.from("app_state").upsert({user_id:CLOUD_USER.id,data:payload,revision:Date.now(),updated_at:now},{onConflict:"user_id"}).select("updated_at").single();
+  if(error){ setCloudStatus("Sync fehlgeschlagen","error"); authMessage("Synchronisierung fehlgeschlagen: "+error.message,true); return false; }
+  localStorage.removeItem(CLOUD_DIRTY_KEY); localStorage.setItem(CLOUD_SEEN_KEY,(data&&data.updated_at)||now);
+  setCloudStatus("Cloud aktuell","ok"); return true;
+}
+async function pullCloudState(){
+  if(!SUPA||!CLOUD_USER) return;
+  setCloudStatus("Lade Cloud-Daten …","syncing");
+  const {data:row,error}=await SUPA.from("app_state").select("data,updated_at,revision").eq("user_id",CLOUD_USER.id).maybeSingle();
+  if(error){ setCloudStatus("Cloud nicht erreichbar","error"); authMessage("Cloud-Daten konnten nicht geladen werden: "+error.message,true); return; }
+  const local=cloudPayload(), dirty=!!localStorage.getItem(CLOUD_DIRTY_KEY), seen=localStorage.getItem(CLOUD_SEEN_KEY);
+  if(!row){ await syncCloudNow(true); return; }
+  const remote=row.data||{};
+  if(!seen&&payloadHasUserData(local)&&payloadHasUserData(remote)){
+    const merged=mergeCloudPayload(remote,local); applyCloudPayload(merged); markCloudDirty(); await syncCloudNow(true);
+  } else if(!seen&&payloadHasUserData(local)&&!payloadHasUserData(remote)){
+    await syncCloudNow(true);
+  } else if(dirty){
+    const changedRemote=seen&&new Date(row.updated_at).getTime()>new Date(seen).getTime()+500;
+    if(changedRemote){ const merged=mergeCloudPayload(remote,local); applyCloudPayload(merged); markCloudDirty(); }
+    await syncCloudNow(true);
+  } else {
+    applyCloudPayload(remote); localStorage.setItem(CLOUD_SEEN_KEY,row.updated_at||new Date().toISOString()); localStorage.removeItem(CLOUD_DIRTY_KEY); setCloudStatus("Cloud aktuell","ok");
+  }
+}
+async function handleCloudSession(session){
+  CLOUD_USER=session&&session.user?session.user:null; CLOUD_READY=true; renderAccountUI();
+  if(CLOUD_USER) await pullCloudState();
+}
+async function initCloud(){
+  if(!window.supabase||!window.supabase.createClient){ setCloudStatus("Cloud-Modul nicht geladen","error"); return; }
+  try{
+    SUPA=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const {data}=await SUPA.auth.getSession(); await handleCloudSession(data&&data.session);
+    SUPA.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){ AUTH_RECOVERY=true; setTimeout(()=>{ handleCloudSession(session); openAuthModal(); },0); }
+      else setTimeout(()=>handleCloudSession(session),0);
+    });
+  }catch(e){ CLOUD_READY=false; setCloudStatus("Cloud nicht verfügbar","error"); }
+}
+function authCredentials(){ return {email:($("authEmail")?$("authEmail").value.trim():""),password:($("authPassword")?$("authPassword").value:"")}; }
+async function authSignIn(){
+  if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
+  const c=authCredentials(); if(!c.email||!c.password){ authMessage("Bitte E-Mail-Adresse und Passwort eingeben.",true); return; }
+  authMessage("Anmeldung läuft …"); const {error}=await SUPA.auth.signInWithPassword(c); if(error) authMessage(error.message,true); else { authMessage("Angemeldet. Cloud-Daten werden geladen."); setTimeout(closeAuthModal,700); }
+}
+async function authSignUp(){
+  if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
+  const c=authCredentials(); if(!c.email||c.password.length<8){ authMessage("Bitte eine gültige E-Mail-Adresse und mindestens 8 Zeichen als Passwort eingeben.",true); return; }
+  authMessage("Konto wird erstellt …");
+  const redirectTo=location.origin+location.pathname, {data,error}=await SUPA.auth.signUp({email:c.email,password:c.password,options:{emailRedirectTo:redirectTo}});
+  if(error) authMessage(error.message,true); else if(data&&data.session) authMessage("Konto erstellt und angemeldet."); else authMessage("Konto erstellt. Bitte bestätige die E-Mail über den Link in deinem Postfach.");
+}
+async function authResetPassword(){
+  if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
+  const email=$("authEmail")?$("authEmail").value.trim():""; if(!email){ authMessage("Bitte zuerst deine E-Mail-Adresse eingeben.",true); return; }
+  const {error}=await SUPA.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  authMessage(error?error.message:"E-Mail zum Zurücksetzen des Passworts wurde versendet.",!!error);
+}
+async function authUpdatePassword(){
+  if(!SUPA){ authMessage("Cloud-Verbindung ist nicht verfügbar.",true); return; }
+  const password=$("authNewPassword")?$("authNewPassword").value:""; if(password.length<8){ authMessage("Das neue Passwort muss mindestens 8 Zeichen haben.",true); return; }
+  const {error}=await SUPA.auth.updateUser({password}); if(error) authMessage(error.message,true); else { AUTH_RECOVERY=false; renderAccountUI(); authMessage("Passwort wurde geändert."); }
+}
+async function authSignOut(){ if(!SUPA) return; await syncCloudNow(true); await SUPA.auth.signOut(); CLOUD_USER=null; renderAccountUI(); closeAuthModal(); }
+async function manualCloudSync(){ const ok=await syncCloudNow(true); authMessage(ok?"Synchronisierung abgeschlossen.":"Synchronisierung fehlgeschlagen.",!ok); }
+
 // Klassifizierungs-Farbe -> CSS-Farbe für den Kachelstreifen
 function stripeColor(c){
   return c==="pg-green" ? "var(--green)"
@@ -478,12 +623,12 @@ async function loadHessen(){
 /* ===================== Fangbuch ===================== */
 const CATCH_KEY = "rheincheck_faenge_v1";
 function loadCatches(){ try{ return JSON.parse(localStorage.getItem(CATCH_KEY)) || []; }catch(e){ return []; } }
-function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
+function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); markCloudDirty(); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
 const TRIPS_KEY="deepfish_trips_v2", ACTIVE_TRIP_KEY="deepfish_active_trip_v2";
 function loadTrips(){ try{ return JSON.parse(localStorage.getItem(TRIPS_KEY))||[]; }catch(e){ return []; } }
-function saveTrips(a){ localStorage.setItem(TRIPS_KEY,JSON.stringify(a)); }
+function saveTrips(a){ localStorage.setItem(TRIPS_KEY,JSON.stringify(a)); markCloudDirty(); }
 function activeTrip(){ try{ return JSON.parse(localStorage.getItem(ACTIVE_TRIP_KEY))||null; }catch(e){ return null; } }
-function saveActiveTrip(t){ if(t) localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify(t)); else localStorage.removeItem(ACTIVE_TRIP_KEY); renderActiveTrip(); }
+function saveActiveTrip(t){ if(t) localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify(t)); else localStorage.removeItem(ACTIVE_TRIP_KEY); markCloudDirty(); renderActiveTrip(); }
 function tripDuration(start,end){
   const s=new Date(start).getTime(), e=end?new Date(end).getTime():Date.now();
   if(!isFinite(s)) return "00:00:00";
@@ -1357,7 +1502,7 @@ async function getSeries(def, range){
 }
 function openChart(key){
   const def=defFor(key); if(!def) return;
-  CHART_KEY=key; $("cmTitle").textContent=def.title+" – Verlauf";
+  CHART_KEY=key; $("chartTitle").textContent=def.title+" – Verlauf";
   $("chartModal").style.display="flex";
   setChartRange("24h");
 }
@@ -1630,7 +1775,7 @@ function spotWaterLabel(s){
   return s.uuid ? ("Fluss · Messstation "+esc(s.station||"")+(s.river?" ("+esc(s.river)+")":"")) : "Fluss · keine Messstation";
 }
 function loadSpots(){ try{ return JSON.parse(localStorage.getItem(SPOTS_KEY))||[]; }catch(e){ return []; } }
-function saveSpots(a){ localStorage.setItem(SPOTS_KEY, JSON.stringify(a)); }
+function saveSpots(a){ localStorage.setItem(SPOTS_KEY, JSON.stringify(a)); markCloudDirty(); }
 function setAddMapView(){                 // Startausschnitt beim Anlegen: nicht rauszoomen
   if(!MAP) return;
   const spots=loadSpots();
@@ -1919,7 +2064,7 @@ function loadBaits(){
   });
   return cats;
 }
-function saveBaits(cats){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(cats)); }catch(e){} }
+function saveBaits(cats){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(cats)); markCloudDirty(); }catch(e){} }
 const BAIT_INIT_KEY="deepfish_koeder_init_v1";
 const DEFAULT_BAITS=["Tauwurm","Rotwurm","Made","Mais","Boilie","Brot","Käse",
   "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"].map(b=>({base:b, group:baitGroup(b), variants:[]}));
@@ -2230,6 +2375,7 @@ async function boot(){
   loadQuality();                             // Länder- und Nachbarland-Sensoren schon auf der Startkarte laden
   showStart();                                // Startbildschirm: Lieblingsplätze und Tripstart
   renderActiveTrip();
+  initCloud();                                // Konto prüfen und lokale Daten mit Supabase synchronisieren
   setInterval(renderActiveTrip,1000);
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
 }
