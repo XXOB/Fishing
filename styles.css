@@ -482,6 +482,12 @@ button{touch-action:manipulation}
 }
 
 /* Konto und Supabase-Cloud */
+.auth-locked{padding:0!important;overflow:hidden;background:#05070b}
+.auth-locked>:not(.icon-sprite):not(#authModal):not(script){display:none!important}
+.auth-locked #authModal{display:flex!important;z-index:100000;background:radial-gradient(circle at 50% 18%,rgba(10,132,255,.18),transparent 38%),#05070b}
+.auth-locked #authModal .auth-box{width:min(92vw,480px);box-shadow:0 24px 80px rgba(0,0,0,.65)}
+.auth-locked #authModal .cmhead{font-size:21px}
+.auth-locked #authModal .cmx{display:none}
 .account-area{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
 .account-btn{min-height:40px;max-width:260px;display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(255,255,255,.13);border-radius:11px;background:rgba(118,118,128,.14);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .account-btn:hover{border-color:rgba(10,132,255,.55);background:rgba(10,132,255,.15)}
@@ -499,9 +505,15 @@ button{touch-action:manipulation}
 .account-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(118,118,128,.12)}
 .account-card>.uiicon{width:30px;height:30px;color:#64d2ff}
 .account-card div{display:flex;flex-direction:column;min-width:0}.account-card small{color:var(--muted2);font-size:11px}.account-card strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.report-tool{border-color:rgba(10,132,255,.38)!important;color:#8ecbff!important}
+.report-box{max-width:660px}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.report-wide{grid-column:1/-1}
+.report-info{margin-top:13px;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(118,118,128,.09)}
 @media(max-width:620px){
   header{align-items:flex-start}
   .account-area{width:100%;justify-content:space-between}
   .account-btn{max-width:70%}
   .cloud-status{overflow:hidden;text-overflow:ellipsis}
+  .report-grid{grid-template-columns:1fr}.report-wide{grid-column:auto}
 }

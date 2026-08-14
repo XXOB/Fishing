@@ -1,4 +1,4 @@
-# Rhein-Check Mainz/Wiesbaden – Einrichtung (GitHub Pages)
+# PetriKlar – Einrichtung mit GitHub Pages
 
 Ergebnis: eine normale Webseite, die in **jedem Browser ohne Erweiterung** läuft.
 Pegel und Wetter kommen live direkt aus offenen APIs. Die Güte-Werte (Sauerstoff,
@@ -28,7 +28,7 @@ diese Datei von der eigenen Adresse.
 4. **GitHub Pages einschalten:** Repo → **Settings** → **Pages** →
    „Build and deployment“ → Source: **Deploy from a branch** → Branch: **main** /
    **/(root)** → Save. Nach ~1 Minute erscheint deine URL
-   (`https://DEINNAME.github.io/rhein-check/`).
+   (`https://DEINNAME.github.io/Fishing/`).
 5. **Job einmal testen:** Repo → **Actions** → „Wasserwerte aktualisieren“ →
    **Run workflow**. Nach ~2 Minuten sollte `wasserwerte.json` aktualisiert sein.
    Danach läuft er automatisch alle 3 Stunden.

@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 /* Wasserqualität wird beim Laden aus wasserwerte.json geholt (mehrere Gütestationen).
    Die GitHub-Action aktualisiert die Datei stündlich. Nur Startwert: */
@@ -7,8 +7,6 @@ const WQ_MAXKM = 60;   // Gütestation nur nutzen, wenn näher als … km und gl
 
 const PO_BASE = "https://www.pegelonline.wsv.de/webservices/rest-api/v2";
 const MAINZ_UUID = "a37a9aa3-45e9-4d90-9df6-109f3a28a5af";
-const SPOTS_KEY = "rheincheck_spots_v1";
-const ACTIVE_KEY = "rheincheck_activespot_v1";
 let STATIONS = [{uuid:MAINZ_UUID, name:"Mainz", km:498.27, lat:50.003995, lon:8.275319, river:"Rhein"}];
 let CUR = STATIONS[0];                 // aktuelle Messstation (für Pegel/Durchfluss)
 let WXPOS = {lat:50.003995, lon:8.275319}; // Ort für Wetter (Angelplatz-Koordinaten)
@@ -22,12 +20,62 @@ function uiIcon(name, extra){ return '<svg class="uiicon'+(extra?' '+extra:'')+'
 function iconLabel(name,text){ return uiIcon(name)+' '+hesc(text); }
 function setIconLabel(el,name,text){ if(el) el.innerHTML=iconLabel(name,text); }
 
-/* ===================== Supabase-Konto & Cloud-Synchronisierung ===================== */
+/* ===================== Supabase-Konto & reine Cloud-Speicherung ===================== */
 const SUPABASE_URL="https://mcekltbtndpzjahwypze.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
-const CLOUD_DIRTY_KEY="deepfish_cloud_dirty_v1", CLOUD_SEEN_KEY="deepfish_cloud_seen_v1";
 let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
+let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", APP_STARTED=false;
+let APP_STATE={version:2,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null};
 
+function emptyAppState(){
+  return {version:2,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null};
+}
+/* Einmalige Übernahme aus älteren App-Versionen. Nach erfolgreichem
+   Cloud-Upload werden sämtliche alten LocalStorage-Schlüssel gelöscht. */
+const LEGACY_STORAGE_KEYS=["rheincheck_spots_v1","rheincheck_activespot_v1","rheincheck_faenge_v1",
+  "deepfish_koeder_v1","deepfish_koeder_init_v1","deepfish_trips_v2","deepfish_active_trip_v2",
+  "deepfish_cloud_dirty_v1","deepfish_cloud_seen_v1"];
+function legacyJSON(key,fallback){
+  try{ const raw=localStorage.getItem(key); return raw==null?fallback:JSON.parse(raw); }catch(e){ return fallback; }
+}
+function readLegacyState(){
+  try{
+    const spots=legacyJSON("rheincheck_spots_v1",[]), catches=legacyJSON("rheincheck_faenge_v1",[]),
+      baits=legacyJSON("deepfish_koeder_v1",[]), trips=legacyJSON("deepfish_trips_v2",[]),
+      activeTripOld=legacyJSON("deepfish_active_trip_v2",null), activeSpotOld=localStorage.getItem("rheincheck_activespot_v1");
+    const has=[spots,catches,baits,trips].some(a=>Array.isArray(a)&&a.length)||!!activeTripOld;
+    if(!has) return null;
+    return {version:2,spots:Array.isArray(spots)?spots:[],catches:Array.isArray(catches)?catches:[],
+      baits:Array.isArray(baits)?baits:[],baits_initialized:localStorage.getItem("deepfish_koeder_init_v1")==="1"||Array.isArray(baits),
+      trips:Array.isArray(trips)?trips:[],active_trip:activeTripOld||null,active_spot_id:activeSpotOld||null};
+  }catch(e){ return null; }
+}
+function mergeLegacyRows(remote,legacy,keyFn){
+  const out=[], pos=new Map();
+  [...(remote||[]),...(legacy||[])].forEach(x=>{ if(!x) return; const k=String(keyFn(x)); if(pos.has(k)) out[pos.get(k)]=x; else { pos.set(k,out.length); out.push(x); } });
+  return out;
+}
+function mergeLegacyBaits(remote,legacy){
+  const out=[];
+  [...(remote||[]),...(legacy||[])].forEach(cat=>{
+    if(!cat) return; const base=typeof cat==="string"?cat:String(cat.base||""); if(!base) return;
+    let hit=out.find(x=>x.base.toLowerCase()===base.toLowerCase());
+    if(!hit){ hit={base,group:cat.group||baitGroup(base),variants:[]}; out.push(hit); }
+    (cat.variants||[]).forEach(v=>{ const k=String(v.size||"")+"|"+String(v.color||""); if(!hit.variants.some(x=>String(x.size||"")+"|"+String(x.color||"")===k)) hit.variants.push(v); });
+  });
+  return out;
+}
+function mergeLegacyState(remote,legacy){
+  if(!legacy) return remote||emptyAppState(); remote=remote||emptyAppState();
+  return {version:2,
+    spots:mergeLegacyRows(remote.spots,legacy.spots,x=>x.id!=null?x.id:x.name),
+    catches:mergeLegacyRows(remote.catches,legacy.catches,x=>x.id),
+    baits:mergeLegacyBaits(remote.baits,legacy.baits),baits_initialized:!!(remote.baits_initialized||legacy.baits_initialized),
+    trips:mergeLegacyRows(remote.trips,legacy.trips,x=>x.id),
+    active_trip:legacy.active_trip||remote.active_trip||null,
+    active_spot_id:legacy.active_spot_id!=null?legacy.active_spot_id:(remote.active_spot_id!=null?remote.active_spot_id:null)};
+}
+function clearLegacyState(){ try{ LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 function setCloudStatus(text,state){
   const el=$("cloudStatus"); if(!el) return; el.textContent=text||""; el.className="cloud-status "+(state||"");
 }
@@ -43,108 +91,83 @@ function renderAccountUI(){
   if(inn) inn.style.display=(CLOUD_USER&&!AUTH_RECOVERY)?"block":"none";
   if(rec) rec.style.display=AUTH_RECOVERY?"block":"none";
   if(mail) mail.textContent=CLOUD_USER?CLOUD_USER.email||"–":"–";
-  if(!CLOUD_USER) setCloudStatus("Lokal gespeichert","");
+  document.body.classList.toggle("auth-locked",!CLOUD_USER||AUTH_RECOVERY);
+  const gate=$("authGate"); if(gate) gate.setAttribute("aria-hidden",CLOUD_USER?"true":"false");
+  if(!CLOUD_USER) setCloudStatus("Anmeldung erforderlich","");
 }
-function openAuthModal(){ authMessage(""); renderAccountUI(); const m=$("authModal"); if(m) m.style.display="flex"; }
+function openAuthModal(){
+  authMessage(""); renderAccountUI();
+  if(!CLOUD_USER){ const e=$("authEmail"); if(e) setTimeout(()=>e.focus(),30); return; }
+  const m=$("authModal"); if(m) m.style.display="flex";
+}
 function closeAuthModal(){ const m=$("authModal"); if(m) m.style.display="none"; authMessage(""); }
 
 function cloudPayload(){
-  return {version:1,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),trips:loadTrips(),active_trip:activeTrip()};
-}
-function payloadHasUserData(p){ return !!(p&&((p.spots&&p.spots.length)||(p.catches&&p.catches.length)||(p.trips&&p.trips.length))); }
-function mergeRows(cloud,local,keyFn){
-  const out=[], seen=new Set();
-  [...(cloud||[]),...(local||[])].forEach(x=>{ const k=String(keyFn(x)); if(seen.has(k)){ const i=out.findIndex(y=>String(keyFn(y))===k); if(i>=0) out[i]=x; } else { seen.add(k); out.push(x); } });
-  return out;
-}
-function mergeBaitState(cloud,local){
-  const out=[];
-  [...(cloud||[]),...(local||[])].forEach(cat=>{
-    if(!cat||!cat.base) return; let hit=out.find(x=>x.base===cat.base);
-    if(!hit){ hit={base:cat.base,group:cat.group||baitGroup(cat.base),variants:[]}; out.push(hit); }
-    if(cat.group) hit.group=cat.group;
-    (cat.variants||[]).forEach(v=>{ const k=String(v.size||"")+"|"+String(v.color||""); if(!hit.variants.some(x=>String(x.size||"")+"|"+String(x.color||"")===k)) hit.variants.push(v); });
-  });
-  return out;
-}
-function mergeCloudPayload(cloud,local){
-  return {version:1,
-    spots:mergeRows(cloud&&cloud.spots,local&&local.spots,x=>x.id!=null?x.id:x.name),
-    catches:mergeRows(cloud&&cloud.catches,local&&local.catches,x=>x.id),
-    baits:mergeBaitState(cloud&&cloud.baits,local&&local.baits),
-    trips:mergeRows(cloud&&cloud.trips,local&&local.trips,x=>x.id),
-    active_trip:(local&&local.active_trip)||(cloud&&cloud.active_trip)||null};
+  return {version:2,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),baits_initialized:!!APP_STATE.baits_initialized,
+    trips:loadTrips(),active_trip:activeTrip(),active_spot_id:getActiveSpotId()};
 }
 function applyCloudPayload(p){
-  if(!p) return; CLOUD_APPLYING=true;
+  p=p||{}; CLOUD_APPLYING=true;
   try{
-    if(Array.isArray(p.spots)){
-      localStorage.setItem(SPOTS_KEY,JSON.stringify(p.spots));
-      const active=localStorage.getItem(ACTIVE_KEY), valid=p.spots.some(s=>String(s.id)===String(active));
-      if(!valid){ if(p.spots[0]) localStorage.setItem(ACTIVE_KEY,String(p.spots[0].id)); else localStorage.removeItem(ACTIVE_KEY); }
-    }
-    if(Array.isArray(p.catches)) localStorage.setItem(CATCH_KEY,JSON.stringify(p.catches));
-    if(Array.isArray(p.baits)) localStorage.setItem(BAIT_KEY,JSON.stringify(p.baits));
-    if(Array.isArray(p.trips)) localStorage.setItem(TRIPS_KEY,JSON.stringify(p.trips));
-    if(p.active_trip) localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify(p.active_trip)); else localStorage.removeItem(ACTIVE_TRIP_KEY);
+    APP_STATE={version:2,
+      spots:Array.isArray(p.spots)?p.spots:[], catches:Array.isArray(p.catches)?p.catches:[],
+      baits:Array.isArray(p.baits)?p.baits:[], baits_initialized:p.baits_initialized!=null?!!p.baits_initialized:Array.isArray(p.baits),
+      trips:Array.isArray(p.trips)?p.trips:[], active_trip:p.active_trip||null,
+      active_spot_id:p.active_spot_id!=null?p.active_spot_id:null};
+    const valid=APP_STATE.spots.some(s=>String(s.id)===String(APP_STATE.active_spot_id));
+    if(!valid) APP_STATE.active_spot_id=APP_STATE.spots[0]?APP_STATE.spots[0].id:null;
   } finally { CLOUD_APPLYING=false; }
-  try{ renderSpots(); populateCatchSpots(); populateKoeder(); renderBaitList(); refreshFangbuch(); renderFavorites(); renderActiveTrip(); }catch(e){}
+  try{ ensureBaitSeed(); renderSpots(); populateCatchSpots(); populateKoeder(); renderBaitList(); refreshFangbuch(); renderFavorites(); renderActiveTrip(); }catch(e){}
 }
 function markCloudDirty(){
-  if(CLOUD_APPLYING) return; localStorage.setItem(CLOUD_DIRTY_KEY,String(Date.now()));
+  if(CLOUD_APPLYING) return; CLOUD_DIRTY=true;
   if(CLOUD_READY&&CLOUD_USER){ clearTimeout(CLOUD_TIMER); CLOUD_TIMER=setTimeout(()=>syncCloudNow(false),1200); }
-  else setCloudStatus("Lokal geändert","");
+  setCloudStatus("Speichert …","syncing");
 }
 async function syncCloudNow(force){
   if(!SUPA||!CLOUD_USER) return false;
-  if(!force&&!localStorage.getItem(CLOUD_DIRTY_KEY)) return true;
-  setCloudStatus("Synchronisiere …","syncing");
+  if(!force&&!CLOUD_DIRTY) return true;
+  setCloudStatus("Speichert in der Cloud …","syncing");
   const now=new Date().toISOString(), payload=cloudPayload();
   const {data,error}=await SUPA.from("app_state").upsert({user_id:CLOUD_USER.id,data:payload,revision:Date.now(),updated_at:now},{onConflict:"user_id"}).select("updated_at").single();
-  if(error){ setCloudStatus("Sync fehlgeschlagen","error"); authMessage("Synchronisierung fehlgeschlagen: "+error.message,true); return false; }
-  localStorage.removeItem(CLOUD_DIRTY_KEY); localStorage.setItem(CLOUD_SEEN_KEY,(data&&data.updated_at)||now);
-  setCloudStatus("Cloud aktuell","ok"); return true;
+  if(error){ setCloudStatus("Speichern fehlgeschlagen","error"); authMessage("Cloud-Speicherung fehlgeschlagen: "+error.message,true); return false; }
+  CLOUD_DIRTY=false; CLOUD_LAST_REMOTE_AT=(data&&data.updated_at)||now;
+  setCloudStatus("In der Cloud gespeichert","ok"); return true;
 }
 async function pullCloudState(){
   if(!SUPA||!CLOUD_USER) return;
   setCloudStatus("Lade Cloud-Daten …","syncing");
   const {data:row,error}=await SUPA.from("app_state").select("data,updated_at,revision").eq("user_id",CLOUD_USER.id).maybeSingle();
   if(error){ setCloudStatus("Cloud nicht erreichbar","error"); authMessage("Cloud-Daten konnten nicht geladen werden: "+error.message,true); return; }
-  const local=cloudPayload(), dirty=!!localStorage.getItem(CLOUD_DIRTY_KEY), seen=localStorage.getItem(CLOUD_SEEN_KEY);
-  if(!row){ await syncCloudNow(true); return; }
-  const remote=row.data||{};
-  if(!seen&&payloadHasUserData(local)&&payloadHasUserData(remote)){
-    const merged=mergeCloudPayload(remote,local); applyCloudPayload(merged); markCloudDirty(); await syncCloudNow(true);
-  } else if(!seen&&payloadHasUserData(local)&&!payloadHasUserData(remote)){
-    await syncCloudNow(true);
-  } else if(dirty){
-    const changedRemote=seen&&new Date(row.updated_at).getTime()>new Date(seen).getTime()+500;
-    if(changedRemote){ const merged=mergeCloudPayload(remote,local); applyCloudPayload(merged); markCloudDirty(); }
-    await syncCloudNow(true);
-  } else {
-    applyCloudPayload(remote); localStorage.setItem(CLOUD_SEEN_KEY,row.updated_at||new Date().toISOString()); localStorage.removeItem(CLOUD_DIRTY_KEY); setCloudStatus("Cloud aktuell","ok");
-  }
+  CLOUD_DIRTY=false; const legacy=readLegacyState();
+  if(legacy){
+    applyCloudPayload(mergeLegacyState(row&&row.data,legacy)); CLOUD_DIRTY=true;
+    if(await syncCloudNow(true)) clearLegacyState();
+  } else if(!row){ applyCloudPayload(emptyAppState()); await syncCloudNow(true); }
+  else { applyCloudPayload(row.data||emptyAppState()); CLOUD_LAST_REMOTE_AT=row.updated_at||""; setCloudStatus("In der Cloud gespeichert","ok"); }
 }
 async function handleCloudSession(session){
   CLOUD_USER=session&&session.user?session.user:null; CLOUD_READY=true; renderAccountUI();
-  if(CLOUD_USER) await pullCloudState();
+  if(CLOUD_USER){ await pullCloudState(); startAppAfterLogin(); }
+  else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; }
 }
 async function initCloud(){
-  if(!window.supabase||!window.supabase.createClient){ setCloudStatus("Cloud-Modul nicht geladen","error"); return; }
+  if(!window.supabase||!window.supabase.createClient){ setCloudStatus("Cloud-Modul nicht geladen","error"); authMessage("Die Anmeldung konnte nicht geladen werden. Bitte Seite neu laden.",true); return; }
   try{
-    SUPA=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    SUPA=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,autoRefreshToken:true,detectSessionInUrl:true}});
     const {data}=await SUPA.auth.getSession(); await handleCloudSession(data&&data.session);
     SUPA.auth.onAuthStateChange((event,session)=>{
-      if(event==="PASSWORD_RECOVERY"){ AUTH_RECOVERY=true; setTimeout(()=>{ handleCloudSession(session); openAuthModal(); },0); }
+      if(event==="PASSWORD_RECOVERY"){ AUTH_RECOVERY=true; setTimeout(()=>handleCloudSession(session),0); }
       else setTimeout(()=>handleCloudSession(session),0);
     });
-  }catch(e){ CLOUD_READY=false; setCloudStatus("Cloud nicht verfügbar","error"); }
+  }catch(e){ CLOUD_READY=false; setCloudStatus("Cloud nicht verfügbar","error"); authMessage("Die Cloud-Verbindung ist nicht verfügbar.",true); }
 }
 function authCredentials(){ return {email:($("authEmail")?$("authEmail").value.trim():""),password:($("authPassword")?$("authPassword").value:"")}; }
 async function authSignIn(){
   if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
   const c=authCredentials(); if(!c.email||!c.password){ authMessage("Bitte E-Mail-Adresse und Passwort eingeben.",true); return; }
-  authMessage("Anmeldung läuft …"); const {error}=await SUPA.auth.signInWithPassword(c); if(error) authMessage(error.message,true); else { authMessage("Angemeldet. Cloud-Daten werden geladen."); setTimeout(closeAuthModal,700); }
+  authMessage("Anmeldung läuft …"); const {error}=await SUPA.auth.signInWithPassword(c);
+  if(error) authMessage(error.message,true); else authMessage("Angemeldet. Deine Daten werden geladen.");
 }
 async function authSignUp(){
   if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
@@ -164,8 +187,15 @@ async function authUpdatePassword(){
   const password=$("authNewPassword")?$("authNewPassword").value:""; if(password.length<8){ authMessage("Das neue Passwort muss mindestens 8 Zeichen haben.",true); return; }
   const {error}=await SUPA.auth.updateUser({password}); if(error) authMessage(error.message,true); else { AUTH_RECOVERY=false; renderAccountUI(); authMessage("Passwort wurde geändert."); }
 }
-async function authSignOut(){ if(!SUPA) return; await syncCloudNow(true); await SUPA.auth.signOut(); CLOUD_USER=null; renderAccountUI(); closeAuthModal(); }
-async function manualCloudSync(){ const ok=await syncCloudNow(true); authMessage(ok?"Synchronisierung abgeschlossen.":"Synchronisierung fehlgeschlagen.",!ok); }
+async function authSignOut(){
+  if(!SUPA) return; const ok=await syncCloudNow(true); if(!ok) return;
+  await SUPA.auth.signOut(); CLOUD_USER=null; APP_STATE=emptyAppState(); CLOUD_DIRTY=false; renderAccountUI(); closeAuthModal();
+}
+async function manualCloudSync(){ const ok=await syncCloudNow(true); if(ok) setCloudStatus("In der Cloud gespeichert","ok"); }
+
+window.addEventListener("beforeunload",event=>{ if(CLOUD_DIRTY){ event.preventDefault(); event.returnValue=""; } });
+
+
 
 // Klassifizierungs-Farbe -> CSS-Farbe für den Kachelstreifen
 function stripeColor(c){
@@ -621,14 +651,12 @@ async function loadHessen(){
 }
 
 /* ===================== Fangbuch ===================== */
-const CATCH_KEY = "rheincheck_faenge_v1";
-function loadCatches(){ try{ return JSON.parse(localStorage.getItem(CATCH_KEY)) || []; }catch(e){ return []; } }
-function saveCatches(a){ try{ localStorage.setItem(CATCH_KEY, JSON.stringify(a)); markCloudDirty(); }catch(e){ alert("Speichern fehlgeschlagen (Speicher voll?)."); } }
-const TRIPS_KEY="deepfish_trips_v2", ACTIVE_TRIP_KEY="deepfish_active_trip_v2";
-function loadTrips(){ try{ return JSON.parse(localStorage.getItem(TRIPS_KEY))||[]; }catch(e){ return []; } }
-function saveTrips(a){ localStorage.setItem(TRIPS_KEY,JSON.stringify(a)); markCloudDirty(); }
-function activeTrip(){ try{ return JSON.parse(localStorage.getItem(ACTIVE_TRIP_KEY))||null; }catch(e){ return null; } }
-function saveActiveTrip(t){ if(t) localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify(t)); else localStorage.removeItem(ACTIVE_TRIP_KEY); markCloudDirty(); renderActiveTrip(); }
+function loadCatches(){ return Array.isArray(APP_STATE.catches)?APP_STATE.catches:[]; }
+function saveCatches(a){ APP_STATE.catches=Array.isArray(a)?a:[]; markCloudDirty(); }
+function loadTrips(){ return Array.isArray(APP_STATE.trips)?APP_STATE.trips:[]; }
+function saveTrips(a){ APP_STATE.trips=Array.isArray(a)?a:[]; markCloudDirty(); }
+function activeTrip(){ return APP_STATE.active_trip||null; }
+function saveActiveTrip(t){ APP_STATE.active_trip=t||null; markCloudDirty(); renderActiveTrip(); }
 function tripDuration(start,end){
   const s=new Date(start).getTime(), e=end?new Date(end).getTime():Date.now();
   if(!isFinite(s)) return "00:00:00";
@@ -986,6 +1014,81 @@ function exportCSV(scope){
   const label=scope==="all" ? "alle_fangbuecher" : (scope==="view" ? (CATCH_VIEW_SPOT||"alle_fangbuecher") : (activeSpotName()||"angelplatz"));
   const safe=label.replace(/[^a-z0-9äöüß_-]+/gi,"_").replace(/^_+|_+$/g,"");
   download("fangbuch_"+(safe||"angelplatz")+".csv", "﻿"+head+"\n"+body, "text/csv;charset=utf-8");
+}
+
+/* ---- Fangmeldung als PDF zur manuellen Übermittlung ---- */
+function reportDateDE(value){
+  if(!value) return ""; const p=String(value).split("-"); return p.length===3?p[2]+"."+p[1]+"."+p[0]:String(value);
+}
+function reportSafeName(value){ return String(value||"Fangmeldung").replace(/[^a-z0-9äöüß_-]+/gi,"_").replace(/^_+|_+$/g,"")||"Fangmeldung"; }
+function reportFilteredCatches(){
+  const spot=$("reportSpot")?$("reportSpot").value:"", year=$("reportYear")?$("reportYear").value:"";
+  return loadCatches().filter(c=>(!spot||c.angelplatz===spot)&&(!year||String(c.datum||"").slice(0,4)===year))
+    .sort((a,b)=>((a.datum||"")+(a.uhrzeit||"")).localeCompare((b.datum||"")+(b.uhrzeit||"")));
+}
+function updateCatchReportInfo(){
+  const arr=reportFilteredCatches(), fish=arr.filter(isFish).length, days=countFishingDays(arr), info=$("reportInfo");
+  if(info) info.textContent=days+" Angeltag"+(days===1?"":"e")+" · "+fish+" Fang"+(fish===1?"":"e")+" · "+arr.length+" Eintrag"+(arr.length===1?"":"e");
+}
+function openCatchReportModal(scope){
+  const spots=loadSpots(), spotSel=$("reportSpot"), yearSel=$("reportYear");
+  if(spotSel){
+    spotSel.innerHTML='<option value="">Alle Angelplätze</option>'+spots.map(s=>'<option value="'+hesc(s.name)+'">'+hesc(s.name)+'</option>').join("");
+    if(scope==="view"&&CATCH_VIEW_SPOT) spotSel.value=CATCH_VIEW_SPOT;
+    else if(activeSpotName()) spotSel.value=activeSpotName();
+    spotSel.onchange=updateCatchReportInfo;
+  }
+  const years=[...new Set(loadCatches().map(c=>String(c.datum||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
+  if(!years.length) years.push(String(new Date().getFullYear()));
+  if(yearSel){ yearSel.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'</option>').join(""); yearSel.onchange=updateCatchReportInfo; }
+  const name=$("reportAnglerName"); if(name&&!name.value&&CLOUD_USER&&CLOUD_USER.user_metadata) name.value=CLOUD_USER.user_metadata.full_name||"";
+  updateCatchReportInfo(); const m=$("catchReportModal"); if(m) m.style.display="flex";
+}
+function closeCatchReportModal(){ const m=$("catchReportModal"); if(m) m.style.display="none"; }
+function pdfPageFooter(doc){
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i); doc.setDrawColor(210); doc.line(14,287,196,287); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text("Erstellt mit PetriKlar · Manuelle Übermittlung · Seite "+i+"/"+pages,14,292);
+  }
+}
+function generateCatchReportPDF(){
+  if(!window.jspdf||!window.jspdf.jsPDF){ alert("Das PDF-Modul konnte nicht geladen werden. Bitte prüfe die Internetverbindung und lade die Seite neu."); return; }
+  const arr=reportFilteredCatches(), spot=$("reportSpot")?$("reportSpot").value:"", year=$("reportYear")?$("reportYear").value:"";
+  const angler=($("reportAnglerName")?$("reportAnglerName").value:"").trim(), permit=($("reportPermitNumber")?$("reportPermitNumber").value:"").trim();
+  const recipient=($("reportRecipient")?$("reportRecipient").value:"").trim();
+  const {jsPDF}=window.jspdf, doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  doc.setFillColor(38,84,220); doc.roundedRect(14,12,182,23,3,3,"F");
+  doc.setTextColor(255); doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.text("PetriKlar",20,23);
+  doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text("Fangmeldung / Fangstatistik",20,29);
+  doc.setTextColor(35); doc.setFontSize(10); let y=43;
+  const line=(label,value)=>{ doc.setFont("helvetica","bold"); doc.text(label,14,y); doc.setFont("helvetica","normal"); doc.text(String(value||"–"),57,y); y+=6; };
+  line("Empfänger:",recipient); line("Angler:",angler||(CLOUD_USER?CLOUD_USER.email:"")); line("Erlaubnis-/Mitgliedsnummer:",permit);
+  line("Angelplatz:",spot||"Alle Angelplätze"); line("Meldejahr:",year||"Alle");
+  const rows=arr.map(c=>[
+    reportDateDE(c.datum),c.uhrzeit||"",c.angelplatz||c.gewaesser||"",
+    c.kein_fang?"Angeltag ohne Fang":(c.fischart||"Fang"),c.kein_fang?"0":"1",
+    c.groesse_cm!=null?String(c.groesse_cm):"",c.gewicht_kg!=null?String(c.gewicht_kg).replace(".",","):"",c.kein_fang?"":(c.koeder||"")
+  ]);
+  if(!rows.length) rows.push(["","",spot||"","Keine Einträge vorhanden","0","","",""]);
+  if(typeof doc.autoTable!=="function"){ alert("Die PDF-Tabellenfunktion konnte nicht geladen werden. Bitte Seite neu laden."); return; }
+  doc.autoTable({startY:y+2,head:[["Datum","Zeit","Gewässer / Platz","Fischart / Angeltag","Anz.","cm","kg","Köder"]],body:rows,
+    theme:"grid",styles:{font:"helvetica",fontSize:7.5,cellPadding:1.8,overflow:"linebreak"},
+    headStyles:{fillColor:[38,84,220],textColor:255,fontStyle:"bold"},alternateRowStyles:{fillColor:[246,248,252]},
+    columnStyles:{0:{cellWidth:18},1:{cellWidth:13},2:{cellWidth:31},3:{cellWidth:38},4:{cellWidth:11},5:{cellWidth:11},6:{cellWidth:12},7:{cellWidth:40}}});
+  y=doc.lastAutoTable.finalY+9;
+  const species={}; arr.filter(isFish).forEach(c=>{ const k=c.fischart||"Unbekannt"; species[k]=(species[k]||0)+1; });
+  const summary=Object.keys(species).sort().map(k=>k+": "+species[k]).join(" · ")||"Keine Fänge";
+  if(y>255){ doc.addPage(); y=20; }
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(35); doc.text("Zusammenfassung",14,y); y+=6;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text("Angeltage: "+countFishingDays(arr)+" · Fänge: "+arr.filter(isFish).length,14,y); y+=5;
+  doc.text(doc.splitTextToSize(summary,182),14,y); y+=12;
+  if(y>270){ doc.addPage(); y=24; }
+  doc.setFontSize(8.5); doc.setTextColor(70); doc.text("Die Angaben wurden aus dem persönlichen PetriKlar-Fangbuch übernommen. Das PDF wird nicht automatisch versendet.",14,y); y+=15;
+  doc.setDrawColor(130); doc.line(14,y,82,y); doc.line(112,y,196,y); doc.setFontSize(8); doc.text("Ort, Datum",14,y+4); doc.text("Unterschrift",112,y+4);
+  pdfPageFooter(doc);
+  doc.save("PetriKlar_Fangmeldung_"+reportSafeName(spot||"alle_Plaetze")+"_"+(year||"gesamt")+".pdf");
+  closeCatchReportModal();
 }
 function openCatchUpload(){ const f=$("importFile"); if(f) f.click(); }
 function parseCatchCSV(text){
@@ -1679,7 +1782,9 @@ function nearestStation(lat,lon,river){
   if(river){ const f=STATIONS.filter(s=>s.river===river); if(f.length) pool=f; }
   let best=pool[0], bd=1e9; for(const s of pool){ const d=haversine(lat,lon,s.lat,s.lon); if(d<bd){ bd=d; best=s; } } return best;
 }
-function activeSpot(){ return loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY))) || null; }
+function getActiveSpotId(){ return APP_STATE.active_spot_id!=null?APP_STATE.active_spot_id:null; }
+function setActiveSpotId(id){ APP_STATE.active_spot_id=id!=null?id:null; markCloudDirty(); }
+function activeSpot(){ return loadSpots().find(x=>String(x.id)===String(getActiveSpotId())) || null; }
 function activeSpotName(){ const s=activeSpot(); return s ? s.name : ""; }
 function assignStationToSpot(spotId, uuid){
   const spots=loadSpots(), sp=spots.find(x=>String(x.id)===String(spotId)), st=STATIONS.find(x=>x.uuid===uuid);
@@ -1737,7 +1842,7 @@ function applyWaterType(sp){
   const hint=$("pegEditHint"); if(hint) hint.style.display = isRiver ? "" : "none";
 }
 function reflectStation(){
-  const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
+  const sp=loadSpots().find(x=>String(x.id)===String(getActiveSpotId()));
   const title=$("spotTitle"); if(title) title.textContent=sp?sp.name:"–";
   const typ=spotType(sp);
   const pre=$("pegPrefix"), pn=$("staPegName");
@@ -1774,8 +1879,8 @@ function spotWaterLabel(s){
   if(typ==="meer") return "Meer · "+esc(s.gewaesser||s.river||"");
   return s.uuid ? ("Fluss · Messstation "+esc(s.station||"")+(s.river?" ("+esc(s.river)+")":"")) : "Fluss · keine Messstation";
 }
-function loadSpots(){ try{ return JSON.parse(localStorage.getItem(SPOTS_KEY))||[]; }catch(e){ return []; } }
-function saveSpots(a){ localStorage.setItem(SPOTS_KEY, JSON.stringify(a)); markCloudDirty(); }
+function loadSpots(){ return Array.isArray(APP_STATE.spots)?APP_STATE.spots:[]; }
+function saveSpots(a){ APP_STATE.spots=Array.isArray(a)?a:[]; markCloudDirty(); }
 function setAddMapView(){                 // Startausschnitt beim Anlegen: nicht rauszoomen
   if(!MAP) return;
   const spots=loadSpots();
@@ -1848,7 +1953,7 @@ function confirmAddSpot(){
 }
 function activateSpotById(id, latlon){
   const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
-  localStorage.setItem(ACTIVE_KEY, sp.id);
+  setActiveSpotId(sp.id);
   activateStationFor(sp.uuid);
   const ll = latlon || spotLatLon(sp);
   WXPOS={ lat:ll[0], lon:ll[1] };
@@ -1861,7 +1966,7 @@ function deleteSpot(id){
   const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
   if(!confirm('Angelplatz „'+sp.name+'" löschen?')) return;
   saveSpots(loadSpots().filter(x=>String(x.id)!==String(id)));
-  if(String(localStorage.getItem(ACTIVE_KEY))===String(id)) localStorage.removeItem(ACTIVE_KEY);
+  if(String(getActiveSpotId())===String(id)) setActiveSpotId(null);
   const n=loadCatches().filter(c=>c.angelplatz===sp.name).length;
   if(n>0 && confirm("Auch die "+n+" Fangbuch-Einträge dieses Angelplatzes löschen?")){
     saveCatches(loadCatches().filter(c=>c.angelplatz!==sp.name));
@@ -1870,7 +1975,7 @@ function deleteSpot(id){
 }
 function renderSpots(){
   const sel=$("spotSelect");
-  const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
+  const spots=loadSpots(), active=getActiveSpotId();
   if(sel){
     if(!spots.length) sel.innerHTML='<option value="">— noch keiner —</option>';
     else { sel.innerHTML=spots.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
@@ -2039,7 +2144,6 @@ function addCatchFromList(){
   openFangbuchForm();     // Fangbuch-Formular aufklappen + hinscrollen
 }
 /* --- Tab 3: Köder-Liste --- */
-const BAIT_KEY="deepfish_koeder_v1";
 /* Köder: Oberstruktur (Kunst/Natur) -> Kategorie -> Varianten [{size,color}] */
 const BAIT_GROUPS=[{key:"kunst",name:"Kunstköder"},{key:"natur",name:"Naturköder"}];
 function baitGroup(base){
@@ -2049,7 +2153,7 @@ function baitGroup(base){
   return "natur";
 }
 function loadBaits(){
-  let raw=[]; try{ raw=JSON.parse(localStorage.getItem(BAIT_KEY))||[]; }catch(e){ raw=[]; }
+  const raw=Array.isArray(APP_STATE.baits)?APP_STATE.baits:[];
   const cats=[], idx={};
   const cat=(base, group)=>{ base=String(base||"").trim(); if(!base) return null; const k=base.toLowerCase();
     group=(group==="kunst"||group==="natur")?group:baitGroup(base);
@@ -2064,14 +2168,13 @@ function loadBaits(){
   });
   return cats;
 }
-function saveBaits(cats){ try{ localStorage.setItem(BAIT_KEY, JSON.stringify(cats)); markCloudDirty(); }catch(e){} }
-const BAIT_INIT_KEY="deepfish_koeder_init_v1";
+function saveBaits(cats){ APP_STATE.baits=Array.isArray(cats)?cats:[]; APP_STATE.baits_initialized=true; markCloudDirty(); }
 const DEFAULT_BAITS=["Tauwurm","Rotwurm","Made","Mais","Boilie","Brot","Käse",
   "Köderfisch","Gummifisch","Wobbler","Spinner","Blinker","Twister","Fliege"].map(b=>({base:b, group:baitGroup(b), variants:[]}));
 function ensureBaitSeed(){                         // Standardköder als Startpunkt (einmalig)
-  if(localStorage.getItem(BAIT_INIT_KEY)) return;
+  if(APP_STATE.baits_initialized) return;
   if(!loadBaits().length) saveBaits(DEFAULT_BAITS.slice());
-  localStorage.setItem(BAIT_INIT_KEY,"1");
+  APP_STATE.baits_initialized=true;
 }
 const BAIT_GROUP_OPEN={kunst:false, natur:false};
 function toggleBaitGroup(k){ BAIT_GROUP_OPEN[k]=!(BAIT_GROUP_OPEN[k]!==false); renderBaitList(); }
@@ -2302,14 +2405,14 @@ function updateFangbuchBtn(){
 }
 function onSpotSelect(id){ if(id) loadSpot(id); }
 function deleteActiveSpot(){
-  const sel=$("spotSelect"); const id = sel ? sel.value : localStorage.getItem(ACTIVE_KEY);
+  const sel=$("spotSelect"); const id = sel ? sel.value : getActiveSpotId();
   if(!id){ alert("Kein Angelplatz zum Löschen gewählt."); return; }
   deleteSpot(id);
   const rest=loadSpots();
   if(rest.length) loadSpot(rest[0].id);
 }
 function currentSpotName(){
-  const sp=loadSpots().find(x=>String(x.id)===String(localStorage.getItem(ACTIVE_KEY)));
+  const sp=loadSpots().find(x=>String(x.id)===String(getActiveSpotId()));
   return sp ? sp.name : "";
 }
 function populateCatchSpots(){                 // zeigt, für welchen Angelplatz der Fang gilt
@@ -2355,13 +2458,18 @@ async function loadAll(){
   }
   $("updated").textContent = "Stand: " + new Date().toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}) + " Uhr";
 }
-async function boot(){
+async function startAppAfterLogin(){
+  if(APP_STARTED){
+    const sp=activeSpot(); if(sp) activateSpotById(sp.id); else { renderSpots(); renderFavorites(); showStart(); }
+    return;
+  }
+  APP_STARTED=true;
   await loadStations();                       // alle Rhein-Pegel laden
-  const spots=loadSpots(), active=localStorage.getItem(ACTIVE_KEY);
+  const spots=loadSpots(), active=getActiveSpotId();
   const sp = spots.find(x=>String(x.id)===String(active)) || spots[0] || null;
   if(sp){
     const st=STATIONS.find(x=>x.uuid===sp.uuid) || STATIONS[0];
-    CUR=st; localStorage.setItem(ACTIVE_KEY, sp.id);
+    CUR=st; APP_STATE.active_spot_id=sp.id;
     const ll=spotLatLon(sp); WXPOS={lat:ll[0], lon:ll[1]};
   } else {
     CUR = STATIONS.find(x=>x.uuid===MAINZ_UUID) || STATIONS[0];
@@ -2375,8 +2483,8 @@ async function boot(){
   loadQuality();                             // Länder- und Nachbarland-Sensoren schon auf der Startkarte laden
   showStart();                                // Startbildschirm: Lieblingsplätze und Tripstart
   renderActiveTrip();
-  initCloud();                                // Konto prüfen und lokale Daten mit Supabase synchronisieren
   setInterval(renderActiveTrip,1000);
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
 }
+async function boot(){ document.body.classList.add("auth-locked"); renderAccountUI(); await initCloud(); }
 boot();

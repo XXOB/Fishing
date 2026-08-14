@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 
-UA = "Mozilla/5.0 (DeepFish Wasserwerte; kontakt via GitHub XXOB/Fishing)"
+UA = "Mozilla/5.0 (PetriKlar Wasserwerte; kontakt via GitHub XXOB/Fishing)"
 
 BMLUK_PEGEL_URL = (
     "https://gis.lfrz.gv.at/api/geodata/i000501/ogc/features/v1/collections/"

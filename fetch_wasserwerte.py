@@ -449,12 +449,12 @@ def process_hessen(st):
 
 # ------------------------------------------------------------ Bayern (GKD) ----
 def fetch_gkd_html(url):
-    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (DeepFish Wasserwerte)"})
+    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (PetriKlar Wasserwerte)"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode("utf-8", "replace")
 
 def fetch_bytes(url):
-    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (DeepFish Wasserwerte)"})
+    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (PetriKlar Wasserwerte)"})
     with urllib.request.urlopen(req, timeout=90) as r:
         return r.read()
 
@@ -1319,7 +1319,7 @@ def process_undine():
 # -------------------------------------------------- Nord-/Ostsee (BSH MARNET) ----
 # Das BSH veröffentlicht die aktuellen Messreihen als Diagramme, aber nicht als
 # frei abrufbare Zahlen-API. Deshalb erscheinen alle Hauptstationen auf der Karte;
-# wo ein Stationsdiagramm verfügbar ist, kann es direkt aus DeepFish geöffnet werden.
+# wo ein Stationsdiagramm verfügbar ist, kann es direkt aus PetriKlar geöffnet werden.
 MARNET_OVERVIEW="https://www2.bsh.de/daten/MARNET/Uebersichtskarte/Uebersichtskarte.html"
 MARNET_STATIONS=[
     ("Nordseeboje 2","Nordsee",55.00000,6.33333),
@@ -1363,7 +1363,7 @@ BAFU_API = "https://data.bafu.admin.ch/api"
 def post_json(url, payload, timeout=120):
     body=json.dumps(payload).encode("utf-8")
     req=urllib.request.Request(url, data=body, headers={
-        "User-Agent":"DeepFish/1.0 (water monitoring map)",
+        "User-Agent":"PetriKlar/1.0 (water monitoring map)",
         "Content-Type":"application/json", "Accept":"application/json"}, method="POST")
     with urllib.request.urlopen(req, timeout=timeout) as res:
         return json.loads(res.read().decode("utf-8"))

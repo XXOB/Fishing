@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepFish</title>
+<title>PetriKlar</title>
+<meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
+<meta name="theme-color" content="#05070b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=52">
+<link rel="stylesheet" href="styles.css?v=54">
 </head>
-<body>
+<body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
   <symbol id="i-fish" viewBox="0 0 24 24"><path d="M3 12c2-3 5-4.5 8.5-4.5S17 9.5 17 12s-2 4.5-5.5 4.5S5 15 3 12Z"/><path d="M17 12l4-2.5v5z"/><circle cx="7.5" cy="11" r=".9"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
@@ -62,12 +64,12 @@
   <div class="brand">
     <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-3 5-4.5 8.5-4.5S17 9.5 17 12s-2 4.5-5.5 4.5S5 15 3 12Z"/><path d="M17 12l4-2.5v5z"/><circle cx="7.5" cy="11" r=".9"/></svg></div>
     <div>
-      <h1>DeepFish</h1>
-      <div class="sub">Angelplätze &amp; Live-Bedingungen an deutschen Gewässern</div>
+      <h1>PetriKlar</h1>
+      <div class="sub">Angelplätze, Fangbuch &amp; Live-Bedingungen an deinen Gewässern</div>
     </div>
   </div>
   <div class="account-area">
-    <span id="cloudStatus" class="cloud-status">Lokal gespeichert</span>
+    <span id="cloudStatus" class="cloud-status">Anmeldung erforderlich</span>
     <button type="button" id="accountBtn" class="account-btn" onclick="openAuthModal()"><svg class="uiicon"><use href="#i-user"/></svg> Anmelden</button>
   </div>
 </header>
@@ -76,9 +78,9 @@
 
 <div id="authModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeAuthModal()">
   <div class="cmbox auth-box">
-    <div class="cmhead"><span>DeepFish-Konto</span><button class="cmx" onclick="closeAuthModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <div class="cmhead"><span>PetriKlar-Konto</span><button class="cmx" onclick="closeAuthModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <div id="authLoggedOut">
-      <p class="auth-intro">Melde dich an, damit Angelplätze und Fangbuch sicher zwischen deinen Geräten synchronisiert werden.</p>
+      <p class="auth-intro">Melde dich an, um PetriKlar zu verwenden. Angelplätze, Fänge, Köder und Trips werden ausschließlich in deinem geschützten Cloud-Konto gespeichert.</p>
       <div class="fbfield"><label>E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
       <div class="fbfield" style="margin-top:10px"><label>Passwort</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Mindestens 8 Zeichen"></div>
       <div class="auth-actions">
@@ -118,6 +120,7 @@
   <div class="fbio">
     <button type="button" class="fbtool" onclick="exportCSV('all')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
     <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
+    <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('all')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
   </div>
   <div id="fbIndexList" class="spotlist"></div>
 </div>
@@ -128,6 +131,7 @@
   <div class="fbio">
     <button type="button" class="fbtool" onclick="exportCSV('view')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
     <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
+    <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('view')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
   </div>
   <button type="button" class="navbtn" onclick="addCatchFromList()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eintragen</button>
   <div id="catchList"></div>
@@ -367,7 +371,7 @@
     Wasserqualität: amtliche Landes-, Bundes- und Nachbarland-Messnetze; Quelle und Messzeit stehen an der jeweiligen Station.
   </div>
   <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil!</div>
-  <div style="margin-top:6px">Dein Fangbuch wird nur lokal in diesem Browser gespeichert – nichts wird hochgeladen. Für ein Backup oder eine spätere Auswertung nutze den Download im CSV-Format.</div>
+  <div style="margin-top:6px">Deine Angelplätze und Fangbuchdaten werden geschützt in deinem PetriKlar-Konto gespeichert. Mit Download und Upload kannst du zusätzlich eine eigene CSV-Sicherung verwalten.</div>
 </footer>
 
 <div id="stationModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeStationPicker()">
@@ -407,6 +411,25 @@
   </div>
 </div>
 
+<div id="catchReportModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeCatchReportModal()">
+  <div class="cmbox report-box">
+    <div class="cmhead"><span>Fangmeldung als PDF</span><button class="cmx" onclick="closeCatchReportModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
+    <p class="auth-intro">PetriKlar erstellt eine übersichtliche Fangstatistik zur manuellen Übermittlung. Prüfe vorher, ob der Empfänger dieses Formular akzeptiert.</p>
+    <div class="report-grid">
+      <div class="fbfield"><label>Angelplatz</label><select id="reportSpot"></select></div>
+      <div class="fbfield"><label>Kalenderjahr</label><select id="reportYear"></select></div>
+      <div class="fbfield"><label>Name des Anglers</label><input id="reportAnglerName" autocomplete="name" placeholder="Vor- und Nachname"></div>
+      <div class="fbfield"><label>Erlaubnis-/Mitgliedsnummer</label><input id="reportPermitNumber" placeholder="optional"></div>
+      <div class="fbfield report-wide"><label>Empfänger / Gewässerbewirtschafter</label><input id="reportRecipient" placeholder="Verein, Pächter oder Behörde"></div>
+    </div>
+    <div id="reportInfo" class="fbnote report-info"></div>
+    <div class="fbactions" style="margin-top:16px">
+      <button type="button" class="btn-primary" onclick="generateCatchReportPDF()"><svg class="uiicon"><use href="#i-download"/></svg> PDF erstellen</button>
+      <button type="button" class="backbtn" onclick="closeCatchReportModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
 <div id="chartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeChart()">
   <div class="cmbox">
     <div class="cmhead"><span id="chartTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
@@ -439,7 +462,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=52"></script>
+<script src="app.js?v=54"></script>
 </body>
 </html>

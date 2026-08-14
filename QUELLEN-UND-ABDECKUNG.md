@@ -1,12 +1,12 @@
-# DeepFish – Wasserwerte und Abdeckung (v43)
+# PetriKlar – Wasserwerte und Abdeckung
 
-DeepFish übernimmt ausschließlich **aktuelle automatische Messwerte**, sofern ein
+PetriKlar übernimmt ausschließlich **aktuelle automatische Messwerte**, sofern ein
 amtlicher beziehungsweise öffentlich bereitgestellter Datenweg vorhanden ist.
 Periodische Probenahmen und Laboruntersuchungen werden nicht importiert.
 
 ## Eingebundene Netze
 
-| Gebiet | Amtliche Quelle | Abdeckung in DeepFish |
+| Gebiet | Amtliche Quelle | Abdeckung in PetriKlar |
 |---|---|---|
 | Deutschland | PEGELONLINE/WSV | Pegel/Abfluss und – wo die Station es liefert – Temperatur, Sauerstoff, Leitfähigkeit, pH |
 | große Bundeswasserstraßen | BfG Undine | Temperatur und Sauerstoff an Rhein, Ems, Weser, Elbe, Oder und Donau; damit auch Stationen in mehreren Ländern |
