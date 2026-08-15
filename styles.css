@@ -515,6 +515,12 @@ button{touch-action:manipulation}
 .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .report-wide{grid-column:1/-1}
 .report-info{margin-top:13px;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(118,118,128,.09)}
+.report-select-actions{display:flex;gap:7px;margin:1px 0 7px}
+.report-select-actions button{min-height:32px;padding:5px 10px;border:1px solid var(--line);border-radius:9px;background:rgba(118,118,128,.12);color:var(--water);font-size:11.5px;cursor:pointer}
+.report-spot-choices{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:220px;overflow:auto;padding:2px}
+.report-spot-choices label{display:flex;align-items:center;gap:9px;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(118,118,128,.08);cursor:pointer}
+.report-spot-choices input{width:18px;height:18px;accent-color:var(--primary);flex:0 0 auto}
+.report-spot-choices span{display:flex;flex-direction:column;min-width:0}.report-spot-choices b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.report-spot-choices small{color:var(--muted2);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .catch-list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:10px}
 .catch-list-heading .sect{margin:0}
 .catch-sort{display:flex;align-items:center;gap:8px;color:var(--muted2);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
@@ -536,5 +542,6 @@ button{touch-action:manipulation}
   .account-btn{max-width:70%}
   .cloud-status{overflow:hidden;text-overflow:ellipsis}
   .report-grid{grid-template-columns:1fr}.report-wide{grid-column:auto}
+  .report-spot-choices{grid-template-columns:1fr}
   .catch-list-heading{align-items:stretch;flex-direction:column}.catch-sort{justify-content:space-between}.catch-sort select{flex:1}
 }

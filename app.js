@@ -796,6 +796,7 @@ function buildRecord(blank){
     fischart: blank ? "" : $("f_art").value.trim(),
     groesse_cm: (!blank && $("f_groesse").value) ? +$("f_groesse").value : null,
     gewicht_kg: (!blank && $("f_gewicht").value) ? +$("f_gewicht").value : null,
+    fangstatus: blank ? "" : ($("f_fangstatus")?$("f_fangstatus").value:""),
     koeder: k.label,
     koeder_basis: k.base,
     koeder_variante: k.variante,
@@ -842,6 +843,7 @@ function saveCatch(opts){
   } else arr.push(rec);
   saveCatches(arr);
   $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value="";
+  if($("f_fangstatus")) $("f_fangstatus").value="";
   if($("f_koeder_base")) $("f_koeder_base").value=""; onKoederBaseChange();
   if($("f_methode")) $("f_methode").value="";
   const now=new Date(), pad=n=>String(n).padStart(2,'0');
@@ -875,6 +877,7 @@ function editCatch(id){
   EDIT_CATCH_ID=c.id;
   $("f_art").value=c.fischart||""; $("f_groesse").value=c.groesse_cm==null?"":c.groesse_cm;
   $("f_gewicht").value=c.gewicht_kg==null?"":c.gewicht_kg;
+  if($("f_fangstatus")) $("f_fangstatus").value=catchStatus(c);
   $("f_datum").value=c.datum||""; $("f_zeit").value=c.uhrzeit||""; $("f_notiz").value=c.notiz||"";
   populateKoeder();
   if($("f_koeder_base")) $("f_koeder_base").value=c.koeder_basis||c.koeder||"";
@@ -886,7 +889,7 @@ function editCatch(id){
   showFishRules();
   setTimeout(()=>$("fangbuchBox")&&$("fangbuchBox").scrollIntoView({behavior:"smooth",block:"start"}),120);
 }
-function cancelCatchEdit(){ resetCatchEdit(); $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value=""; showFishRules(); }
+function cancelCatchEdit(){ resetCatchEdit(); $("f_art").value=""; $("f_groesse").value=""; $("f_gewicht").value=""; $("f_notiz").value=""; if($("f_fangstatus")) $("f_fangstatus").value=""; showFishRules(); }
 
 function deleteCatch(id){
   if(!confirm("Diesen Fang löschen?")) return;
@@ -898,6 +901,9 @@ function weightStr(c){
   if(c.gewicht_kg!=null) return ' · '+String(c.gewicht_kg).replace('.',',')+' kg';
   if(c.gewicht_g!=null) return ' · '+c.gewicht_g+' g';   // Altdaten
   return '';
+}
+function catchStatus(c){
+  const s=String((c&&(c.fangstatus||c.verwertung))||"").toLowerCase(); return /^(entnommen|abgegangen)$/.test(s)?s:"";
 }
 function catchCard(c){
   const w=c.wetter||{}, wa=c.wasser||{}, water=[], weather=[], context=[], extra=[];
@@ -921,6 +927,7 @@ function catchCard(c){
   if(c.gewaesser) context.push("Gewässer: "+c.gewaesser);
   if(c.gps&&c.gps.lat!=null) context.push("Fangort: "+c.gps.lat+", "+c.gps.lon);
   if(c.methode) extra.push("Methode: "+c.methode);
+  const status=catchStatus(c); if(status) extra.push("Fangstatus: "+status.charAt(0).toUpperCase()+status.slice(1));
   if(c.trip_bewertung) extra.push("Tripbewertung: "+c.trip_bewertung);
   if(c.mondphase&&c.mondphase.name) extra.push("Mondphase: "+c.mondphase.name);
   if(c.notiz) extra.push("Notiz: „"+c.notiz+"“");
@@ -1035,7 +1042,7 @@ function exportCSV(scope){
   const cols=[
     ["id",c=>c.id],["datum",c=>c.datum],["uhrzeit",c=>c.uhrzeit],["kein_fang",c=>c.kein_fang?1:0],
     ["gewaesser",c=>c.gewaesser],["gewaessertyp",c=>c.gewaessertyp||""],["fischart",c=>c.fischart],
-    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["trip_id",c=>c.trip_id||""],["trip_bewertung",c=>c.trip_bewertung||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
+    ["angelplatz",c=>c.angelplatz],["groesse_cm",c=>c.groesse_cm],["gewicht_kg",c=>c.gewicht_kg],["gewicht_g",c=>c.gewicht_g],["fangstatus",c=>catchStatus(c)],["koeder",c=>c.koeder],["koeder_basis",c=>c.koeder_basis||""],["koeder_variante",c=>c.koeder_variante||""],["trip_id",c=>c.trip_id||""],["trip_bewertung",c=>c.trip_bewertung||""],["methode",c=>c.methode],["notiz",c=>c.notiz],
     ["gps_lat",c=>c.gps?c.gps.lat:""],["gps_lon",c=>c.gps?c.gps.lon:""],["gps_genauigkeit_m",c=>c.gps?c.gps.genauigkeit_m:""],
     ["mondphase",c=>c.mondphase?c.mondphase.name:""],["mond_illum_pct",c=>c.mondphase?c.mondphase.illumination_pct:""],
     ["lufttemp_c",c=>W_(c,"lufttemperatur_c")],["gefuehlt_c",c=>W_(c,"gefuehlt_c")],["wind_kmh",c=>W_(c,"wind_kmh")],
@@ -1059,23 +1066,28 @@ function reportDateDE(value){
   if(!value) return ""; const p=String(value).split("-"); return p.length===3?p[2]+"."+p[1]+"."+p[0]:String(value);
 }
 function reportSafeName(value){ return String(value||"Fangmeldung").replace(/[^a-z0-9äöüß_-]+/gi,"_").replace(/^_+|_+$/g,"")||"Fangmeldung"; }
+function reportSelectedSpots(){
+  return [...document.querySelectorAll('#reportSpotChoices input[type="checkbox"]:checked')].map(x=>x.value);
+}
 function reportFilteredCatches(){
-  const spot=$("reportSpot")?$("reportSpot").value:"", year=$("reportYear")?$("reportYear").value:"";
-  return loadCatches().filter(c=>(!spot||c.angelplatz===spot)&&(!year||String(c.datum||"").slice(0,4)===year))
+  const spots=new Set(reportSelectedSpots()), year=$("reportYear")?$("reportYear").value:"";
+  return loadCatches().filter(c=>spots.has(c.angelplatz)&&(!year||String(c.datum||"").slice(0,4)===year))
     .sort((a,b)=>((a.datum||"")+(a.uhrzeit||"")).localeCompare((b.datum||"")+(b.uhrzeit||"")));
 }
 function updateCatchReportInfo(){
   const arr=reportFilteredCatches(), fish=arr.filter(isFish).length, days=countFishingDays(arr), info=$("reportInfo");
-  if(info) info.textContent=days+" Angeltag"+(days===1?"":"e")+" · "+fish+" Fang"+(fish===1?"":"e")+" · "+arr.length+" Eintrag"+(arr.length===1?"":"e");
+  const places=reportSelectedSpots().length;
+  if(info) info.textContent=places+(places===1?" Angelplatz":" Angelplätze")+" · "+days+" Angeltag"+(days===1?"":"e")+" · "+fish+" Fang"+(fish===1?"":"e")+" · "+arr.length+" Eintrag"+(arr.length===1?"":"e");
+}
+function setAllReportSpots(checked){
+  document.querySelectorAll('#reportSpotChoices input[type="checkbox"]').forEach(x=>x.checked=!!checked); updateCatchReportInfo();
 }
 function openCatchReportModal(scope){
-  const spots=loadSpots(), spotSel=$("reportSpot"), yearSel=$("reportYear");
-  if(spotSel){
-    spotSel.innerHTML='<option value="">Alle Angelplätze</option>'+spots.map(s=>'<option value="'+hesc(s.name)+'">'+hesc(s.name)+'</option>').join("");
-    if(scope==="view"&&CATCH_VIEW_SPOT) spotSel.value=CATCH_VIEW_SPOT;
-    else if(activeSpotName()) spotSel.value=activeSpotName();
-    spotSel.onchange=updateCatchReportInfo;
-  }
+  const spots=sortSpotsByDays(loadSpots()), choices=$("reportSpotChoices"), yearSel=$("reportYear");
+  const initial=scope==="view"&&CATCH_VIEW_SPOT?[CATCH_VIEW_SPOT]:(scope==="all"?spots.map(s=>s.name):[activeSpotName()].filter(Boolean));
+  if(choices) choices.innerHTML=spots.map((s,i)=>'<label><input type="checkbox" value="'+hesc(s.name)+'" '+(initial.includes(s.name)?'checked':'')+' onchange="updateCatchReportInfo()"><span><b>'+hesc(s.name)+'</b><small>'+hesc(spotWaterLabel(s))+'</small></span></label>').join("")||'<div class="fbnote">Noch keine Angelplätze vorhanden.</div>';
+  const selected=spots.filter(s=>initial.includes(s.name)), waters=[...new Set(selected.map(s=>s.gewaesser||s.river||"").filter(Boolean))];
+  const water=$("reportWaterName"); if(water) water.value=waters.length===1?waters[0]:"";
   const years=[...new Set(loadCatches().map(c=>String(c.datum||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
   if(!years.length) years.push(String(new Date().getFullYear()));
   if(yearSel){ yearSel.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'</option>').join(""); yearSel.onchange=updateCatchReportInfo; }
@@ -1092,7 +1104,9 @@ function pdfPageFooter(doc){
 }
 function generateCatchReportPDF(){
   if(!window.jspdf||!window.jspdf.jsPDF){ alert("Das PDF-Modul konnte nicht geladen werden. Bitte prüfe die Internetverbindung und lade die Seite neu."); return; }
-  const arr=reportFilteredCatches(), spot=$("reportSpot")?$("reportSpot").value:"", year=$("reportYear")?$("reportYear").value:"";
+  const selectedSpots=reportSelectedSpots(), arr=reportFilteredCatches(), waterName=($("reportWaterName")?$("reportWaterName").value:"").trim(), year=$("reportYear")?$("reportYear").value:"";
+  if(!selectedSpots.length){ alert("Bitte mindestens einen Angelplatz auswählen."); return; }
+  if(!waterName){ alert("Bitte den Namen des Gewässers eingeben."); const f=$("reportWaterName"); if(f) f.focus(); return; }
   const angler=($("reportAnglerName")?$("reportAnglerName").value:"").trim(), permit=($("reportPermitNumber")?$("reportPermitNumber").value:"").trim();
   const recipient=($("reportRecipient")?$("reportRecipient").value:"").trim();
   const {jsPDF}=window.jspdf, doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
@@ -1100,20 +1114,20 @@ function generateCatchReportPDF(){
   doc.setTextColor(255); doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.text("PetriKlar",20,23);
   doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text("Fangmeldung / Fangstatistik",20,29);
   doc.setTextColor(35); doc.setFontSize(10); let y=43;
-  const line=(label,value)=>{ doc.setFont("helvetica","bold"); doc.text(label,14,y); doc.setFont("helvetica","normal"); doc.text(String(value||"–"),57,y); y+=6; };
+  const line=(label,value)=>{ doc.setFont("helvetica","bold"); doc.text(label,14,y); doc.setFont("helvetica","normal"); const lines=doc.splitTextToSize(String(value||"–"),112); doc.text(lines,82,y); y+=Math.max(6,lines.length*4.5); };
   line("Empfänger:",recipient); line("Angler:",angler||(CLOUD_USER?CLOUD_USER.email:"")); line("Erlaubnis-/Mitgliedsnummer:",permit);
-  line("Angelplatz:",spot||"Alle Angelplätze"); line("Meldejahr:",year||"Alle");
+  line("Gewässer:",waterName); line("Meldejahr:",year||"Alle");
   const rows=arr.map(c=>[
-    reportDateDE(c.datum),c.uhrzeit||"",c.angelplatz||c.gewaesser||"",
-    c.kein_fang?"Angeltag ohne Fang":(c.fischart||"Fang"),c.kein_fang?"0":"1",
+    reportDateDE(c.datum),c.uhrzeit||"",
+    c.kein_fang?"Angeltag ohne Fang":((c.fischart||"Fang")+(catchStatus(c)?" ("+catchStatus(c).charAt(0).toUpperCase()+catchStatus(c).slice(1)+")":"")),c.kein_fang?"0":"1",
     c.groesse_cm!=null?String(c.groesse_cm):"",c.gewicht_kg!=null?String(c.gewicht_kg).replace(".",","):"",c.kein_fang?"":(c.koeder||"")
   ]);
-  if(!rows.length) rows.push(["","",spot||"","Keine Einträge vorhanden","0","","",""]);
+  if(!rows.length) rows.push(["","","Keine Einträge vorhanden","0","","",""]);
   if(typeof doc.autoTable!=="function"){ alert("Die PDF-Tabellenfunktion konnte nicht geladen werden. Bitte Seite neu laden."); return; }
-  doc.autoTable({startY:y+2,head:[["Datum","Zeit","Gewässer / Platz","Fischart / Angeltag","Anz.","cm","kg","Köder"]],body:rows,
+  doc.autoTable({startY:y+2,head:[["Datum","Zeit","Fischart / Angeltag","Anz.","cm","kg","Köder"]],body:rows,
     theme:"grid",styles:{font:"helvetica",fontSize:7.5,cellPadding:1.8,overflow:"linebreak"},
     headStyles:{fillColor:[38,84,220],textColor:255,fontStyle:"bold"},alternateRowStyles:{fillColor:[246,248,252]},
-    columnStyles:{0:{cellWidth:18},1:{cellWidth:13},2:{cellWidth:31},3:{cellWidth:38},4:{cellWidth:11},5:{cellWidth:11},6:{cellWidth:12},7:{cellWidth:40}}});
+    columnStyles:{0:{cellWidth:20},1:{cellWidth:15},2:{cellWidth:52},3:{cellWidth:12},4:{cellWidth:14},5:{cellWidth:16},6:{cellWidth:53}}});
   y=doc.lastAutoTable.finalY+9;
   const species={}; arr.filter(isFish).forEach(c=>{ const k=c.fischart||"Unbekannt"; species[k]=(species[k]||0)+1; });
   const summary=Object.keys(species).sort().map(k=>k+": "+species[k]).join(" · ")||"Keine Fänge";
@@ -1125,7 +1139,7 @@ function generateCatchReportPDF(){
   doc.setFontSize(8.5); doc.setTextColor(70); doc.text("Die Angaben wurden aus dem persönlichen PetriKlar-Fangbuch übernommen. Das PDF wird nicht automatisch versendet.",14,y); y+=15;
   doc.setDrawColor(130); doc.line(14,y,82,y); doc.line(112,y,196,y); doc.setFontSize(8); doc.text("Ort, Datum",14,y+4); doc.text("Unterschrift",112,y+4);
   pdfPageFooter(doc);
-  doc.save("PetriKlar_Fangmeldung_"+reportSafeName(spot||"alle_Plaetze")+"_"+(year||"gesamt")+".pdf");
+  doc.save("PetriKlar_Fangmeldung_"+reportSafeName(waterName)+"_"+(year||"gesamt")+".pdf");
   closeCatchReportModal();
 }
 function openCatchUpload(){ const f=$("importFile"); if(f) f.click(); }
@@ -1161,7 +1175,7 @@ function catchFromCSV(o,i){
     groesse_cm:num("groesse_cm"), gewicht_kg:num("gewicht_kg"), gewicht_g:num("gewicht_g"),
     koeder:val("koeder"), koeder_basis:val("koeder_basis"), koeder_variante:val("koeder_variante"),
     trip_id:val("trip_id")||null, trip_bewertung:val("trip_bewertung"),
-    methode:val("methode"), notiz:val("notiz"), wetter:{}, wasser:{}
+    fangstatus:val("fangstatus")||val("verwertung"), methode:val("methode"), notiz:val("notiz"), wetter:{}, wasser:{}
   };
   const lat=num("gps_lat"), lon=num("gps_lon"), acc=num("gps_genauigkeit_m");
   if(lat!=null&&lon!=null) c.gps={lat,lon,genauigkeit_m:acc}; else c.gps=null;
@@ -1188,7 +1202,7 @@ function importCatchFile(ev){
       const data=isJson?JSON.parse(raw):parseCatchCSV(raw); if(!Array.isArray(data)) throw 0;
       const cur=loadCatches(), ids=new Set(cur.map(x=>String(x.id))); let added=0;
       data.forEach((r,i)=>{
-        if(!r) return; delete r.verwertung;
+        if(!r) return; if(!r.fangstatus&&/^(entnommen|abgegangen)$/i.test(String(r.verwertung||""))) r.fangstatus=String(r.verwertung).toLowerCase(); delete r.verwertung;
         if(r.id==null||r.id==="") r.id=Date.now()+i;
         if(ids.has(String(r.id))) return;
         cur.push(r); ids.add(String(r.id)); added++;

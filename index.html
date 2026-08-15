@@ -7,7 +7,7 @@
 <meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
 <meta name="theme-color" content="#05070b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=55">
+<link rel="stylesheet" href="styles.css?v=56">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -300,6 +300,7 @@
       <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht" oninput="showFishRules()" onchange="showFishRules()"></div>
       <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
       <div class="fbfield"><label>Gewicht (kg, optional)</label><input id="f_gewicht" type="number" min="0" step="0.1" inputmode="decimal"></div>
+      <div class="fbfield"><label>Fangstatus</label><select id="f_fangstatus"><option value="">— keine Angabe —</option><option value="entnommen">Entnommen</option><option value="abgegangen">Abgegangen</option></select></div>
     </div>
     <div id="fishRules" class="rulehint" style="display:none"></div>
     <div class="fbrow">
@@ -427,7 +428,11 @@
     <div class="cmhead"><span>Fangmeldung als PDF</span><button class="cmx" onclick="closeCatchReportModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <p class="auth-intro">PetriKlar erstellt eine übersichtliche Fangstatistik zur manuellen Übermittlung. Prüfe vorher, ob der Empfänger dieses Formular akzeptiert.</p>
     <div class="report-grid">
-      <div class="fbfield"><label>Angelplatz</label><select id="reportSpot"></select></div>
+      <div class="fbfield report-wide"><label>Name des Gewässers im PDF</label><input id="reportWaterName" placeholder="z. B. Donau, Rhein oder Bodensee"></div>
+      <div class="fbfield report-wide"><label>Angelplätze für diese Meldung</label>
+        <div class="report-select-actions"><button type="button" onclick="setAllReportSpots(true)">Alle auswählen</button><button type="button" onclick="setAllReportSpots(false)">Auswahl löschen</button></div>
+        <div id="reportSpotChoices" class="report-spot-choices"></div>
+      </div>
       <div class="fbfield"><label>Kalenderjahr</label><select id="reportYear"></select></div>
       <div class="fbfield"><label>Name des Anglers</label><input id="reportAnglerName" autocomplete="name" placeholder="Vor- und Nachname"></div>
       <div class="fbfield"><label>Erlaubnis-/Mitgliedsnummer</label><input id="reportPermitNumber" placeholder="optional"></div>
@@ -476,6 +481,6 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=55"></script>
+<script src="app.js?v=56"></script>
 </body>
 </html>
