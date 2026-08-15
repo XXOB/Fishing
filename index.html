@@ -7,7 +7,7 @@
 <meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
 <meta name="theme-color" content="#05070b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=54">
+<link rel="stylesheet" href="styles.css?v=55">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -80,6 +80,11 @@
   <div class="cmbox auth-box">
     <div class="cmhead"><span>PetriKlar-Konto</span><button class="cmx" onclick="closeAuthModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <div id="authLoggedOut">
+      <div class="auth-brand">
+        <div class="auth-brand-logo"><svg class="uiicon"><use href="#i-fish"/></svg></div>
+        <h1>PetriKlar</h1>
+        <p>Deine Angelplätze. Dein Fangbuch.</p>
+      </div>
       <p class="auth-intro">Melde dich an, um PetriKlar zu verwenden. Angelplätze, Fänge, Köder und Trips werden ausschließlich in deinem geschützten Cloud-Konto gespeichert.</p>
       <div class="fbfield"><label>E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
       <div class="fbfield" style="margin-top:10px"><label>Passwort</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Mindestens 8 Zeichen"></div>
@@ -126,8 +131,14 @@
 </div>
 
 <div id="catchListView" style="display:none">
-  <button class="backbtn" id="catchBackBtn" onclick="catchListBack()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Fangbücher</button>
-  <div class="sect" id="catchListTitle" style="margin-top:14px">Fangbuch</div>
+  <div class="catch-list-heading">
+    <div class="sect" id="catchListTitle">Fangbuch</div>
+    <label class="catch-sort"><span>Anzeige</span><select id="catchSortMode" onchange="setCatchSortMode(this.value)">
+      <option value="chrono">Chronologisch</option>
+      <option value="fish-first">Fänge zuerst</option>
+      <option value="fish-only">Nur Fänge</option>
+    </select></label>
+  </div>
   <div class="fbio">
     <button type="button" class="fbtool" onclick="exportCSV('view')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
     <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
@@ -465,6 +476,6 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=54"></script>
+<script src="app.js?v=55"></script>
 </body>
 </html>
