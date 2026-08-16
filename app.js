@@ -204,10 +204,10 @@ async function manualCloudSync(){ const ok=await syncCloudNow(true); if(ok) setC
 
 /* ===================== Kurzanleitung beim ersten Login ===================== */
 const ONBOARDING_STEPS=[
-  {kind:"places",label:"Angelplätze",title:"Deine Gewässer auf einen Blick",text:"Lege Angelplätze direkt auf der Karte an. Eine Messstation ist optional und kann später geändert werden."},
-  {kind:"catch",label:"Fangbuch",title:"Fänge schnell dokumentieren",text:"Fang oder fanglosen Angeltag speichern – und Einträge jederzeit mit Stift und X bearbeiten oder löschen."},
-  {kind:"conditions",label:"Bedingungen",title:"Wasser und Wetter verstehen",text:"Prüfe Messwerte, Wetter und Statistiken für deine Plätze. Beim Fang werden die Bedingungen mitgespeichert."},
-  {kind:"report",label:"Trips & Meldung",title:"Vom Angeltag zur Fangmeldung",text:"Starte einen Trip, bewerte ihn und erstelle später CSV-Downloads oder eine Fangmeldung als PDF."}
+  {kind:"places",label:"Angelplätze & Bissanzeige",title:"Deine Gewässer auf einen Blick! Bissanzeige mit echten Wasserdaten!",text:"Lege Angelplätze an. Wähle eine Messstation und lass dir eine Bissprognose geben. Anhand echter Wasserdaten: Pegel, Temperatur, Sauerstoffsättigung."},
+  {kind:"catch",label:"Fangbuch",title:"Dokumentiere alle Fänge! Lerne dein Gewässer kennen.",text:"Speichere deine Fänge an deinen Plätzen. Die Wetter- und Wasserbedingungen werden mitgespeichert. So lernst du und die App mit dir!"},
+  {kind:"report",label:"Fangmeldung",title:"Vom Angeltag zur Fangmeldung.",text:"Erzeuge eine Fangmeldung aus deinen Fangbüchern!"},
+  {kind:"conditions",label:"Statistik",title:"Analysiere deinen Erfolg!",text:"Schau dir deine besten Fänge und Orte an, welche Fische du am häufigsten geangelt hast und vieles mehr in der Statistik."}
 ];
 let ONBOARDING_STEP=0, ONBOARDING_OPENED=false, ONBOARDING_TIMER=null;
 function onboardingVisual(step){
