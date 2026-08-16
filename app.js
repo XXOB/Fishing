@@ -25,10 +25,10 @@ const SUPABASE_URL="https://mcekltbtndpzjahwypze.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
 let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
 let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", APP_STARTED=false;
-let APP_STATE={version:2,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null};
+let APP_STATE={version:3,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""}};
 
 function emptyAppState(){
-  return {version:2,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null};
+  return {version:3,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""}};
 }
 /* Einmalige Übernahme aus älteren App-Versionen. Nach erfolgreichem
    Cloud-Upload werden sämtliche alten LocalStorage-Schlüssel gelöscht. */
@@ -67,13 +67,14 @@ function mergeLegacyBaits(remote,legacy){
 }
 function mergeLegacyState(remote,legacy){
   if(!legacy) return remote||emptyAppState(); remote=remote||emptyAppState();
-  return {version:2,
+  return {version:3,
     spots:mergeLegacyRows(remote.spots,legacy.spots,x=>x.id!=null?x.id:x.name),
     catches:mergeLegacyRows(remote.catches,legacy.catches,x=>x.id),
     baits:mergeLegacyBaits(remote.baits,legacy.baits),baits_initialized:!!(remote.baits_initialized||legacy.baits_initialized),
     trips:mergeLegacyRows(remote.trips,legacy.trips,x=>x.id),
     active_trip:legacy.active_trip||remote.active_trip||null,
-    active_spot_id:legacy.active_spot_id!=null?legacy.active_spot_id:(remote.active_spot_id!=null?remote.active_spot_id:null)};
+    active_spot_id:legacy.active_spot_id!=null?legacy.active_spot_id:(remote.active_spot_id!=null?remote.active_spot_id:null),
+    report_prefs:remote.report_prefs&&typeof remote.report_prefs==="object"?remote.report_prefs:{last_water_name:""}};
 }
 function clearLegacyState(){ try{ LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 function setCloudStatus(text,state){
@@ -103,17 +104,19 @@ function openAuthModal(){
 function closeAuthModal(){ const m=$("authModal"); if(m) m.style.display="none"; authMessage(""); }
 
 function cloudPayload(){
-  return {version:2,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),baits_initialized:!!APP_STATE.baits_initialized,
-    trips:loadTrips(),active_trip:activeTrip(),active_spot_id:getActiveSpotId()};
+  return {version:3,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),baits_initialized:!!APP_STATE.baits_initialized,
+    trips:loadTrips(),active_trip:activeTrip(),active_spot_id:getActiveSpotId(),
+    report_prefs:APP_STATE.report_prefs&&typeof APP_STATE.report_prefs==="object"?APP_STATE.report_prefs:{last_water_name:""}};
 }
 function applyCloudPayload(p){
   p=p||{}; CLOUD_APPLYING=true;
   try{
-    APP_STATE={version:2,
+    APP_STATE={version:3,
       spots:Array.isArray(p.spots)?p.spots:[], catches:Array.isArray(p.catches)?p.catches:[],
       baits:Array.isArray(p.baits)?p.baits:[], baits_initialized:p.baits_initialized!=null?!!p.baits_initialized:Array.isArray(p.baits),
       trips:Array.isArray(p.trips)?p.trips:[], active_trip:p.active_trip||null,
-      active_spot_id:p.active_spot_id!=null?p.active_spot_id:null};
+      active_spot_id:p.active_spot_id!=null?p.active_spot_id:null,
+      report_prefs:p.report_prefs&&typeof p.report_prefs==="object"?p.report_prefs:{last_water_name:""}};
     const valid=APP_STATE.spots.some(s=>String(s.id)===String(APP_STATE.active_spot_id));
     if(!valid) APP_STATE.active_spot_id=APP_STATE.spots[0]?APP_STATE.spots[0].id:null;
   } finally { CLOUD_APPLYING=false; }
@@ -1070,9 +1073,19 @@ function reportSelectedSpots(){
   return [...document.querySelectorAll('#reportSpotChoices input[type="checkbox"]:checked')].map(x=>x.value);
 }
 function reportFilteredCatches(){
-  const spots=new Set(reportSelectedSpots()), year=$("reportYear")?$("reportYear").value:"";
-  return loadCatches().filter(c=>spots.has(c.angelplatz)&&(!year||String(c.datum||"").slice(0,4)===year))
-    .sort((a,b)=>((a.datum||"")+(a.uhrzeit||"")).localeCompare((b.datum||"")+(b.uhrzeit||"")));
+  const year=$("reportYear")?$("reportYear").value:"";
+  return window.PetriKlarReport.filterCatches(loadCatches(),reportSelectedSpots(),year);
+}
+function validateReportWaterName(showError){
+  const field=$("reportWaterName"), error=$("reportWaterError");
+  const result=window.PetriKlarReport.normalizeWaterSectionName(field?field.value:"");
+  if(field){
+    field.classList.toggle("field-invalid",!!showError&&!result.valid);
+    field.setAttribute("aria-invalid",showError&&!result.valid?"true":"false");
+    if(result.valid) field.value=result.value;
+  }
+  if(error){ error.textContent=showError&&!result.valid?result.message:""; error.style.display=showError&&!result.valid?"block":"none"; }
+  return result;
 }
 function updateCatchReportInfo(){
   const arr=reportFilteredCatches(), fish=arr.filter(isFish).length, days=countFishingDays(arr), info=$("reportInfo");
@@ -1086,8 +1099,9 @@ function openCatchReportModal(scope){
   const spots=sortSpotsByDays(loadSpots()), choices=$("reportSpotChoices"), yearSel=$("reportYear");
   const initial=scope==="view"&&CATCH_VIEW_SPOT?[CATCH_VIEW_SPOT]:(scope==="all"?spots.map(s=>s.name):[activeSpotName()].filter(Boolean));
   if(choices) choices.innerHTML=spots.map((s,i)=>'<label><input type="checkbox" value="'+hesc(s.name)+'" '+(initial.includes(s.name)?'checked':'')+' onchange="updateCatchReportInfo()"><span><b>'+hesc(s.name)+'</b><small>'+hesc(spotWaterLabel(s))+'</small></span></label>').join("")||'<div class="fbnote">Noch keine Angelplätze vorhanden.</div>';
-  const selected=spots.filter(s=>initial.includes(s.name)), waters=[...new Set(selected.map(s=>s.gewaesser||s.river||"").filter(Boolean))];
-  const water=$("reportWaterName"); if(water) water.value=waters.length===1?waters[0]:"";
+  const water=$("reportWaterName");
+  if(water) water.value=String(APP_STATE.report_prefs&&APP_STATE.report_prefs.last_water_name||"");
+  validateReportWaterName(false);
   const years=[...new Set(loadCatches().map(c=>String(c.datum||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
   if(!years.length) years.push(String(new Date().getFullYear()));
   if(yearSel){ yearSel.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'</option>').join(""); yearSel.onchange=updateCatchReportInfo; }
@@ -1104,9 +1118,10 @@ function pdfPageFooter(doc){
 }
 function generateCatchReportPDF(){
   if(!window.jspdf||!window.jspdf.jsPDF){ alert("Das PDF-Modul konnte nicht geladen werden. Bitte prüfe die Internetverbindung und lade die Seite neu."); return; }
-  const selectedSpots=reportSelectedSpots(), arr=reportFilteredCatches(), waterName=($("reportWaterName")?$("reportWaterName").value:"").trim(), year=$("reportYear")?$("reportYear").value:"";
+  const selectedSpots=reportSelectedSpots(), arr=reportFilteredCatches(), waterResult=validateReportWaterName(true), year=$("reportYear")?$("reportYear").value:"";
   if(!selectedSpots.length){ alert("Bitte mindestens einen Angelplatz auswählen."); return; }
-  if(!waterName){ alert("Bitte den Namen des Gewässers eingeben."); const f=$("reportWaterName"); if(f) f.focus(); return; }
+  if(!waterResult.valid){ const f=$("reportWaterName"); if(f){ f.focus(); f.scrollIntoView({block:"center",behavior:"smooth"}); } return; }
+  const waterName=waterResult.value;
   const angler=($("reportAnglerName")?$("reportAnglerName").value:"").trim(), permit=($("reportPermitNumber")?$("reportPermitNumber").value:"").trim();
   const recipient=($("reportRecipient")?$("reportRecipient").value:"").trim();
   const {jsPDF}=window.jspdf, doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
@@ -1116,12 +1131,8 @@ function generateCatchReportPDF(){
   doc.setTextColor(35); doc.setFontSize(10); let y=43;
   const line=(label,value)=>{ doc.setFont("helvetica","bold"); doc.text(label,14,y); doc.setFont("helvetica","normal"); const lines=doc.splitTextToSize(String(value||"–"),112); doc.text(lines,82,y); y+=Math.max(6,lines.length*4.5); };
   line("Empfänger:",recipient); line("Angler:",angler||(CLOUD_USER?CLOUD_USER.email:"")); line("Erlaubnis-/Mitgliedsnummer:",permit);
-  line("Gewässer:",waterName); line("Meldejahr:",year||"Alle");
-  const rows=arr.map(c=>[
-    reportDateDE(c.datum),c.uhrzeit||"",
-    c.kein_fang?"Angeltag ohne Fang":((c.fischart||"Fang")+(catchStatus(c)?" ("+catchStatus(c).charAt(0).toUpperCase()+catchStatus(c).slice(1)+")":"")),c.kein_fang?"0":"1",
-    c.groesse_cm!=null?String(c.groesse_cm):"",c.gewicht_kg!=null?String(c.gewicht_kg).replace(".",","):"",c.kein_fang?"":(c.koeder||"")
-  ]);
+  line("Gewässer / Abschnitt / Los:",waterName); line("Meldejahr:",year||"Alle");
+  const rows=window.PetriKlarReport.buildRows(arr,reportDateDE,catchStatus);
   if(!rows.length) rows.push(["","","Keine Einträge vorhanden","0","","",""]);
   if(typeof doc.autoTable!=="function"){ alert("Die PDF-Tabellenfunktion konnte nicht geladen werden. Bitte Seite neu laden."); return; }
   doc.autoTable({startY:y+2,head:[["Datum","Zeit","Fischart / Angeltag","Anz.","cm","kg","Köder"]],body:rows,
@@ -1139,6 +1150,8 @@ function generateCatchReportPDF(){
   doc.setFontSize(8.5); doc.setTextColor(70); doc.text("Die Angaben wurden aus dem persönlichen PetriKlar-Fangbuch übernommen. Das PDF wird nicht automatisch versendet.",14,y); y+=15;
   doc.setDrawColor(130); doc.line(14,y,82,y); doc.line(112,y,196,y); doc.setFontSize(8); doc.text("Ort, Datum",14,y+4); doc.text("Unterschrift",112,y+4);
   pdfPageFooter(doc);
+  APP_STATE.report_prefs={...(APP_STATE.report_prefs||{}),last_water_name:waterName};
+  markCloudDirty();
   doc.save("PetriKlar_Fangmeldung_"+reportSafeName(waterName)+"_"+(year||"gesamt")+".pdf");
   closeCatchReportModal();
 }

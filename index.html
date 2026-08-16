@@ -7,7 +7,7 @@
 <meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
 <meta name="theme-color" content="#05070b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=56">
+<link rel="stylesheet" href="styles.css?v=57">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -428,7 +428,12 @@
     <div class="cmhead"><span>Fangmeldung als PDF</span><button class="cmx" onclick="closeCatchReportModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <p class="auth-intro">PetriKlar erstellt eine übersichtliche Fangstatistik zur manuellen Übermittlung. Prüfe vorher, ob der Empfänger dieses Formular akzeptiert.</p>
     <div class="report-grid">
-      <div class="fbfield report-wide"><label>Name des Gewässers im PDF</label><input id="reportWaterName" placeholder="z. B. Donau, Rhein oder Bodensee"></div>
+      <div class="fbfield report-wide">
+        <label for="reportWaterName">Gewässer / Abschnitt / Los <span class="required-mark" aria-hidden="true">*</span></label>
+        <input id="reportWaterName" required minlength="2" maxlength="120" aria-describedby="reportWaterHint reportWaterError" placeholder="z. B. Donau, Los 3 – Vereinsstrecke Musterstadt" oninput="validateReportWaterName(false)">
+        <small id="reportWaterHint" class="field-hint">Freie Berichtsangabe; z. B. „Donau, Los 3 – Vereinsstrecke Musterstadt“ oder „Baggersee Nord – Südwestufer“. 2–120 Zeichen. Die Angelplätze werden dadurch nicht umbenannt.</small>
+        <small id="reportWaterError" class="field-error" role="alert" style="display:none"></small>
+      </div>
       <div class="fbfield report-wide"><label>Angelplätze für diese Meldung</label>
         <div class="report-select-actions"><button type="button" onclick="setAllReportSpots(true)">Alle auswählen</button><button type="button" onclick="setAllReportSpots(false)">Auswahl löschen</button></div>
         <div id="reportSpotChoices" class="report-spot-choices"></div>
@@ -481,6 +486,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="app.js?v=56"></script>
+<script src="report_utils.js?v=57"></script>
+<script src="app.js?v=57"></script>
 </body>
 </html>
