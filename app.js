@@ -25,10 +25,10 @@ const SUPABASE_URL="https://mcekltbtndpzjahwypze.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
 let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
 let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", APP_STARTED=false;
-let APP_STATE={version:3,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""}};
+let APP_STATE={version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
 
 function emptyAppState(){
-  return {version:3,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""}};
+  return {version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
 }
 /* Einmalige Übernahme aus älteren App-Versionen. Nach erfolgreichem
    Cloud-Upload werden sämtliche alten LocalStorage-Schlüssel gelöscht. */
@@ -67,14 +67,15 @@ function mergeLegacyBaits(remote,legacy){
 }
 function mergeLegacyState(remote,legacy){
   if(!legacy) return remote||emptyAppState(); remote=remote||emptyAppState();
-  return {version:3,
+  return {version:4,
     spots:mergeLegacyRows(remote.spots,legacy.spots,x=>x.id!=null?x.id:x.name),
     catches:mergeLegacyRows(remote.catches,legacy.catches,x=>x.id),
     baits:mergeLegacyBaits(remote.baits,legacy.baits),baits_initialized:!!(remote.baits_initialized||legacy.baits_initialized),
     trips:mergeLegacyRows(remote.trips,legacy.trips,x=>x.id),
     active_trip:legacy.active_trip||remote.active_trip||null,
     active_spot_id:legacy.active_spot_id!=null?legacy.active_spot_id:(remote.active_spot_id!=null?remote.active_spot_id:null),
-    report_prefs:remote.report_prefs&&typeof remote.report_prefs==="object"?remote.report_prefs:{last_water_name:""}};
+    report_prefs:remote.report_prefs&&typeof remote.report_prefs==="object"?remote.report_prefs:{last_water_name:""},
+    ui_prefs:remote.ui_prefs&&typeof remote.ui_prefs==="object"?remote.ui_prefs:{onboarding_done:false}};
 }
 function clearLegacyState(){ try{ LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 function setCloudStatus(text,state){
@@ -104,19 +105,21 @@ function openAuthModal(){
 function closeAuthModal(){ const m=$("authModal"); if(m) m.style.display="none"; authMessage(""); }
 
 function cloudPayload(){
-  return {version:3,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),baits_initialized:!!APP_STATE.baits_initialized,
+  return {version:4,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),baits_initialized:!!APP_STATE.baits_initialized,
     trips:loadTrips(),active_trip:activeTrip(),active_spot_id:getActiveSpotId(),
-    report_prefs:APP_STATE.report_prefs&&typeof APP_STATE.report_prefs==="object"?APP_STATE.report_prefs:{last_water_name:""}};
+    report_prefs:APP_STATE.report_prefs&&typeof APP_STATE.report_prefs==="object"?APP_STATE.report_prefs:{last_water_name:""},
+    ui_prefs:APP_STATE.ui_prefs&&typeof APP_STATE.ui_prefs==="object"?APP_STATE.ui_prefs:{onboarding_done:false}};
 }
 function applyCloudPayload(p){
   p=p||{}; CLOUD_APPLYING=true;
   try{
-    APP_STATE={version:3,
+    APP_STATE={version:4,
       spots:Array.isArray(p.spots)?p.spots:[], catches:Array.isArray(p.catches)?p.catches:[],
       baits:Array.isArray(p.baits)?p.baits:[], baits_initialized:p.baits_initialized!=null?!!p.baits_initialized:Array.isArray(p.baits),
       trips:Array.isArray(p.trips)?p.trips:[], active_trip:p.active_trip||null,
       active_spot_id:p.active_spot_id!=null?p.active_spot_id:null,
-      report_prefs:p.report_prefs&&typeof p.report_prefs==="object"?p.report_prefs:{last_water_name:""}};
+      report_prefs:p.report_prefs&&typeof p.report_prefs==="object"?p.report_prefs:{last_water_name:""},
+      ui_prefs:p.ui_prefs&&typeof p.ui_prefs==="object"?p.ui_prefs:{onboarding_done:false}};
     const valid=APP_STATE.spots.some(s=>String(s.id)===String(APP_STATE.active_spot_id));
     if(!valid) APP_STATE.active_spot_id=APP_STATE.spots[0]?APP_STATE.spots[0].id:null;
   } finally { CLOUD_APPLYING=false; }
@@ -151,8 +154,8 @@ async function pullCloudState(){
 }
 async function handleCloudSession(session){
   CLOUD_USER=session&&session.user?session.user:null; CLOUD_READY=true; renderAccountUI();
-  if(CLOUD_USER){ await pullCloudState(); startAppAfterLogin(); }
-  else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; }
+  if(CLOUD_USER){ await pullCloudState(); await startAppAfterLogin(); }
+  else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; ONBOARDING_OPENED=false; }
 }
 async function initCloud(){
   if(!window.supabase||!window.supabase.createClient){ setCloudStatus("Cloud-Modul nicht geladen","error"); authMessage("Die Anmeldung konnte nicht geladen werden. Bitte Seite neu laden.",true); return; }
@@ -195,9 +198,58 @@ async function authUpdatePassword(){
 }
 async function authSignOut(){
   if(!SUPA) return; const ok=await syncCloudNow(true); if(!ok) return;
-  await SUPA.auth.signOut(); CLOUD_USER=null; APP_STATE=emptyAppState(); CLOUD_DIRTY=false; renderAccountUI(); closeAuthModal();
+  await SUPA.auth.signOut(); CLOUD_USER=null; APP_STATE=emptyAppState(); CLOUD_DIRTY=false; ONBOARDING_OPENED=false; renderAccountUI(); closeAuthModal();
 }
 async function manualCloudSync(){ const ok=await syncCloudNow(true); if(ok) setCloudStatus("In der Cloud gespeichert","ok"); }
+
+/* ===================== Kurzanleitung beim ersten Login ===================== */
+const ONBOARDING_STEPS=[
+  {kind:"places",label:"Angelplätze",title:"Deine Gewässer auf einen Blick",text:"Lege Angelplätze direkt auf der Karte an. Eine Messstation ist optional und kann später geändert werden."},
+  {kind:"catch",label:"Fangbuch",title:"Fänge schnell dokumentieren",text:"Fang oder fanglosen Angeltag speichern – und Einträge jederzeit mit Stift und X bearbeiten oder löschen."},
+  {kind:"conditions",label:"Bedingungen",title:"Wasser und Wetter verstehen",text:"Prüfe Messwerte, Wetter und Statistiken für deine Plätze. Beim Fang werden die Bedingungen mitgespeichert."},
+  {kind:"report",label:"Trips & Meldung",title:"Vom Angeltag zur Fangmeldung",text:"Starte einen Trip, bewerte ihn und erstelle später CSV-Downloads oder eine Fangmeldung als PDF."}
+];
+let ONBOARDING_STEP=0, ONBOARDING_OPENED=false, ONBOARDING_TIMER=null;
+function onboardingVisual(step){
+  if(step.kind==="places") return '<span class="tour-map">'+uiIcon("map")+'</span><span class="tour-pin">'+uiIcon("pin")+'</span><span class="tour-pulse"></span>';
+  if(step.kind==="catch") return '<span class="tour-fish">'+uiIcon("fish")+'</span><span class="tour-plus">'+uiIcon("plus")+'</span><span class="tour-line"></span>';
+  if(step.kind==="conditions") return '<span class="tour-drop">'+uiIcon("droplet")+'</span><span class="tour-bars"><i></i><i></i><i></i></span>';
+  return '<span class="tour-book">'+uiIcon("book-open")+'</span><span class="tour-download">'+uiIcon("download")+'</span>';
+}
+function renderOnboarding(){
+  const step=ONBOARDING_STEPS[ONBOARDING_STEP]||ONBOARDING_STEPS[0];
+  const visual=$("onboardingVisual"), label=$("onboardingLabel"), title=$("onboardingTitle"), text=$("onboardingText");
+  if(visual){ visual.className="onboarding-visual tour-"+step.kind; visual.innerHTML=onboardingVisual(step); }
+  if(label) label.textContent=step.label; if(title) title.textContent=step.title; if(text) text.textContent=step.text;
+  const dots=$("onboardingDots"); if(dots) dots.innerHTML=ONBOARDING_STEPS.map((_,i)=>'<span class="'+(i===ONBOARDING_STEP?'active':'')+'" aria-hidden="true"></span>').join("");
+  const back=$("onboardingBack"), next=$("onboardingNext");
+  if(back) back.style.visibility=ONBOARDING_STEP?"visible":"hidden";
+  if(next) setIconLabel(next,ONBOARDING_STEP===ONBOARDING_STEPS.length-1?"check":"chevron-right",ONBOARDING_STEP===ONBOARDING_STEPS.length-1?"Los geht’s":"Weiter");
+  const count=$("onboardingCount"); if(count) count.textContent=(ONBOARDING_STEP+1)+" / "+ONBOARDING_STEPS.length;
+}
+function openOnboarding(force){
+  if(!CLOUD_USER) return;
+  const done=!!(APP_STATE.ui_prefs&&APP_STATE.ui_prefs.onboarding_done);
+  if(!force&&done) return;
+  clearTimeout(ONBOARDING_TIMER); ONBOARDING_OPENED=true; ONBOARDING_STEP=0; closeAuthModal(); renderOnboarding();
+  const modal=$("onboardingModal"); if(modal) modal.style.display="flex";
+}
+function finishOnboarding(){
+  const modal=$("onboardingModal"); if(modal) modal.style.display="none";
+  if(!(APP_STATE.ui_prefs&&APP_STATE.ui_prefs.onboarding_done)){
+    APP_STATE.ui_prefs={...(APP_STATE.ui_prefs||{}),onboarding_done:true}; markCloudDirty();
+  }
+}
+function skipOnboarding(){ finishOnboarding(); }
+function onboardingBack(){ if(ONBOARDING_STEP>0){ ONBOARDING_STEP--; renderOnboarding(); } }
+function onboardingNext(){
+  if(ONBOARDING_STEP>=ONBOARDING_STEPS.length-1){ finishOnboarding(); return; }
+  ONBOARDING_STEP++; renderOnboarding();
+}
+function maybeShowOnboarding(){
+  if(ONBOARDING_OPENED||!CLOUD_USER||(APP_STATE.ui_prefs&&APP_STATE.ui_prefs.onboarding_done)) return;
+  clearTimeout(ONBOARDING_TIMER); ONBOARDING_TIMER=setTimeout(()=>openOnboarding(false),350);
+}
 
 window.addEventListener("beforeunload",event=>{ if(CLOUD_DIRTY){ event.preventDefault(); event.returnValue=""; } });
 
@@ -941,11 +993,11 @@ function catchCard(c){
     (esc(c.datum||"")+' '+esc(c.uhrzeit||"")+(c.koeder?' · Köder: '+esc(c.koeder):''));
   const group=(label,arr)=>arr.length?'<div class="catchdetailgroup"><b>'+label+'</b><span>'+esc(arr.join(" · "))+'</span></div>':'';
   const details=group("Ort",context)+group("Wasserdaten",water)+group("Wetter",weather)+group("Weitere Angaben",extra);
-  const arg=JSON.stringify(String(c.id));
+  const actionId=esc(String(c.id));
   return '<div class="fbitem'+(c.kein_fang?' blank':'')+'"><div class="catchrow"><div class="catchmain"><div class="fish">'+title+'</div>'+
     '<div class="when">'+short+'</div></div><div class="catchside"><span class="catchacts">'+
-    '<button class="catchicon editmini" title="Bearbeiten" aria-label="Fang bearbeiten" onclick="editCatch('+arg+')">'+uiIcon('edit')+'</button>'+
-    '<button class="catchicon del" title="Löschen" aria-label="Fang löschen" onclick="deleteCatch('+arg+')">'+uiIcon('close')+'</button></span>'+
+    '<button type="button" class="catchicon editmini" data-catch-id="'+actionId+'" title="Bearbeiten" aria-label="Fang bearbeiten" onclick="editCatch(this.dataset.catchId)">'+uiIcon('edit')+'</button>'+
+    '<button type="button" class="catchicon del" data-catch-id="'+actionId+'" title="Löschen" aria-label="Fang löschen" onclick="deleteCatch(this.dataset.catchId)">'+uiIcon('close')+'</button></span>'+
     '<button class="catchdetailtoggle" type="button" aria-expanded="false" onclick="toggleCatchDetails(this)">Details</button></div></div>'+
     '<div class="catchdetailbody" style="display:none">'+(details||'<span class="fbnote">Keine weiteren Angaben.</span>')+'</div></div>';
 }
@@ -2528,6 +2580,7 @@ async function loadAll(){
 async function startAppAfterLogin(){
   if(APP_STARTED){
     const sp=activeSpot(); if(sp) activateSpotById(sp.id); else { renderSpots(); renderFavorites(); showStart(); }
+    maybeShowOnboarding();
     return;
   }
   APP_STARTED=true;
@@ -2550,6 +2603,7 @@ async function startAppAfterLogin(){
   loadQuality();                             // Länder- und Nachbarland-Sensoren schon auf der Startkarte laden
   showStart();                                // Startbildschirm: Lieblingsplätze und Tripstart
   renderActiveTrip();
+  maybeShowOnboarding();
   setInterval(renderActiveTrip,1000);
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
 }

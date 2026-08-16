@@ -7,7 +7,7 @@
 <meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
 <meta name="theme-color" content="#05070b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=57">
+<link rel="stylesheet" href="styles.css?v=58">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -98,6 +98,7 @@
       <div class="account-card"><svg class="uiicon"><use href="#i-user"/></svg><div><small>Angemeldet als</small><strong id="authUserEmail">–</strong></div></div>
       <div class="auth-actions">
         <button type="button" class="btn-primary" onclick="manualCloudSync()"><svg class="uiicon"><use href="#i-cloud-sync"/></svg> Jetzt synchronisieren</button>
+        <button type="button" class="backbtn" onclick="openOnboarding(true)"><svg class="uiicon"><use href="#i-book-open"/></svg> Kurzanleitung ansehen</button>
         <button type="button" class="backbtn" onclick="authSignOut()">Abmelden</button>
       </div>
     </div>
@@ -107,6 +108,21 @@
       <div class="auth-actions"><button type="button" class="btn-primary" onclick="authUpdatePassword()">Passwort speichern</button></div>
     </div>
     <div id="authMessage" class="auth-message" style="display:none"></div>
+  </div>
+</div>
+
+<div id="onboardingModal" class="cmodal onboarding-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+  <div class="cmbox onboarding-box">
+    <div class="onboarding-top"><span id="onboardingCount">1 / 4</span><button type="button" class="onboarding-skip" onclick="skipOnboarding()">Überspringen</button></div>
+    <div id="onboardingVisual" class="onboarding-visual tour-places" aria-hidden="true"></div>
+    <div id="onboardingLabel" class="onboarding-label">Angelplätze</div>
+    <h2 id="onboardingTitle">Deine Gewässer auf einen Blick</h2>
+    <p id="onboardingText">Lege Angelplätze direkt auf der Karte an.</p>
+    <div id="onboardingDots" class="onboarding-dots" aria-hidden="true"></div>
+    <div class="onboarding-actions">
+      <button type="button" id="onboardingBack" class="backbtn" onclick="onboardingBack()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Zurück</button>
+      <button type="button" id="onboardingNext" class="btn-primary" onclick="onboardingNext()"><svg class="uiicon"><use href="#i-chevron-right"/></svg> Weiter</button>
+    </div>
   </div>
 </div>
 
@@ -486,7 +502,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="fish_rules.js?v=41"></script>
-<script src="report_utils.js?v=57"></script>
-<script src="app.js?v=57"></script>
+<script src="report_utils.js?v=58"></script>
+<script src="app.js?v=58"></script>
 </body>
 </html>
