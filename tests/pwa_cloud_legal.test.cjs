@@ -39,7 +39,7 @@ test("Anmeldung ist reduziert und Angelplatz-Pins übernehmen die Bedingungsfarb
   assert.match(css,/\.spotpin\.lg-red\{color:var\(--red\)\}/);
   assert.match(map,/function spotMapColor\(levelClass\)/);
   assert.match(map,/mk\.setIcon\(spotMapIcon\(c\.lvl\.cls\)\)/);
-  assert.match(map,/#4ade80/);
+  assert.match(map,/#64d2ff/);
   assert.match(map,/#fbbf24/);
   assert.match(map,/#f87171/);
 });

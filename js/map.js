@@ -180,7 +180,7 @@ function spotLatLon(sp){
   const st=STATIONS.find(x=>x.uuid===sp.uuid); return st?[st.lat,st.lon]:[CUR.lat,CUR.lon];
 }
 function spotMapColor(levelClass){
-  if(levelClass==="lg-green") return "#4ade80";
+  if(levelClass==="lg-green") return "#64d2ff";
   if(levelClass==="lg-red") return "#f87171";
   return "#fbbf24";
 }
@@ -259,7 +259,7 @@ function renderMarkers(){
       '<br>'+esc(c.datum||"")+' '+esc(c.uhrzeit||"")+(c.angelplatz?'<br>Platz: '+esc(c.angelplatz):'')+(c.koeder?'<br>Köder: '+esc(c.koeder):'')+
       (wa.pegelstand_cm!=null?'<br>Pegel: '+wa.pegelstand_cm+' cm':'')+
       (wa.wassertemperatur_c!=null?'<br>Wasser: '+wa.wassertemperatur_c+' °C':'');
-    L.circleMarker([c.gps.lat,c.gps.lon],{radius:6,color:"#4ade80",weight:2,fillColor:"#4ade80",fillOpacity:.85})
+    L.circleMarker([c.gps.lat,c.gps.lon],{radius:6,color:"#64d2ff",weight:2,fillColor:"#64d2ff",fillOpacity:.85})
       .bindPopup(html).addTo(CATCH_LAYER);
   });
   if(cs.length){ try{ MAP.fitBounds(L.featureGroup(CATCH_LAYER.getLayers()).getBounds().pad(0.3)); }catch(e){} }

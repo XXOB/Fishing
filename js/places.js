@@ -236,12 +236,14 @@ function renderSpots(){
 const PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
 function spotRowHtml(s,prefix,withActions){
   prefix=prefix||"";
-  return '<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')"><span class="spot-titleline"><span class="spotpin lg-amber" id="'+prefix+'pin_'+s.id+'">'+uiIcon('pin')+'</span><span>'+esc(s.name)+'</span></span>'+
+  const favorite=!!s.favorite;
+  return '<div class="spotrow'+(withActions?' has-actions':'')+'"><button class="spotopen" onclick="openSpot('+s.id+')"><span class="spot-titleline"><span class="spotpin lg-amber" id="'+prefix+'pin_'+s.id+'">'+uiIcon('pin')+'</span><span>'+esc(s.name)+'</span></span>'+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span><span class="spotcond" id="'+prefix+'cond_'+s.id+'">Bedingungen …</span></button>'+
     '<div class="spotbadges">'+countBadge(fishCountForSpot(s.name),dayCountForSpot(s.name))+
     '<span class="ampelbadge lg-amber" id="'+prefix+'amp_'+s.id+'">'+uiIcon('minus')+' …</span></div>'+
-    (withActions?'<div class="spotactions"><button class="spotedit" title="Angelplatz bearbeiten" aria-label="Angelplatz bearbeiten" onclick="editSpot('+s.id+')">'+uiIcon('edit')+'</button>'+
-    '<button class="spotdel" title="Löschen" aria-label="Angelplatz löschen" onclick="deleteSpotFromList('+s.id+')">'+uiIcon('close')+'</button></div>':'')+'</div>';
+    (withActions?'<div class="spotactions"><button type="button" class="spotaction spotfavorite'+(favorite?' active':'')+'" title="'+(favorite?'Favorit entfernen':'Als Favorit markieren')+'" aria-label="'+(favorite?'Favorit entfernen':'Als Favorit markieren')+'" aria-pressed="'+favorite+'" onclick="toggleSpotFavorite('+s.id+')">'+uiIcon('star')+'</button>'+
+    '<button type="button" class="spotaction spotedit" title="Angelplatz bearbeiten" aria-label="Angelplatz bearbeiten" onclick="editSpot('+s.id+')">'+uiIcon('edit')+'</button>'+
+    '<button type="button" class="spotaction spotdel" title="Angelplatz löschen" aria-label="Angelplatz löschen" onclick="deleteSpotFromList('+s.id+')">'+uiIcon('trash')+'</button></div>':'')+'</div>';
 }
 function renderSpotList(){
   const box=$("spotList"); if(!box) return;
@@ -254,6 +256,12 @@ function renderSpotList(){
   loadSpotConditions(spots,"");
 }
 function deleteSpotFromList(id){ deleteSpot(id); renderSpotList(); renderFavorites(); }
+function toggleSpotFavorite(id){
+  const spots=loadSpots(), sp=spots.find(x=>String(x.id)===String(id)); if(!sp) return;
+  sp.favorite=!sp.favorite;
+  saveSpots(spots);
+  renderSpotList(); renderFavorites(); renderFbIndex();
+}
 function editSpot(id){
   const sp=loadSpots().find(x=>String(x.id)===String(id)); if(!sp) return;
   PENDING_SPOT={lat:+sp.lat,lon:+sp.lon,editId:sp.id,oldName:sp.name,oldRiver:sp.river||sp.gewaesser||""};
@@ -360,7 +368,7 @@ function renderFishPie(){
   const entries=Object.entries(by).sort((a,b)=>b[1]-a[1]);
   if(!entries.length){ box.innerHTML='<div class="fbnote" style="padding:8px 4px">Noch keine Fänge.</div>'; return; }
   const total=fish.length;
-  const colors=["#38bdf8","#4ade80","#fbbf24","#f87171","#a78bfa","#2dd4bf","#fb923c","#f472b6","#60a5fa","#a3e635","#e879f9","#facc15"];
+  const colors=["#0a84ff","#64d2ff","#5e5ce6","#bf5af2","#ff9f0a","#ff375f","#ffd60a","#ff453a"];
   box.innerHTML='<div class="statcard"><div class="cmcanvas" style="height:260px;position:relative"><canvas id="fishPieCanvas"></canvas></div>'+
     '<div class="fbnote" style="margin-top:10px;line-height:1.7">'+entries.map((e,i)=>
       '<span class="statusdot" style="color:'+colors[i%colors.length]+'"></span> '+esc(e[0])+': '+e[1]+' ('+Math.round(e[1]/total*100)+' %)').join(' · ')+'</div></div>';

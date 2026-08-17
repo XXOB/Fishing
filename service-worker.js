@@ -1,11 +1,11 @@
 "use strict";
 
-const SHELL_CACHE="petriklar-shell-v67";
-const RUNTIME_CACHE="petriklar-runtime-v67";
+const SHELL_CACHE="petriklar-shell-v70";
+const RUNTIME_CACHE="petriklar-runtime-v70";
 const APP_SHELL=[
   "./",
   "./index.html",
-  "./styles.css?v=64",
+  "./styles.css?v=70",
   "./manifest.webmanifest",
   "./offline.html",
   "./fish_rules.js?v=41",
@@ -14,12 +14,12 @@ const APP_SHELL=[
   "./js/pwa.js?v=61",
   "./js/cloud.js?v=61",
   "./js/onboarding.js?v=59",
-  "./js/data-services.js?v=60",
-  "./js/logbook.js?v=59",
-  "./js/map.js?v=61",
-  "./js/charts-bite.js?v=60",
-  "./js/places.js?v=62",
-  "./js/baits.js?v=59",
+  "./js/data-services.js?v=61",
+  "./js/logbook.js?v=60",
+  "./js/map.js?v=62",
+  "./js/charts-bite.js?v=61",
+  "./js/places.js?v=64",
+  "./js/baits.js?v=60",
   "./js/stats.js?v=59",
   "./js/main.js?v=60",
   "./assets/icons/petriklar-192.png",

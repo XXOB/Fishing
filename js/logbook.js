@@ -36,7 +36,7 @@ function renderFavorites(){
     return;
   }
   const ranked=sortSpotsByDays(spots).slice(0,3);
-  box.innerHTML=ranked.map(s=>spotRowHtml(s,"fav_",true)).join("");
+  box.innerHTML=ranked.map(s=>spotRowHtml(s,"fav_",false)).join("");
   loadSpotConditions(ranked,"fav_");
 }
 function showStart(){ hideAllViews(); const v=$("startView"); if(v) v.style.display="block"; renderFavorites(); renderActiveTrip(); setActiveTab("start"); window.scrollTo({top:0,behavior:"smooth"}); }
@@ -352,7 +352,7 @@ function dayCountForSpot(name){
   return days.size;
 }
 function sortSpotsByDays(spots){
-  return (spots||[]).slice().sort((a,b)=>dayCountForSpot(b.name)-dayCountForSpot(a.name)||fishCountForSpot(b.name)-fishCountForSpot(a.name)||String(a.name).localeCompare(String(b.name),"de"));
+  return (spots||[]).slice().sort((a,b)=>Number(!!b.favorite)-Number(!!a.favorite)||dayCountForSpot(b.name)-dayCountForSpot(a.name)||fishCountForSpot(b.name)-fishCountForSpot(a.name)||String(a.name).localeCompare(String(b.name),"de"));
 }
 function totalFish(){ return loadCatches().filter(isFish).length; }
 function totalDays(){
