@@ -21,13 +21,14 @@ body{
   padding:16px; max-width:1080px; margin:0 auto;
 }
 a{color:var(--water);text-decoration:none}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.brand{display:flex;align-items:center;gap:13px}
+header{position:relative;display:flex;align-items:flex-start;min-height:46px;padding-right:59px;margin-bottom:18px}
+.brand{display:flex;align-items:flex-start;gap:13px;width:100%;min-width:0}
+.brand>div:last-child{min-width:0;padding-top:1px}
 .logo{width:46px;height:46px;border-radius:14px;background:var(--primary);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 14px rgba(47,75,214,.4)}
+  flex:0 0 46px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 14px rgba(47,75,214,.4)}
 .logo svg{width:26px;height:26px}
 h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
-.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.sub{color:var(--muted);font-size:13px;line-height:1.35;margin-top:2px;max-width:720px}
 
 /* Startseite (Home) im neuen Stil */
 .pagelabel{color:var(--muted);font-size:14px;font-weight:600;margin:6px 2px 4px}
@@ -197,8 +198,8 @@ select option,select optgroup{color:#f5f5f7!important;background:#1c1c1e!importa
 .fbsave:active{transform:scale(.98)}
 .fbtoolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:14px 4px 8px}
 .fbtools{display:flex;gap:8px;flex-wrap:wrap}
-.fbio{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-.fbio .fbtool{min-width:128px;justify-content:center}
+.fbio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.fbio .fbtool{width:100%;min-width:0;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 8px;line-height:1.15;white-space:normal;text-align:center}
 .fbtool{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;
   padding:6px 11px;font-size:12px;cursor:pointer}
 .fbtool:hover{background:#25344a}
@@ -495,7 +496,7 @@ button{touch-action:manipulation}
 .auth-locked #authModal .auth-box{width:min(92vw,480px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 24px 80px rgba(0,0,0,.65)}
 .auth-locked #authModal .cmhead{display:none}
 .auth-locked #authModal .cmx{display:none}
-.account-area{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.account-area{position:absolute;top:0;right:0;display:flex;align-items:flex-start;justify-content:flex-end;gap:10px;min-width:0}
 .account-btn{width:46px;height:46px;min-width:46px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:14px;background:linear-gradient(145deg,#0a84ff,#3157e8);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(10,132,255,.32);transition:transform .15s ease,filter .15s ease,background .2s ease,box-shadow .2s ease}
 .account-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
 .account-btn:active{transform:scale(.97)}
@@ -566,9 +567,12 @@ button{touch-action:manipulation}
 .blankgrouphead[aria-expanded="true"]>.uiicon{transform:rotate(180deg)}
 .blankgroupbody{padding:0 8px 2px}.blankgroupbody .fbitem{margin-bottom:7px}
 @media(max-width:620px){
-  header{align-items:flex-start}
-  .account-area{width:auto;margin-left:auto;justify-content:flex-end}
+  header{padding-right:57px}
   .cloud-status.error{max-width:min(48vw,220px)}
+  .sub{font-size:12px;line-height:1.32}
+  .fbio{gap:6px}
+  .fbio .fbtool{min-height:48px;padding:6px 4px;font-size:10.5px;gap:4px}
+  .fbio .fbtool .uiicon{width:15px;height:15px}
   .report-grid{grid-template-columns:1fr}.report-wide{grid-column:auto}
   .report-spot-choices{grid-template-columns:1fr}
   .report-box{max-height:calc(100dvh - max(env(safe-area-inset-top),12px));scrollbar-gutter:auto}
