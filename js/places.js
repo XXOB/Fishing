@@ -403,3 +403,12 @@ function addCatchFromList(){
   openSpot(sp.id);        // Platz aktivieren, Live-Daten laden, Datenansicht zeigen
   openFangbuchForm();     // Fangbuch-Formular aufklappen + hinscrollen
 }
+function quickAddCatch(){
+  const trip=activeTrip();
+  if(trip){ tripAddCatch(); return; }
+  const spots=loadSpots();
+  if(!spots.length){ showHome(); setTimeout(()=>newSpotOnMap(),180); return; }
+  const preferred=activeSpot()||spots.find(s=>s.favorite)||sortSpotsByDays(spots)[0];
+  openSpot(preferred.id);
+  openFangbuchForm();
+}

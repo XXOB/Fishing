@@ -34,3 +34,22 @@ test("Anleitungsanimationen respektieren reduzierte Bewegung",()=>{
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
   assert.match(css,/\.onboarding-visual \*\{animation:none!important\}/);
 });
+
+test("Die Hauptnavigation priorisiert den schnellen Fangeintrag",()=>{
+  assert.match(html,/id="quickCatchBtn"[^>]*onclick="quickAddCatch\(\)"/);
+  assert.doesNotMatch(html,/id="tabBait"/);
+  assert.match(html,/class="library-link"[^>]*onclick="showBaitList\(\)"/);
+  assert.match(app,/function quickAddCatch\(\)/);
+  assert.match(app,/if\(trip\)\{ tripAddCatch\(\); return; \}/);
+});
+
+test("Angelplatz-Aktionen verwenden Favorit, Bearbeiten und Papierkorb",()=>{
+  assert.match(html,/id="i-star"/);
+  assert.match(app,/uiIcon\('star'\)/);
+  assert.match(app,/uiIcon\('edit'\)/);
+  assert.match(app,/uiIcon\('trash'\)/);
+  assert.match(app,/function toggleSpotFavorite\(id\)/);
+  assert.match(app,/sp\.favorite=!sp\.favorite/);
+  assert.match(css,/width:2\.75rem;height:2\.75rem/);
+  assert.match(css,/align-items:center;justify-content:center/);
+});

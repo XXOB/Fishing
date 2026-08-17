@@ -1194,6 +1194,61 @@ select option,select optgroup{color:var(--text)!important;background:#2c2c2e!imp
   }
 }
 
+/* Product architecture: four destinations and one universal catch action. */
+.back-link{
+  min-height:2.75rem;margin:0 0 .55rem;padding:.35rem .25rem;
+  display:inline-flex;align-items:center;gap:.45rem;border:0;border-radius:.65rem;background:transparent;
+  color:var(--water);font:inherit;font-size:.82rem;font-weight:650;cursor:pointer;
+  transition:transform 100ms var(--ease-out),background-color 180ms ease,opacity 180ms ease;
+}
+.back-link .uiicon{width:1rem;height:1rem}
+.back-link:active{transform:scale(.97);opacity:.82}
+
+.library-link{
+  width:100%;min-height:4.75rem;margin-top:1rem;padding:.8rem .9rem;
+  display:grid;grid-template-columns:2.75rem minmax(0,1fr) 1.25rem;align-items:center;gap:.8rem;
+  border:1px solid rgba(255,255,255,.1);border-radius:1rem;background:#1c1c1e;color:var(--text);text-align:left;cursor:pointer;
+  transition:transform 100ms var(--ease-out),background-color 180ms ease,border-color 180ms ease;
+}
+.library-icon{width:2.75rem;height:2.75rem;display:flex;align-items:center;justify-content:center;border-radius:.8rem;background:rgba(10,132,255,.13);color:var(--water)}
+.library-icon .uiicon{width:1.25rem;height:1.25rem}
+.library-copy{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.library-copy strong{font-size:.92rem;letter-spacing:-.012em}
+.library-copy small{color:var(--muted);font-size:.73rem;line-height:1.35}
+.library-chevron{color:var(--muted2);width:1rem;height:1rem}
+.library-link:active{transform:scale(.985)}
+
+.tab-action{overflow:visible;color:#fff}
+.tab-action .action-orb{
+  position:relative;width:3.25rem;height:3.25rem;margin-top:-1.15rem;
+  display:flex;align-items:center;justify-content:center;border-radius:1.05rem;
+  color:#fff;background:linear-gradient(145deg,#2997ff,#0a84ff 62%,#0967c5);
+  box-shadow:0 12px 32px rgba(10,132,255,.38),inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform 100ms var(--ease-out),filter 180ms ease,box-shadow 180ms ease;
+}
+.tab-action .action-orb>.uiicon{width:1.45rem;height:1.45rem}
+.tab-action .action-plus{
+  position:absolute;right:-.15rem;bottom:-.1rem;width:1rem;height:1rem;display:flex;align-items:center;justify-content:center;
+  border:2px solid #1c1c1e;border-radius:50%;background:#fff;color:#0a84ff;font-size:.8rem;font-weight:850;line-height:1;
+}
+.tab-action .tx{margin-top:-.1rem;color:var(--water)}
+.tab-action:active{transform:none!important;opacity:1!important}
+.tab-action:active .action-orb{transform:scale(.94)}
+.tab-action:focus-visible{outline:none}
+.tab-action:focus-visible .action-orb{outline:3px solid rgba(100,210,255,.44);outline-offset:3px}
+
+@media (hover:hover) and (pointer:fine){
+  .back-link:hover{background:rgba(10,132,255,.09)}
+  .library-link:hover{background:#242426;border-color:rgba(100,210,255,.22)}
+  .tab-action:hover{background:transparent}
+  .tab-action:hover .action-orb{filter:brightness(1.08);box-shadow:0 14px 36px rgba(10,132,255,.46),inset 0 1px 0 rgba(255,255,255,.32)}
+}
+
+@media(max-width:420px){
+  .tab-action .action-orb{width:3rem;height:3rem;border-radius:.95rem}
+  .library-copy small{font-size:.7rem}
+}
+
 @media(prefers-contrast:more){
   :root{--line:rgba(255,255,255,.34);--muted:#d1d1d6;--muted2:#b0b0b6}
   header,.tabbar,.cmbox,.spotrow,.emptycard,.mapcard,.fbcard,.fbitem,.tile,.qtile,.statcard,.biteitem,.baitcat,.stabar,.cond,.blankgroup{background:rgba(18,18,20,.97);border-color:rgba(255,255,255,.34)}
