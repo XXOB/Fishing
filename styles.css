@@ -334,6 +334,13 @@ body{padding-bottom:82px}
 /* Bedingungen in der Angelplatz-Übersicht */
 .spotcond{display:block;color:var(--muted);font-weight:400;font-size:12.5px;margin-top:5px}
 .spotbadges{display:flex;flex-direction:column;gap:5px;align-items:stretch;min-width:112px;margin:0 2px}
+.spot-titleline{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.spot-titleline>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spotpin{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:none!important;border:0!important;padding:0!important}
+.spotpin .uiicon{width:18px;height:18px;stroke-width:2.1}
+.spotpin.lg-green{color:var(--green)}
+.spotpin.lg-amber{color:var(--amber)}
+.spotpin.lg-red{color:var(--red)}
 .spotbadges .countbadge,.spotbadges .ampelbadge{box-sizing:border-box;width:100%;justify-content:flex-start;margin:0}
 .ampelbadge{font-size:12px;font-weight:700;border-radius:20px;padding:5px 11px;white-space:nowrap;text-align:left}
 
@@ -485,8 +492,8 @@ button{touch-action:manipulation}
 .auth-locked{padding:0!important;overflow:hidden;background:#05070b}
 .auth-locked>:not(.icon-sprite):not(#authModal):not(script){display:none!important}
 .auth-locked #authModal{display:flex!important;z-index:100000;background:radial-gradient(circle at 50% 18%,rgba(10,132,255,.18),transparent 38%),#05070b}
-.auth-locked #authModal .auth-box{width:min(92vw,480px);box-shadow:0 24px 80px rgba(0,0,0,.65)}
-.auth-locked #authModal .cmhead{font-size:21px}
+.auth-locked #authModal .auth-box{width:min(92vw,480px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 24px 80px rgba(0,0,0,.65)}
+.auth-locked #authModal .cmhead{display:none}
 .auth-locked #authModal .cmx{display:none}
 .account-area{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
 .account-btn{min-height:40px;max-width:260px;display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(255,255,255,.13);border-radius:11px;background:rgba(118,118,128,.14);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -507,6 +514,19 @@ button{touch-action:manipulation}
 .auth-link:hover{text-decoration:underline}
 .auth-message{margin-top:14px;padding:11px 12px;border:1px solid rgba(48,209,88,.35);border-radius:11px;background:rgba(48,209,88,.1);color:#7ee89a;font-size:12.5px;line-height:1.45}
 .auth-message.error{border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.11);color:#ff8b84}
+.auth-network-status{display:none;margin:0 0 14px;padding:11px 12px;border:1px solid rgba(255,159,10,.38);border-radius:11px;background:rgba(255,159,10,.1);color:#ffd08a;font-size:12.5px;line-height:1.45}
+.auth-legal-links{margin:16px 2px 0;color:var(--muted2);font-size:11px;line-height:1.45;text-align:center}
+.auth-legal-links a,.footer-links a{color:#64d2ff;text-decoration:none}.auth-legal-links a:hover,.footer-links a:hover{text-decoration:underline}
+.dangerbtn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 14px;border:1px solid rgba(255,69,58,.48);border-radius:11px;background:rgba(255,69,58,.12);color:#ff8b84;font-weight:750;cursor:pointer}
+.dangerbtn:hover{background:rgba(255,69,58,.22);color:#fff}
+.network-banner,.app-update-banner{position:sticky;top:0;z-index:950;align-items:center;justify-content:center;gap:12px;margin:0 calc(-1 * max(17px,env(safe-area-inset-left))) 12px;padding:9px 16px;border-bottom:1px solid rgba(255,159,10,.42);background:rgba(44,28,3,.96);color:#ffd08a;font-size:12.5px;text-align:center;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.app-update-banner{border-color:rgba(10,132,255,.42);background:rgba(4,28,55,.97);color:#c8e7ff}
+.app-update-banner button{padding:5px 10px;border:1px solid rgba(100,210,255,.4);border-radius:8px;background:rgba(10,132,255,.2);color:#fff;font-weight:700;cursor:pointer}
+.install-box,.delete-account-box{max-width:520px}
+.install-instructions{margin:4px 0 18px;color:var(--muted);font-size:14px;line-height:1.55}
+.install-instructions strong{color:var(--text)}.install-instructions ol{margin:10px 0 0;padding-left:22px}.install-instructions li{margin:6px 0}
+.delete-account-box .fbactions{margin-top:16px}.delete-account-box .dangerbtn{flex:1}
+.footer-links{display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 .account-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(118,118,128,.12)}
 .account-card>.uiicon{width:30px;height:30px;color:#64d2ff}
 .account-card div{display:flex;flex-direction:column;min-width:0}.account-card small{color:var(--muted2);font-size:11px}.account-card strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}

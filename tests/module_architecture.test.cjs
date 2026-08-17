@@ -7,7 +7,7 @@ const path=require("node:path");
 const root=path.resolve(__dirname,"..");
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const expected=[
-  "js/core.js","js/cloud.js","js/onboarding.js","js/data-services.js",
+  "js/core.js","js/pwa.js","js/cloud.js","js/onboarding.js","js/data-services.js",
   "js/logbook.js","js/map.js","js/charts-bite.js","js/places.js",
   "js/baits.js","js/stats.js","js/main.js"
 ];

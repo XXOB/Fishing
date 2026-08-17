@@ -119,5 +119,10 @@ async function startAppAfterLogin(){
   setInterval(renderActiveTrip,1000);
   setInterval(()=>{ if($("spotView") && $("spotView").style.display!=="none") loadAll(); }, 10*60*1000);
 }
-async function boot(){ document.body.classList.add("auth-locked"); renderAccountUI(); await initCloud(); }
+async function boot(){
+  document.body.classList.add("auth-locked");
+  if(typeof initPWA==="function") initPWA();
+  renderAccountUI();
+  await initCloud();
+}
 boot();

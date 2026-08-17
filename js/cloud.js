@@ -9,7 +9,7 @@
 const SUPABASE_URL="https://mcekltbtndpzjahwypze.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
 let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
-let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", APP_STARTED=false;
+let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", CLOUD_DATA_LOADED=false, CLOUD_RECONNECTING=false, APP_STARTED=false;
 let APP_STATE={version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
 
 function emptyAppState(){
@@ -78,9 +78,11 @@ function renderAccountUI(){
   if(inn) inn.style.display=(CLOUD_USER&&!AUTH_RECOVERY)?"block":"none";
   if(rec) rec.style.display=AUTH_RECOVERY?"block":"none";
   if(mail) mail.textContent=CLOUD_USER?CLOUD_USER.email||"–":"–";
-  document.body.classList.toggle("auth-locked",!CLOUD_USER||AUTH_RECOVERY);
-  const gate=$("authGate"); if(gate) gate.setAttribute("aria-hidden",CLOUD_USER?"true":"false");
+  const locked=!CLOUD_USER||AUTH_RECOVERY||!CLOUD_DATA_LOADED;
+  document.body.classList.toggle("auth-locked",locked);
+  const gate=$("authGate"); if(gate) gate.setAttribute("aria-hidden",locked?"false":"true");
   if(!CLOUD_USER) setCloudStatus("Anmeldung erforderlich","");
+  else if(!CLOUD_DATA_LOADED) setCloudStatus(navigator.onLine?"Lade Cloud-Daten …":"Offline – Cloud-Daten gesperrt",navigator.onLine?"syncing":"error");
 }
 function openAuthModal(){
   authMessage(""); renderAccountUI();
@@ -111,12 +113,14 @@ function applyCloudPayload(p){
   try{ ensureBaitSeed(); renderSpots(); populateCatchSpots(); populateKoeder(); renderBaitList(); refreshFangbuch(); renderFavorites(); renderActiveTrip(); }catch(e){}
 }
 function markCloudDirty(){
-  if(CLOUD_APPLYING) return; CLOUD_DIRTY=true;
+  if(CLOUD_APPLYING) return;
+  if(!CLOUD_DATA_LOADED){ setCloudStatus("Cloud-Daten sind noch nicht geladen","error"); return; }
+  CLOUD_DIRTY=true;
   if(CLOUD_READY&&CLOUD_USER){ clearTimeout(CLOUD_TIMER); CLOUD_TIMER=setTimeout(()=>syncCloudNow(false),1200); }
   setCloudStatus("Speichert …","syncing");
 }
 async function syncCloudNow(force){
-  if(!SUPA||!CLOUD_USER) return false;
+  if(!SUPA||!CLOUD_USER||!CLOUD_DATA_LOADED) return false;
   if(!force&&!CLOUD_DIRTY) return true;
   setCloudStatus("Speichert in der Cloud …","syncing");
   const now=new Date().toISOString(), payload=cloudPayload();
@@ -126,21 +130,37 @@ async function syncCloudNow(force){
   setCloudStatus("In der Cloud gespeichert","ok"); return true;
 }
 async function pullCloudState(){
-  if(!SUPA||!CLOUD_USER) return;
+  if(!SUPA||!CLOUD_USER) return false;
   setCloudStatus("Lade Cloud-Daten …","syncing");
   const {data:row,error}=await SUPA.from("app_state").select("data,updated_at,revision").eq("user_id",CLOUD_USER.id).maybeSingle();
-  if(error){ setCloudStatus("Cloud nicht erreichbar","error"); authMessage("Cloud-Daten konnten nicht geladen werden: "+error.message,true); return; }
+  if(error){ CLOUD_DATA_LOADED=false; setCloudStatus("Cloud nicht erreichbar","error"); authMessage("Cloud-Daten konnten nicht geladen werden. Deine persönlichen Daten werden aus Sicherheitsgründen nicht offline geöffnet. Sobald du wieder online bist, versucht PetriKlar es erneut.",true); return false; }
   CLOUD_DIRTY=false; const legacy=readLegacyState();
+  CLOUD_DATA_LOADED=true;
   if(legacy){
     applyCloudPayload(mergeLegacyState(row&&row.data,legacy)); CLOUD_DIRTY=true;
     if(await syncCloudNow(true)) clearLegacyState();
-  } else if(!row){ applyCloudPayload(emptyAppState()); await syncCloudNow(true); }
+  } else if(!row){ applyCloudPayload(emptyAppState()); CLOUD_DIRTY=true; await syncCloudNow(true); }
   else { applyCloudPayload(row.data||emptyAppState()); CLOUD_LAST_REMOTE_AT=row.updated_at||""; setCloudStatus("In der Cloud gespeichert","ok"); }
+  return true;
 }
 async function handleCloudSession(session){
-  CLOUD_USER=session&&session.user?session.user:null; CLOUD_READY=true; renderAccountUI();
-  if(CLOUD_USER){ await pullCloudState(); await startAppAfterLogin(); }
-  else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; ONBOARDING_OPENED=false; }
+  const nextUser=session&&session.user?session.user:null;
+  const sameUser=!!(CLOUD_USER&&nextUser&&String(CLOUD_USER.id)===String(nextUser.id));
+  if(sameUser&&CLOUD_DATA_LOADED&&!AUTH_RECOVERY){ CLOUD_USER=nextUser; CLOUD_READY=true; renderAccountUI(); return; }
+  if(!sameUser) CLOUD_DATA_LOADED=false;
+  CLOUD_USER=nextUser; CLOUD_READY=true; renderAccountUI();
+  if(CLOUD_USER){
+    const loaded=await pullCloudState(); renderAccountUI();
+    if(loaded) await startAppAfterLogin();
+  } else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; CLOUD_DATA_LOADED=false; ONBOARDING_OPENED=false; renderAccountUI(); }
+}
+async function resumeCloudAfterReconnect(){
+  if(CLOUD_RECONNECTING||!SUPA||!CLOUD_USER||CLOUD_DATA_LOADED||!navigator.onLine) return;
+  CLOUD_RECONNECTING=true;
+  try{
+    const loaded=await pullCloudState(); renderAccountUI();
+    if(loaded) await startAppAfterLogin();
+  } finally { CLOUD_RECONNECTING=false; }
 }
 async function initCloud(){
   if(!window.supabase||!window.supabase.createClient){ setCloudStatus("Cloud-Modul nicht geladen","error"); authMessage("Die Anmeldung konnte nicht geladen werden. Bitte Seite neu laden.",true); return; }
@@ -182,9 +202,37 @@ async function authUpdatePassword(){
   const {error}=await SUPA.auth.updateUser({password}); if(error) authMessage(error.message,true); else { AUTH_RECOVERY=false; renderAccountUI(); authMessage("Passwort wurde geändert."); }
 }
 async function authSignOut(){
-  if(!SUPA) return; const ok=await syncCloudNow(true); if(!ok) return;
-  await SUPA.auth.signOut(); CLOUD_USER=null; APP_STATE=emptyAppState(); CLOUD_DIRTY=false; ONBOARDING_OPENED=false; renderAccountUI(); closeAuthModal();
+  if(!SUPA) return;
+  if(CLOUD_DATA_LOADED&&CLOUD_DIRTY){ const ok=await syncCloudNow(true); if(!ok) return; }
+  await SUPA.auth.signOut(); CLOUD_USER=null; APP_STATE=emptyAppState(); CLOUD_DIRTY=false; CLOUD_DATA_LOADED=false; ONBOARDING_OPENED=false; renderAccountUI(); closeAuthModal();
 }
 async function manualCloudSync(){ const ok=await syncCloudNow(true); if(ok) setCloudStatus("In der Cloud gespeichert","ok"); }
+
+function openDeleteAccountModal(){
+  const modal=$("deleteAccountModal"), input=$("deleteAccountConfirm"), message=$("deleteAccountMessage");
+  if(input) input.value="";
+  if(message){ message.style.display="none"; message.textContent=""; }
+  if(modal) modal.style.display="flex";
+  setTimeout(()=>{ if(input) input.focus(); },40);
+}
+function closeDeleteAccountModal(){ const modal=$("deleteAccountModal"); if(modal) modal.style.display="none"; }
+function deleteAccountMessage(text,isError){
+  const el=$("deleteAccountMessage"); if(!el) return;
+  el.textContent=text||""; el.style.display=text?"block":"none"; el.className="auth-message"+(isError?" error":"");
+}
+async function confirmDeleteAccount(){
+  const input=$("deleteAccountConfirm"), value=input?input.value.trim():"";
+  if(value!=="LÖSCHEN"){ deleteAccountMessage("Bitte gib exakt LÖSCHEN ein.",true); if(input) input.focus(); return; }
+  if(!SUPA||!CLOUD_USER){ deleteAccountMessage("Du bist nicht angemeldet.",true); return; }
+  deleteAccountMessage("Konto und Daten werden gelöscht …",false);
+  const {error}=await SUPA.rpc("delete_own_account");
+  if(error){
+    deleteAccountMessage("Automatische Löschung nicht möglich: "+error.message+" Bitte nutze alternativ datenschutz@petriklar.com.",true);
+    return;
+  }
+  clearLegacyState(); CLOUD_USER=null; CLOUD_DATA_LOADED=false; CLOUD_DIRTY=false; APP_STATE=emptyAppState();
+  try{ await SUPA.auth.signOut({scope:"local"}); }catch(e){}
+  closeDeleteAccountModal(); location.reload();
+}
 
 window.addEventListener("beforeunload",event=>{ if(CLOUD_DIRTY){ event.preventDefault(); event.returnValue=""; } });

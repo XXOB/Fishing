@@ -13,10 +13,16 @@ Fishing/
 ├─ index.html                    # Seitenstruktur und geordnete Script-Einbindung
 ├─ styles.css                   # gemeinsame Gestaltung und responsive Regeln
 ├─ app.js                       # Kompatibilitätshinweis; wird nicht mehr geladen
+├─ manifest.webmanifest         # PWA-Metadaten und App-Icons
+├─ service-worker.js            # App-Hülle, Updates und sichere Cache-Grenzen
+├─ offline.html                 # Offline-Hinweis ohne persönliche Daten
+├─ legal/                       # Impressum, Datenschutz, Support, Kontolöschung
+├─ supabase/                    # RLS- und Kontolöschungs-Migration
 ├─ report_utils.js              # reine, separat testbare PDF-Berichtslogik
 ├─ fish_rules.js                # Schonmaße und Schonzeiten
 ├─ js/
 │  ├─ core.js                   # gemeinsamer Zustand, DOM-, Icon- und Format-Helfer
+│  ├─ pwa.js                    # Installation, Online-Status und Updates
 │  ├─ cloud.js                  # Supabase, Anmeldung, Synchronisation, Migration
 │  ├─ onboarding.js             # Kurzanleitung beim ersten Login
 │  ├─ data-services.js          # Pegel, Wetter, Wassergüte und Live-Sensordaten
@@ -46,6 +52,7 @@ flowchart TB
 
     subgraph UI["Browser-App"]
       CORE["core.js\nLaufzeitkern"]
+      PWA["pwa.js\nInstallation & Offline-Hülle"]
       CLOUD["cloud.js\nKonto & Cloud-State"]
       ONB["onboarding.js\nKurzanleitung"]
       DATA["data-services.js\nLive-Daten"]
@@ -59,6 +66,7 @@ flowchart TB
     end
 
     HTML --> CORE
+    CORE --> PWA
     CORE --> CLOUD
     CORE --> ONB
     CORE --> DATA
@@ -70,6 +78,7 @@ flowchart TB
     CORE --> STATS
 
     CLOUD <--> SUPA["Supabase Auth + app_state"]
+    PWA --> SW["Service Worker\nstatische App-Hülle"]
     DATA <--> LIVE["Pegel-, Wetter- und Güte-APIs"]
     DATA --> MAP
     DATA --> CHART
@@ -93,7 +102,7 @@ Die Dateien sind weiterhin klassische Browser-Skripte. Dadurch bleiben bestehend
 
 1. externe Bibliotheken und Datendateien,
 2. `core.js`,
-3. Infrastruktur (`cloud.js`, `onboarding.js`, `data-services.js`),
+3. Infrastruktur (`pwa.js`, `cloud.js`, `onboarding.js`, `data-services.js`),
 4. Fachmodule (`logbook.js`, `map.js`, `charts-bite.js`, `places.js`, `baits.js`, `stats.js`),
 5. `main.js` als einziger Startpunkt.
 
@@ -104,6 +113,8 @@ Die Dateien sind weiterhin klassische Browser-Skripte. Dadurch bleiben bestehend
 | Änderung | Primäre Datei |
 |---|---|
 | Login, Konto, Supabase-Speicherung | `js/cloud.js` |
+| Installation, Offline-Hinweis, Service-Worker-Updates | `js/pwa.js` und `service-worker.js` |
+| Impressum, Datenschutz, Support | `legal/` und `legal/legal-config.js` |
 | Texte oder Ablauf der ersten Einführung | `js/onboarding.js` |
 | Sensorquellen, Wetter, Wasserwerte | `js/data-services.js` |
 | Fang speichern, bearbeiten oder löschen | `js/logbook.js` |
@@ -170,4 +181,3 @@ Der Architekturtest kontrolliert zusätzlich:
 3. Bei sichtbaren Änderungen die Cache-Version des betroffenen Scripts in `index.html` erhöhen.
 4. Syntax- und Gesamttests ausführen.
 5. Erst danach committen und veröffentlichen.
-

@@ -179,17 +179,31 @@ function spotLatLon(sp){
   if(sp.lat!=null && sp.lon!=null) return [sp.lat, sp.lon];
   const st=STATIONS.find(x=>x.uuid===sp.uuid); return st?[st.lat,st.lon]:[CUR.lat,CUR.lon];
 }
+function spotMapColor(levelClass){
+  if(levelClass==="lg-green") return "#4ade80";
+  if(levelClass==="lg-red") return "#f87171";
+  return "#fbbf24";
+}
+function spotMapIcon(levelClass){
+  const color=spotMapColor(levelClass);
+  return L.divIcon({className:"spot-ic condition-"+(levelClass||"lg-amber"),
+    html:'<svg width="30" height="34" viewBox="0 0 24 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 26S21 18.3 21 10.5a9 9 0 1 0-18 0C3 18.3 12 26 12 26Z" fill="'+color+'" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10.5" r="3" fill="#071018" stroke="#fff" stroke-width="1.4"/></svg>',
+    iconSize:[30,34], iconAnchor:[15,34]});
+}
 function addSpotMarkers(){
   if(!SPOTS_LAYER || !window.L) return;
   SPOTS_LAYER.clearLayers();
-  const icon=L.divIcon({className:"spot-ic",
-    html:'<svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(15,23,42,.55)" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 22s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6" fill="none"/></svg>',
-    iconSize:[26,26], iconAnchor:[13,26]});
   for(const sp of loadSpots()){
     const ll=spotLatLon(sp);
-    const mk=L.marker(ll,{icon}).bindTooltip(uiIcon('pin')+' '+esc(sp.name));
+    const mk=L.marker(ll,{icon:spotMapIcon("lg-amber")}).bindTooltip(uiIcon('pin')+' '+esc(sp.name));
     mk.on("click", ()=>openSpot(sp.id));
     SPOTS_LAYER.addLayer(mk);
+    if(typeof spotCondition==="function") spotCondition(sp).then(c=>{
+      if(SPOTS_LAYER&&SPOTS_LAYER.hasLayer(mk)){
+        mk.setIcon(spotMapIcon(c.lvl.cls));
+        mk.setTooltipContent(uiIcon('pin')+' '+esc(sp.name)+' · '+esc(c.lvl.word));
+      }
+    }).catch(()=>{});
   }
 }
 function toggleStationsLayer(){

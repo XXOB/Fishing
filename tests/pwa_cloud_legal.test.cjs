@@ -1,0 +1,56 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const root=path.resolve(__dirname,"..");
+const read=file=>fs.readFileSync(path.join(root,file),"utf8");
+
+test("Manifest und PWA-Dateien sind vollständig",()=>{
+  const manifest=JSON.parse(read("manifest.webmanifest"));
+  assert.equal(manifest.name,"PetriKlar");
+  assert.equal(manifest.display,"standalone");
+  assert.ok(manifest.icons.some(icon=>icon.sizes==="192x192"));
+  assert.ok(manifest.icons.some(icon=>icon.sizes==="512x512"&&String(icon.purpose||"").includes("maskable")));
+  ["service-worker.js","offline.html","installieren.html","js/pwa.js"].forEach(file=>assert.ok(fs.existsSync(path.join(root,file)),file));
+});
+
+test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
+  const sw=read("service-worker.js");
+  assert.match(sw,/supabase/i);
+  assert.match(sw,/offline\.html/);
+  assert.match(sw,/if\(isPrivateBackend\(url\)\) return/);
+});
+
+test("Index bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
+  const html=read("index.html");
+  assert.match(html,/manifest\.webmanifest/);
+  assert.ok(html.indexOf("js/pwa.js")<html.indexOf("js/cloud.js"));
+  ["legal/impressum.html","legal/datenschutz.html","legal/support.html","legal/konto-loeschen.html"].forEach(link=>assert.match(html,new RegExp(link.replace(".","\\."))));
+  assert.match(html,/confirmDeleteAccount\(\)/);
+});
+
+test("Anmeldung ist reduziert und Angelplatz-Pins übernehmen die Bedingungsfarbe",()=>{
+  const css=read("styles.css"), places=read("js/places.js"), map=read("js/map.js");
+  assert.match(css,/\.auth-locked #authModal \.cmhead\{display:none\}/);
+  assert.match(places,/class="spotpin lg-amber"/);
+  assert.match(places,/pin\.className="spotpin "\+c\.lvl\.cls/);
+  assert.match(css,/\.spotpin\.lg-green\{color:var\(--green\)\}/);
+  assert.match(css,/\.spotpin\.lg-red\{color:var\(--red\)\}/);
+  assert.match(map,/function spotMapColor\(levelClass\)/);
+  assert.match(map,/mk\.setIcon\(spotMapIcon\(c\.lvl\.cls\)\)/);
+  assert.match(map,/#4ade80/);
+  assert.match(map,/#fbbf24/);
+  assert.match(map,/#f87171/);
+});
+
+test("Cloud-State bleibt bis zum erfolgreichen Laden gesperrt",()=>{
+  const cloud=read("js/cloud.js");
+  assert.match(cloud,/CLOUD_DATA_LOADED=false/);
+  assert.match(cloud,/if\(loaded\) await startAppAfterLogin\(\)/);
+  assert.match(cloud,/rpc\("delete_own_account"\)/);
+  const sql=read("supabase/migrations/20260816_phase1_cloud.sql");
+  assert.match(sql,/enable row level security/i);
+  assert.match(sql,/function public\.delete_own_account/i);
+  assert.match(sql,/delete from auth\.users/i);
+});

@@ -236,7 +236,7 @@ function renderSpots(){
 const PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
 function spotRowHtml(s,prefix,withActions){
   prefix=prefix||"";
-  return '<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')">'+uiIcon('pin')+' '+esc(s.name)+
+  return '<div class="spotrow"><button class="spotopen" onclick="openSpot('+s.id+')"><span class="spot-titleline"><span class="spotpin lg-amber" id="'+prefix+'pin_'+s.id+'">'+uiIcon('pin')+'</span><span>'+esc(s.name)+'</span></span>'+
     '<span class="spotsub">'+spotWaterLabel(s)+'</span><span class="spotcond" id="'+prefix+'cond_'+s.id+'">Bedingungen …</span></button>'+
     '<div class="spotbadges">'+countBadge(fishCountForSpot(s.name),dayCountForSpot(s.name))+
     '<span class="ampelbadge lg-amber" id="'+prefix+'amp_'+s.id+'">'+uiIcon('minus')+' …</span></div>'+
@@ -290,12 +290,13 @@ async function spotCondition(s){
 async function loadSpotConditions(spots,prefix){
   spots=spots||loadSpots(); prefix=prefix||""; if(!spots.length) return;
   await Promise.allSettled(spots.map(async s=>{
-    const el=$(prefix+"cond_"+s.id), amp=$(prefix+"amp_"+s.id);
+    const el=$(prefix+"cond_"+s.id), amp=$(prefix+"amp_"+s.id), pin=$(prefix+"pin_"+s.id);
     try{
       const c=await spotCondition(s);
       if(amp){ amp.className="ampelbadge "+c.lvl.cls; amp.innerHTML=uiIcon(c.lvl.icon)+" "+c.lvl.word; }
+      if(pin) pin.className="spotpin "+c.lvl.cls;
       if(el) el.textContent=c.text;
-    }catch(e){ if(amp){ amp.className="ampelbadge lg-amber"; amp.innerHTML=uiIcon('minus')+' n/v'; } if(el) el.textContent="Bedingungen n/v"; }
+    }catch(e){ if(amp){ amp.className="ampelbadge lg-amber"; amp.innerHTML=uiIcon('minus')+' n/v'; } if(pin) pin.className="spotpin lg-amber"; if(el) el.textContent="Bedingungen n/v"; }
   }));
 }
 /* Ansichten: Start · Angelplätze · Angelplatzdaten · Fangbücher · Köder · Statistik */
@@ -310,6 +311,7 @@ function showHome(){
   renderSpotList();
   mountMapCard("homeMapHost",true);
   ensureMapVisible();
+  addSpotMarkers();
   setTimeout(()=>{ try{ if(MAP){ MAP.invalidateSize(); centerHomeMap(); } }catch(e){} },100);
   setActiveTab("places");
 }
