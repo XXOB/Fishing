@@ -22,6 +22,16 @@ test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
   assert.match(sw,/if\(isPrivateBackend\(url\)\) return/);
 });
 
+test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
+  const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("index.html");
+  assert.match(sw,/petriklar-shell-v73/);
+  assert.match(sw,/self\.skipWaiting\(\)/);
+  assert.match(pwa,/service-worker\.js\?v=73/);
+  assert.match(pwa,/updateViaCache:"none"/);
+  assert.match(html,/styles\.css\?v=72/);
+  assert.match(html,/js\/pwa\.js\?v=62/);
+});
+
 test("Index bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
   const html=read("index.html");
   assert.match(html,/manifest\.webmanifest/);
@@ -39,7 +49,7 @@ test("Anmeldung ist reduziert und Angelplatz-Pins übernehmen die Bedingungsfarb
   assert.match(css,/\.spotpin\.lg-red\{color:var\(--red\)\}/);
   assert.match(map,/function spotMapColor\(levelClass\)/);
   assert.match(map,/mk\.setIcon\(spotMapIcon\(c\.lvl\.cls\)\)/);
-  assert.match(map,/#4ade80/);
+  assert.match(map,/#64d2ff/);
   assert.match(map,/#fbbf24/);
   assert.match(map,/#f87171/);
 });

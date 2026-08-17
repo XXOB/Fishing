@@ -2,6 +2,12 @@ name: Wasserwerte aktualisieren und veröffentlichen
  
 # Laeuft stuendlich (UTC) + manuell ueber den Actions-Tab.
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "wasserwerte.json"
+      - "*_coords.json"
   schedule:
     - cron: "7 * * * *"
   workflow_dispatch:

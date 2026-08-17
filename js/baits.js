@@ -53,7 +53,7 @@ function showBaitList(){
   hideAllViews();
   const v=$("baitView"); if(v) v.style.display="block";
   renderBaitList();
-  setActiveTab("bait");
+  setActiveTab("fb");
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function addCategory(){
@@ -149,7 +149,7 @@ function onKoederBaseChange(){
 }
 /* --- Tab-Leiste (aktiver Reiter) --- */
 function setActiveTab(which){
-  const map={start:"tabStart", places:"tabPlaces", fb:"tabFb", bait:"tabBait", stats:"tabStats"};
-  Object.values(map).forEach(id=>{ const e=$(id); if(e) e.classList.remove("active"); });
-  const el=$(map[which]); if(el) el.classList.add("active");
+  const map={start:"tabStart", places:"tabPlaces", fb:"tabFb", stats:"tabStats"};
+  Object.values(map).forEach(id=>{ const e=$(id); if(e){ e.classList.remove("active"); e.removeAttribute("aria-current"); } });
+  const el=$(map[which]); if(el){ el.classList.add("active"); el.setAttribute("aria-current","page"); }
 }

@@ -112,7 +112,7 @@ async function loadPegel(){
     const last = q[q.length-1];
     $("qVal").innerHTML = fmt(last.value)+' <small>m³/s</small>';
     $("qMeta").innerHTML = trendBadge(q)+' · '+relTime(last.timestamp);
-    sparkline($("qSpark"), q.slice(-96), "#2dd4bf");
+    sparkline($("qSpark"), q.slice(-96), "#64d2ff");
     snap.q = last.value;
   }catch(e){ $("qVal").innerHTML='<span class="err">–</span>'; $("qMeta").textContent="kein Durchfluss an dieser Station"; snap.q=null; }
 }
