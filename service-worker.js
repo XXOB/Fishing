@@ -1,17 +1,17 @@
 "use strict";
 
-const SHELL_CACHE="petriklar-shell-v72";
-const RUNTIME_CACHE="petriklar-runtime-v72";
+const SHELL_CACHE="petriklar-shell-v73";
+const RUNTIME_CACHE="petriklar-runtime-v73";
 const APP_SHELL=[
   "./",
   "./index.html",
-  "./styles.css?v=71",
+  "./styles.css?v=72",
   "./manifest.webmanifest",
   "./offline.html",
   "./fish_rules.js?v=41",
   "./report_utils.js?v=59",
   "./js/core.js?v=59",
-  "./js/pwa.js?v=61",
+  "./js/pwa.js?v=62",
   "./js/cloud.js?v=61",
   "./js/onboarding.js?v=60",
   "./js/data-services.js?v=61",
@@ -37,7 +37,11 @@ const APP_SHELL=[
 ];
 
 self.addEventListener("install",event=>{
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache=>Promise.allSettled(APP_SHELL.map(url=>cache.add(url)))));
+  event.waitUntil(
+    caches.open(SHELL_CACHE)
+      .then(cache=>Promise.allSettled(APP_SHELL.map(url=>cache.add(url))))
+      .then(()=>self.skipWaiting())
+  );
 });
 self.addEventListener("activate",event=>{
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("petriklar-")&&![SHELL_CACHE,RUNTIME_CACHE].includes(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));

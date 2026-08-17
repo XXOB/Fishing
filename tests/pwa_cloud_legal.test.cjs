@@ -22,6 +22,16 @@ test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
   assert.match(sw,/if\(isPrivateBackend\(url\)\) return/);
 });
 
+test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
+  const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("index.html");
+  assert.match(sw,/petriklar-shell-v73/);
+  assert.match(sw,/self\.skipWaiting\(\)/);
+  assert.match(pwa,/service-worker\.js\?v=73/);
+  assert.match(pwa,/updateViaCache:"none"/);
+  assert.match(html,/styles\.css\?v=72/);
+  assert.match(html,/js\/pwa\.js\?v=62/);
+});
+
 test("Index bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
   const html=read("index.html");
   assert.match(html,/manifest\.webmanifest/);
