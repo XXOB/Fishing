@@ -93,38 +93,55 @@ function drawChart(labels, values, def){
 }
 
 /* ===================== Beißwetter ===================== */
-/* Grobe Heuristik je Fischart aus Angler-Wissen & Fachbeiträgen (Luftdruck, Wassertemperatur,
-   Licht, Trübung). Keine exakte Wissenschaft – als Faustregel gedacht. */
+/* Evidenzgewichtete Heuristik aus Fang-, Fütterungs-, Aktivitäts- und Stoffwechselstudien.
+   Direkte Fang-/Fütterungsbefunde wiegen stärker als Aktivität oder Wachstum. Die Regeln
+   bleiben eine Faustregel und werden mit den persönlichen Fangdaten ergänzt. */
 const BITE = [
-  {name:"Zander",  temp:[12,22], tol:[8,26],  light:"low",  turbid:"like"},
-  {name:"Hecht",   temp:[8,18],  tol:[3,22],  light:"low",  turbid:"neutral", wind:true},
-  {name:"Barsch",  temp:[10,21], tol:[5,25],  light:"day",  turbid:"neutral"},
-  {name:"Rapfen",  temp:[16,27], tol:[12,30], light:"day",  turbid:"clear", sun:true},
-  {name:"Wels",    temp:[20,28], tol:[16,31], light:"low",  turbid:"like", risewater:true},
-  {name:"Aal",     temp:[16,26], tol:[12,31], light:"night",turbid:"like", risewater:true, dark:true},
-  {name:"Karpfen", temp:[15,25], tol:[10,29], light:"twi",  turbid:"neutral"},
-  {name:"Brasse",  temp:[14,25], tol:[8,29],  light:"twi",  turbid:"slightlike"}
+  {name:"Zander",  temp:[12,23], tol:[10,27], light:"twi",      turbid:"moderate", oxygenSensitive:true},
+  {name:"Hecht",   temp:[6,18],  tol:[3,23],  light:"dusk",     turbid:"neutral",  wind:true, moonEdges:true},
+  {name:"Barsch",  temp:[10,23], tol:[5,27],  light:"day",      turbid:"clear"},
+  {name:"Rapfen",  temp:[16,27], tol:[12,30], light:"day",      turbid:"clear",    sun:true, weakTurbidity:true},
+  {name:"Wels",    temp:[20,28], tol:[15,31], light:"night",    turbid:"slightlike", risewater:true},
+  {name:"Aal",     temp:[16,26], tol:[11,29], light:"night",    turbid:"like",     risewater:true, dark:true},
+  {name:"Karpfen", temp:[18,28], tol:[10,32], light:"carp",     turbid:"neutral"},
+  {name:"Brasse",  temp:[14,25], tol:[8,29],  light:"flexible", turbid:"slightlike", weakTurbidity:true}
 ];
-function qNum(label){
+function qItem(label){
   const cur=wqCurrent(); const items=cur?cur.items:[];
-  const it=items.find(x=>x.label===label);
+  return items.find(x=>x.label===label)||items.find(x=>String(x.label||"").startsWith(label+" ("))||null;
+}
+function qNum(label){
+  const it=qItem(label);
   if(!it) return null; const n=deNum(it.value); return (typeof n==="number")? n : null;
+}
+function solarLight(now,w){
+  const rise=w.sonnenaufgang?new Date(w.sonnenaufgang):null;
+  const set=w.sonnenuntergang?new Date(w.sonnenuntergang):null;
+  if(rise && set && !isNaN(rise) && !isNaN(set)){
+    const t=now.getTime(), twilight=75*60000;
+    if(t<rise.getTime()-twilight || t>set.getTime()+twilight) return "night";
+    if(Math.abs(t-rise.getTime())<=twilight || Math.abs(t-set.getTime())<=twilight) return "twilight";
+    return (w.bewoelkung_pct!=null&&w.bewoelkung_pct>=70)?"overcast":"day";
+  }
+  const hour=now.getHours();
+  if(hour<=5 || hour>=22) return "night";
+  if(hour<=8 || hour>=19) return "twilight";
+  return (w.bewoelkung_pct!=null&&w.bewoelkung_pct>=70)?"overcast":"day";
 }
 function biteContext(){
   const w=snap.weather||{}, now=new Date(), hour=now.getHours();
   const cloud=w.bewoelkung_pct;
-  let lowLight;
-  if(hour<=5 || hour>=22) lowLight="night";
-  else if(hour<=8 || hour>=19) lowLight="twilight";
-  else if(cloud!=null && cloud>=70) lowLight="overcast";
-  else lowLight="day";
-  let pegelUp=null;
+  const lowLight=solarLight(now,w);
+  let pegelUp=null, pegelUpPct=null;
   if(state.pegelTrend && state.pegelTrend.length>13){
-    const s=state.pegelTrend; pegelUp=s[s.length-1].value - s[s.length-13].value;
+    const s=state.pegelTrend, old=+s[s.length-13].value;
+    pegelUp=+s[s.length-1].value-old;
+    if(old) pegelUpPct=pegelUp/Math.abs(old)*100;
   }
-  return { wt:qNum("Wassertemperatur"), turb:qNum("Trübung"), hour, cloud, lowLight,
+  return { wt:qNum("Wassertemperatur"), turb:qNum("Trübung"), oxygen:qNum("Sauerstoff"),
+    oxygenSat:qNum("O₂-Sättigung"), hour, cloud, lowLight,
     ptrend:w.luftdruck_tendenz_3h_hpa, wind:w.wind_kmh, gust:w.boen_kmh, wcode:w.wettercode,
-    pegelUp, moon:moonPhase(now) };
+    pegelUp, pegelUpPct, moon:moonPhase(now) };
 }
 function evalBite(sp, ctx){
   let score=0; const pros=[], cons=[];
@@ -148,29 +165,63 @@ function evalBite(sp, ctx){
     else { score-=2; cons.push("es tagsüber kaum Bisse gibt"); }
   } else if(sp.light==="twi"){
     if(ll==="twilight"){ score+=1; pros.push("Dämmerung herrscht – die beste Zeit"); }
+    else if(ll==="overcast"){ score+=0.5; pros.push("der bedeckte Himmel das Licht dämpft"); }
+    else if(ll==="night"){ score-=0.5; cons.push("die aktivere Dämmerungsphase vorbei ist"); }
+  } else if(sp.light==="dusk"){
+    if(ll==="twilight"){ score+=1.5; pros.push("Dämmerung herrscht – direkt gemessene Hechtfänge sind dann häufiger"); }
+    else if(ll==="overcast"){ score+=0.5; pros.push("der bedeckte Himmel das Licht dämpft"); }
+    else if(ll==="night"){ score-=0.5; cons.push("Hechte nachts meist weniger aktiv sind"); }
+  } else if(sp.light==="carp"){
+    if(ll==="twilight"||ll==="night"){ score+=1; pros.push("Karpfen morgens, abends und nachts häufig fressen"); }
+    else if(ll==="overcast"){ score+=0.5; pros.push("das gedämpfte Licht eine längere Fressphase begünstigt"); }
+  } else if(sp.light==="flexible"){
+    if(ll==="twilight"){ score+=0.25; pros.push("Brassen auch in der Dämmerung aktiv sein können"); }
   }
   if(ctx.turb!=null){
-    if(sp.turbid==="like"){ if(ctx.turb>=5){ score+=1; pros.push("das Wasser leicht angetrübt ist"); } else if(ctx.turb<2){ score-=1; cons.push("das Wasser sehr klar ist"); } }
-    else if(sp.turbid==="clear"){ if(ctx.turb<5){ score+=1; pros.push("das Wasser schön klar ist"); } else if(ctx.turb>=15){ score-=1; cons.push("das Wasser zu trüb ist"); } }
-    else if(sp.turbid==="slightlike"){ if(ctx.turb>=3 && ctx.turb<20){ score+=1; pros.push("das Wasser leicht angetrübt ist"); } }
+    const tw=sp.weakTurbidity?0.5:1;
+    if(sp.turbid==="like"){
+      if(ctx.turb>=5&&ctx.turb<30){ score+=0.5*tw; pros.push("das Wasser leicht angetrübt ist"); }
+      else if(ctx.turb<2){ score-=0.5*tw; cons.push("das Wasser sehr klar ist"); }
+    } else if(sp.turbid==="moderate"){
+      if(ctx.turb>=2&&ctx.turb<20){ score+=0.75; pros.push("eine mäßige Trübung die Zanderfütterung begünstigen kann"); }
+      else if(ctx.turb<1){ score-=0.5; cons.push("das Wasser für Zander sehr klar ist"); }
+      else if(ctx.turb>=40){ score-=0.5; cons.push("sehr starke Trübung die Beutesuche erschweren kann"); }
+    } else if(sp.turbid==="clear"){
+      if(ctx.turb<5){ score+=0.5*tw; pros.push("das Wasser relativ klar ist"); }
+      else if(ctx.turb>=15){ score-=0.75*tw; cons.push("starke Trübung die Sichtjagd erschwert"); }
+    } else if(sp.turbid==="slightlike"){
+      if(ctx.turb>=3&&ctx.turb<20){ score+=0.25*tw; pros.push("das Wasser leicht angetrübt ist"); }
+    }
   }
-  if(sp.risewater && ctx.pegelUp!=null && ctx.pegelUp>4){ score+=1; pros.push("der Pegel steigt (mehr Strömung und Trübung)"); }
+  const meaningfulRise=ctx.pegelUp!=null&&ctx.pegelUp>4&&
+    (ctx.pegelUp>=10||ctx.pegelUpPct==null||ctx.pegelUpPct>=1);
+  if(sp.risewater&&meaningfulRise){
+    const riseWeight=sp.name==="Wels"?0.75:0.5;
+    score+=riseWeight; pros.push("der Pegel deutlich steigt und damit Aktivität auslösen kann");
+  }
+  const oxygenCritical=(ctx.oxygenSat!=null&&ctx.oxygenSat<40)||(ctx.oxygen!=null&&ctx.oxygen<3);
+  const oxygenLow=(ctx.oxygenSat!=null&&ctx.oxygenSat<65)||(ctx.oxygen!=null&&ctx.oxygen<5);
+  if(oxygenCritical){ score-=2.5; cons.push("sehr wenig Sauerstoff Aktivität und Futteraufnahme stark bremst"); }
+  else if(sp.oxygenSensitive&&oxygenLow){ score-=1; cons.push("niedriger Sauerstoff die Futteraufnahme von Zandern vermindern kann"); }
   if(ctx.ptrend!=null){
-    if(ctx.ptrend<=-1.5){ score+=1; pros.push("der Luftdruck fällt (kurbelt das Fressen an)"); }
-    else if(ctx.ptrend<=0.8){ score+=1; pros.push("der Luftdruck stabil ist"); }
-    else if(ctx.ptrend>=2.5){ score-=1; cons.push("der Luftdruck stark steigt"); }
+    // Luftdruck bleibt als schwacher Alt-Faktor erhalten; direkte Fütterungsbelege sind uneinheitlich.
+    if(ctx.ptrend<=-1.5){ score+=0.25; pros.push("der Luftdruck leicht fällt"); }
+    else if(ctx.ptrend<=0.8){ score+=0.25; pros.push("der Luftdruck stabil ist"); }
+    else if(ctx.ptrend>=2.5){ score-=0.25; cons.push("der Luftdruck stark steigt"); }
   }
-  if(sp.sun && ctx.cloud!=null && ctx.cloud<40 && ctx.wt!=null && ctx.wt>=16){ score+=1; pros.push("es warm und sonnig ist"); }
+  if(sp.sun&&ctx.cloud!=null&&ctx.cloud<40&&ctx.wt!=null&&ctx.wt>=16){ score+=0.5; pros.push("es warm und hell ist"); }
   if(sp.wind && ctx.wind!=null && ctx.wind>=12 && (ctx.gust==null||ctx.gust<45)){ score+=1; pros.push("leichter Wind das Wasser kräuselt"); }
-  if([82,95,96,99].includes(ctx.wcode) && sp.name!=="Wels"){ score-=1; cons.push("ein Gewitter/Starkregen aufzieht"); }
-  if(sp.dark && ctx.moon && ctx.moon.illum<=25){ score+=1; pros.push("die Nacht dunkel ist (wenig Mond)"); }
+  if(sp.moonEdges&&ctx.moon&&(ctx.moon.illum<=15||ctx.moon.illum>=85)){ score+=0.5; pros.push("Neu- oder Vollmond in Fangstudien mit mehr Hechtfängen verbunden war"); }
+  if([82,95,96,99].includes(ctx.wcode)&&sp.name!=="Wels"){ score-=0.25; cons.push("Gewitter oder Starkregen die Bedingungen unruhig macht"); }
+  if(sp.dark&&ctx.moon&&ctx.moon.illum<=25){ score+=0.25; pros.push("die Nacht dunkel ist (wenig Mond)"); }
 
   let color, frag;
-  if(score>=2){ color="green"; frag=pros[0]||"die Bedingungen gut passen"; }
-  else if(score<=-1){ color="red"; frag=cons[0]||"die Bedingungen ungünstig sind"; }
+  if(score>=2){ color="green"; frag=pros.slice(0,2).join(" und ")||"die Bedingungen gut passen"; }
+  else if(score<=-1){ color="red"; frag=cons.slice(0,2).join(" und ")||"die Bedingungen ungünstig sind"; }
+  else if(cons.length&&pros.length){ color="amber"; frag=cons[0]+", aber "+pros[0]; }
   else { color="amber"; frag=cons[0]||pros[0]||"die Bedingungen durchwachsen sind"; }
   const lead = color==="green"?"Gut, weil ":color==="red"?"Schwierig, weil ":"Mittel – weil ";
-  return { color, reason: lead+frag+"." };
+  return { color, reason: lead+frag+".", score };
 }
 function renderBite(){
   const box=$("biteBox"); if(!box) return;
@@ -189,7 +240,7 @@ function renderBite(){
   }).join("");
   const warn = ctx.wt==null ? '<div class="fbnote" style="margin:0 4px 10px">Wassertemperatur noch nicht geladen – Einstufung vorläufig.</div>' : '';
   box.innerHTML = warn + rows +
-    '<div class="fbnote" style="margin-top:8px">Grobe Faustregeln aus Angler-Wissen &amp; Fachbeiträgen – keine Garantie. Tippe einen Fisch für die Begründung an.</div>';
+    '<div class="fbnote" style="margin-top:8px">Evidenzgewichtete Faustregeln aus Fang-, Fütterungs- und Aktivitätsstudien – keine Fanggarantie. Persönliche Fänge ergänzen die Köderempfehlung.</div>';
 }
 function toggleBite(){
   const box=$("biteBox"), b=$("biteBtn"); if(!box) return;

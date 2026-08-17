@@ -1,7 +1,7 @@
 "use strict";
 
-const SHELL_CACHE="petriklar-shell-v63";
-const RUNTIME_CACHE="petriklar-runtime-v63";
+const SHELL_CACHE="petriklar-shell-v64";
+const RUNTIME_CACHE="petriklar-runtime-v64";
 const APP_SHELL=[
   "./",
   "./index.html",
@@ -14,10 +14,10 @@ const APP_SHELL=[
   "./js/pwa.js?v=60",
   "./js/cloud.js?v=60",
   "./js/onboarding.js?v=59",
-  "./js/data-services.js?v=59",
+  "./js/data-services.js?v=60",
   "./js/logbook.js?v=59",
   "./js/map.js?v=61",
-  "./js/charts-bite.js?v=59",
+  "./js/charts-bite.js?v=60",
   "./js/places.js?v=62",
   "./js/baits.js?v=59",
   "./js/stats.js?v=59",

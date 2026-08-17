@@ -152,6 +152,7 @@ async function loadWeather(){
       luftfeuchte_pct: c.relative_humidity_2m, niederschlag_mm_h: c.precipitation,
       wettercode: c.weather_code, wetterlage: (WMO[c.weather_code]||["",""])[0],
       bewoelkung_pct: c.cloud_cover, luftdruck_hpa: c.pressure_msl,
+      sonnenaufgang: d.daily.sunrise[0], sonnenuntergang: d.daily.sunset[0],
       luftdruck_tendenz_3h_hpa: (pt==null? null : Math.round(pt*10)/10),
       wind_kmh: c.wind_speed_10m, windrichtung: windDir(c.wind_direction_10m),
       windrichtung_grad: c.wind_direction_10m, boen_kmh: c.wind_gusts_10m
