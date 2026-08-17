@@ -64,7 +64,27 @@ function mergeLegacyState(remote,legacy){
 }
 function clearLegacyState(){ try{ LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 function setCloudStatus(text,state){
-  const el=$("cloudStatus"); if(!el) return; el.textContent=text||""; el.className="cloud-status "+(state||"");
+  const el=$("cloudStatus"), b=$("accountBtn");
+  const warning=state==="error";
+  let publicText="";
+  if(warning){
+    if(typeof navigator!=="undefined"&&!navigator.onLine) publicText="Keine Cloudverbindung";
+    else if(/speichern|speicherung/i.test(text||"")) publicText="Cloud-Speicherung fehlgeschlagen";
+    else publicText="Cloudverbindung nicht verfügbar";
+  }
+  if(el){
+    el.textContent=publicText;
+    el.className="cloud-status"+(warning?" error":"");
+    el.title=text||publicText;
+  }
+  if(b){
+    b.classList.toggle("account-warning",warning);
+    b.classList.toggle("account-syncing",state==="syncing");
+    const accountLabel=CLOUD_USER?"Konto öffnen":"Anmelden";
+    const label=warning?publicText+" – "+accountLabel:accountLabel;
+    b.setAttribute("aria-label",label);
+    b.title=label;
+  }
 }
 function authMessage(text,isError){
   const el=$("authMessage"); if(!el) return;
@@ -72,7 +92,11 @@ function authMessage(text,isError){
 }
 function renderAccountUI(){
   const b=$("accountBtn");
-  if(b) b.innerHTML=CLOUD_USER?uiIcon("cloud-sync")+" "+hesc(CLOUD_USER.email||"Konto"):uiIcon("user")+" Anmelden";
+  if(b){
+    b.innerHTML=uiIcon("user");
+    const label=CLOUD_USER?"Konto öffnen":"Anmelden";
+    b.setAttribute("aria-label",label); b.title=label;
+  }
   const out=$("authLoggedOut"), inn=$("authLoggedIn"), rec=$("authRecovery"), mail=$("authUserEmail");
   if(out) out.style.display=(!CLOUD_USER&&!AUTH_RECOVERY)?"block":"none";
   if(inn) inn.style.display=(CLOUD_USER&&!AUTH_RECOVERY)?"block":"none";

@@ -495,12 +495,16 @@ button{touch-action:manipulation}
 .auth-locked #authModal .auth-box{width:min(92vw,480px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 24px 80px rgba(0,0,0,.65)}
 .auth-locked #authModal .cmhead{display:none}
 .auth-locked #authModal .cmx{display:none}
-.account-area{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
-.account-btn{min-height:40px;max-width:260px;display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(255,255,255,.13);border-radius:11px;background:rgba(118,118,128,.14);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.account-btn:hover{border-color:rgba(10,132,255,.55);background:rgba(10,132,255,.15)}
-.account-btn .uiicon{flex:0 0 auto}
-.cloud-status{font-size:11px;color:var(--muted2);white-space:nowrap}
-.cloud-status.ok{color:#30d158}.cloud-status.syncing{color:#64d2ff}.cloud-status.error{color:#ff6961}
+.account-area{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.account-btn{width:46px;height:46px;min-width:46px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:14px;background:linear-gradient(145deg,#0a84ff,#3157e8);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(10,132,255,.32);transition:transform .15s ease,filter .15s ease,background .2s ease,box-shadow .2s ease}
+.account-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.account-btn:active{transform:scale(.97)}
+.account-btn:focus-visible{outline:3px solid rgba(100,210,255,.42);outline-offset:3px}
+.account-btn .uiicon{width:27px;height:27px;stroke-width:1.8}
+.account-btn.account-syncing{box-shadow:0 0 0 3px rgba(100,210,255,.18),0 8px 24px rgba(10,132,255,.42)}
+.account-btn.account-warning,.is-offline .account-btn{background:linear-gradient(145deg,#ffd54a,#f59e0b);color:#171006;box-shadow:0 0 0 3px rgba(251,191,36,.2),0 0 24px rgba(251,191,36,.55)}
+.cloud-status{display:none;max-width:260px;font-size:11px;color:#ffd08a;white-space:nowrap}
+.cloud-status.error{display:inline;overflow:hidden;text-overflow:ellipsis}
 .auth-box{max-width:480px}
 .auth-brand{text-align:center;padding:4px 0 18px}
 .auth-brand-logo{width:64px;height:64px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;border-radius:19px;background:linear-gradient(145deg,#0a84ff,#3156e8);color:#fff;box-shadow:0 12px 32px rgba(10,132,255,.32)}
@@ -563,9 +567,8 @@ button{touch-action:manipulation}
 .blankgroupbody{padding:0 8px 2px}.blankgroupbody .fbitem{margin-bottom:7px}
 @media(max-width:620px){
   header{align-items:flex-start}
-  .account-area{width:100%;justify-content:space-between}
-  .account-btn{max-width:70%}
-  .cloud-status{overflow:hidden;text-overflow:ellipsis}
+  .account-area{width:auto;margin-left:auto;justify-content:flex-end}
+  .cloud-status.error{max-width:min(48vw,220px)}
   .report-grid{grid-template-columns:1fr}.report-wide{grid-column:auto}
   .report-spot-choices{grid-template-columns:1fr}
   .report-box{max-height:calc(100dvh - max(env(safe-area-inset-top),12px));scrollbar-gutter:auto}

@@ -22,6 +22,10 @@ function setNetworkStatus(){
     auth.style.display=offline?"block":"none";
     auth.textContent=offline?"Du bist offline. PetriKlar öffnet dein Cloud-Fangbuch automatisch, sobald die Verbindung wiederhergestellt ist.":"";
   }
+  if(typeof setCloudStatus==="function"&&typeof CLOUD_USER!=="undefined"&&CLOUD_USER){
+    if(offline) setCloudStatus("Keine Internetverbindung – Cloud-Daten sind derzeit nicht verfügbar.","error");
+    else if(typeof CLOUD_DATA_LOADED!=="undefined"&&CLOUD_DATA_LOADED) setCloudStatus("In der Cloud gespeichert","ok");
+  }
   if(!offline && typeof resumeCloudAfterReconnect==="function") resumeCloudAfterReconnect();
 }
 function renderInstallHelp(){

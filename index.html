@@ -15,7 +15,7 @@
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=61">
+<link rel="stylesheet" href="styles.css?v=62">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -79,8 +79,8 @@
     </div>
   </div>
   <div class="account-area">
-    <span id="cloudStatus" class="cloud-status">Anmeldung erforderlich</span>
-    <button type="button" id="accountBtn" class="account-btn" onclick="openAuthModal()"><svg class="uiicon"><use href="#i-user"/></svg> Anmelden</button>
+    <span id="cloudStatus" class="cloud-status" role="status" aria-live="polite"></span>
+    <button type="button" id="accountBtn" class="account-btn" onclick="openAuthModal()" aria-label="Konto öffnen" title="Konto öffnen"><svg class="uiicon"><use href="#i-user"/></svg></button>
   </div>
 </header>
 
@@ -556,8 +556,8 @@
 <script src="report_utils.js?v=59"></script>
 <!-- PetriKlar-Module: Reihenfolge siehe docs/ARCHITEKTUR.md -->
 <script src="js/core.js?v=59"></script>
-<script src="js/pwa.js?v=60"></script>
-<script src="js/cloud.js?v=60"></script>
+<script src="js/pwa.js?v=61"></script>
+<script src="js/cloud.js?v=61"></script>
 <script src="js/onboarding.js?v=59"></script>
 <script src="js/data-services.js?v=60"></script>
 <script src="js/logbook.js?v=59"></script>
