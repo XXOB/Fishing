@@ -1,7 +1,7 @@
 :root{
   --bg:#070a0f; --bg2:#10151d; --card:#161b23; --card2:#1d2632;
   --line:#252d3a; --text:#eef2f8; --muted:#93a3bd; --muted2:#66768f;
-  --water:#38bdf8; --teal:#2dd4bf; --amber:#fbbf24; --red:#f87171; --green:#4ade80;
+  --water:#38bdf8; --teal:#2dd4bf; --amber:#fbbf24; --red:#f87171; --green:#30d158;
   --primary:#2f4bd6; --primary2:#3b82f6;
   --shadow:0 6px 22px rgba(0,0,0,.45);
 }
@@ -121,7 +121,7 @@ h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
 .cond .dot .uiicon{width:27px;height:27px}
 .cond .lvl{font-size:17px;font-weight:700;margin-bottom:3px}
 .cond .why{font-size:13px;color:var(--muted)}
-.lg-green{background:rgba(74,222,128,.16);color:var(--green);border:1px solid rgba(74,222,128,.35)}
+.lg-green{background:rgba(48,209,88,.16);color:var(--green);border:1px solid rgba(48,209,88,.35)}
 .lg-amber{background:rgba(251,191,36,.16);color:var(--amber);border:1px solid rgba(251,191,36,.35)}
 .lg-red{background:rgba(248,113,113,.16);color:var(--red);border:1px solid rgba(248,113,113,.35)}
 
@@ -143,7 +143,7 @@ h1{font-size:22px;margin:0;letter-spacing:.2px;font-weight:800}
 .pgbadge{font-size:12px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:2px}
 .pg-red{background:rgba(248,113,113,.16);color:var(--red)}
 .pg-amber{background:rgba(251,191,36,.16);color:var(--amber)}
-.pg-green{background:rgba(74,222,128,.16);color:var(--green)}
+.pg-green{background:rgba(48,209,88,.16);color:var(--green)}
 .pg-blue{background:rgba(56,189,248,.16);color:var(--water)}
 .spark{position:absolute;left:0;right:0;bottom:0;height:34px;opacity:.5}
 

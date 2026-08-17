@@ -180,7 +180,7 @@ function spotLatLon(sp){
   const st=STATIONS.find(x=>x.uuid===sp.uuid); return st?[st.lat,st.lon]:[CUR.lat,CUR.lon];
 }
 function spotMapColor(levelClass){
-  if(levelClass==="lg-green") return "#4ade80";
+  if(levelClass==="lg-green") return "#30d158";
   if(levelClass==="lg-red") return "#f87171";
   return "#fbbf24";
 }
