@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PetriKlar</title>
 <meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
-<meta name="theme-color" content="#05070b">
+<meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +15,7 @@
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=64">
+<link rel="stylesheet" href="styles.css?v=71">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -69,6 +69,7 @@
   <symbol id="i-cloud-sync" viewBox="0 0 24 24"><path d="M6.5 18h11a4.5 4.5 0 0 0 .5-9A6.5 6.5 0 0 0 5.8 10.5 3.8 3.8 0 0 0 6.5 18Z"/><path d="m9 13 2-2 2 2M11 11v5M17 15l-2 2-2-2M15 17v-5"/></symbol>
   <symbol id="i-install" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M12 6v8M8.5 10.5 12 14l3.5-3.5M10 18h4"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></symbol>
 </svg>
 <header>
   <div class="brand">
@@ -173,24 +174,35 @@
 <div id="activeTripBanner" class="active-trip-banner" style="display:none"></div>
 
 <div id="startView">
-  <div class="pagelabel">Start</div>
-  <h2 class="pagetitle">Deine Lieblingsplätze</h2>
-  <p class="pagedesc">Deine drei am häufigsten besuchten Angelplätze.</p>
+  <div class="pagelabel">Übersicht</div>
+  <h2 class="pagetitle">Bereit fürs Wasser?</h2>
+  <p class="pagedesc">Öffne einen deiner häufigsten Angelplätze oder starte direkt einen Trip.</p>
   <div id="favoriteList" class="favorite-list"></div>
   <button type="button" class="btn-primary start-trip-btn" onclick="openTripStart()"><svg class="uiicon"><use href="#i-calendar"/></svg> Trip starten</button>
 </div>
 
 <div id="fbIndexView" style="display:none">
-  <div class="sect">Fangbücher</div>
-  <div class="fbio">
-    <button type="button" class="fbtool" onclick="exportCSV('all')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
-    <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
-    <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('all')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
-  </div>
+  <div class="pagelabel">Fangbuch</div>
+  <h2 class="pagetitle">Deine Fänge</h2>
+  <p class="pagedesc">Alle Einträge, übersichtlich nach Angelplatz sortiert.</p>
+  <details class="utility-disclosure">
+    <summary><span><svg class="uiicon"><use href="#i-list"/></svg> Export &amp; Daten</span><svg class="uiicon utility-chevron"><use href="#i-chevron-down"/></svg></summary>
+    <div class="fbio">
+      <button type="button" class="fbtool" onclick="exportCSV('all')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
+      <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
+      <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('all')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
+    </div>
+  </details>
   <div id="fbIndexList" class="spotlist"></div>
+  <button type="button" class="library-link" onclick="showBaitList()">
+    <span class="library-icon"><svg class="uiicon"><use href="#i-hook"/></svg></span>
+    <span class="library-copy"><strong>Köderbibliothek</strong><small>Köder, Varianten und Fangzahlen verwalten</small></span>
+    <svg class="uiicon library-chevron"><use href="#i-chevron-right"/></svg>
+  </button>
 </div>
 
 <div id="catchListView" style="display:none">
+  <button type="button" class="back-link" onclick="showFangbuchList()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Fangbuch</button>
   <div class="catch-list-heading">
     <div class="sect" id="catchListTitle">Fangbuch</div>
     <label class="catch-sort"><span>Anzeige</span><select id="catchSortMode" onchange="setCatchSortMode(this.value)">
@@ -199,17 +211,23 @@
       <option value="fish-only">Nur Fänge</option>
     </select></label>
   </div>
-  <div class="fbio">
-    <button type="button" class="fbtool" onclick="exportCSV('view')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
-    <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
-    <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('view')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
-  </div>
   <button type="button" class="navbtn" onclick="addCatchFromList()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eintragen</button>
+  <details class="utility-disclosure compact">
+    <summary><span><svg class="uiicon"><use href="#i-list"/></svg> Export &amp; Daten</span><svg class="uiicon utility-chevron"><use href="#i-chevron-down"/></svg></summary>
+    <div class="fbio">
+      <button type="button" class="fbtool" onclick="exportCSV('view')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
+      <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
+      <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('view')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
+    </div>
+  </details>
   <div id="catchList"></div>
 </div>
 
 <div id="baitView" style="display:none">
-  <div class="sect">Köder</div>
+  <button type="button" class="back-link" onclick="showFangbuchList()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Fangbuch</button>
+  <div class="pagelabel">Köder</div>
+  <h2 class="pagetitle">Deine Köder</h2>
+  <p class="pagedesc">Organisiere Köder und Varianten. Fangzahlen zeigen, was für dich funktioniert.</p>
   <div class="baitadd">
     <input id="baitCatInput" list="baitBaseList" placeholder="Neuer Köder, z. B. Gummifisch" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory();}">
     <select id="baitCatGroup">
@@ -218,7 +236,7 @@
     </select>
     <button onclick="addCategory()">+ Köder</button>
   </div>
-  <div class="fbnote" style="margin:0 0 10px 2px">Köder sind in Kunst- und Naturköder gruppiert. Öffne eine Gruppe und tippe einen Köder an, um Varianten (Größe, Farbe) anzulegen. Das Fisch-Symbol zeigt die Fänge je Köder.</div>
+  <div class="fbnote bait-help">Öffne eine Gruppe und wähle einen Köder, um Größe oder Farbe zu ergänzen.</div>
   <div id="baitList" class="spotlist"></div>
   <datalist id="baitBaseList">
     <option>Tauwurm</option><option>Rotwurm</option><option>Made</option><option>Mais</option>
@@ -229,14 +247,15 @@
 </div>
 
 <div id="homeView" style="display:none">
-  <div class="pagelabel">Meine Angelplätze</div>
-  <h2 class="pagetitle">Angelplätze verwalten</h2>
-  <p class="pagedesc">Erstelle deine Spots und lege fest, welche Messstellen verwendet werden.</p>
+  <div class="pagelabel">Angelplätze</div>
+  <h2 class="pagetitle">Deine Plätze</h2>
+  <p class="pagedesc">Wähle einen Platz für Live-Bedingungen oder lege einen neuen direkt auf der Karte an.</p>
   <div id="spotList" class="spotlist"></div>
   <div id="homeMapHost" class="maphost home-map-host"></div>
 </div>
 
 <div id="spotView" style="display:none">
+<button type="button" class="back-link" onclick="showHome()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Angelplätze</button>
 <div class="datatop">
   <div class="updated" id="updated">lädt …</div>
   <button class="refresh" onclick="loadAll()"><svg class="uiicon"><use href="#i-refresh"/></svg> Aktualisieren</button>
@@ -404,9 +423,10 @@
 <div class="sect">Karte · Angelplätze &amp; Stationen</div>
 <div class="mapcard">
   <div class="mapmeta">
-    <div>
-      <div class="pos"><svg class="uiicon"><use href="#i-pin"/></svg> Angelplätze · Messstationen als Kuchen-Symbol: <span style="color:#9aa3ab">grau = Pegel</span>, <span style="color:#e0483b">rot = Temperatur</span>, <span style="color:#3b82f6">blau = Sauerstoff</span>, <span style="color:#8a5a2b">braun = Trübung/Schwebstoff</span> · grün: Fänge · gelb: Fangort.</div>
-    </div>
+    <details class="map-legend">
+      <summary><svg class="uiicon"><use href="#i-list"/></svg> Legende</summary>
+      <div class="pos">Kuchen-Symbole zeigen Messstationen: grau Pegel, rot Temperatur, blau Sauerstoff, braun Trübung. Blaue Punkte sind Fänge, gelb markiert den gewählten Fangort.</div>
+    </details>
     <div class="btns">
       <button onclick="toggleStationsLayer()" id="layStations"><svg class="uiicon"><use href="#i-gauge"/></svg> Stationen</button>
       <button onclick="toggleStationMode()" id="layMode" style="display:none">alle</button>
@@ -422,18 +442,20 @@
 </div><!-- /mapCard -->
 
 <div id="statsView" style="display:none">
-  <div class="sect">Statistik</div>
+  <div class="pagelabel">Statistik</div>
+  <h2 class="pagetitle">Deine Entwicklung</h2>
+  <p class="pagedesc">Erkenne erfolgreiche Plätze, Köder und persönliche Bestleistungen.</p>
   <div id="statsBody"></div>
   <button type="button" class="secttoggle" onclick="toggleFishPie()"><svg class="uiicon"><use href="#i-pie"/></svg> Fische nach Anteil</button>
   <div id="fishPieBox" style="display:none"></div>
 </div>
 
-<nav class="tabbar" id="tabbar">
-  <button class="tabbtn" id="tabStart" onclick="showStart()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5M9 20v-6h6v6"/></svg></span><span class="tx">Start</span></button>
-  <button class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="tx">Angelplätze</span></button>
-  <button class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5V20.5M12 8h4M12 12h4"/></svg></span><span class="tx">Fangbücher</span></button>
-  <button class="tabbtn" id="tabBait" onclick="showBaitList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v9a4 4 0 1 1-8 0"/><path d="M13 4.5 15 3l2 1.5"/><circle cx="7" cy="12.4" r="1"/></svg></span><span class="tx">Köder</span></button>
-  <button class="tabbtn" id="tabStats" onclick="showStats()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-4"/></svg></span><span class="tx">Statistik</span></button>
+<nav class="tabbar" id="tabbar" aria-label="Hauptnavigation">
+  <button type="button" class="tabbtn" id="tabStart" onclick="showStart()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5M9 20v-6h6v6"/></svg></span><span class="tx">Übersicht</span></button>
+  <button type="button" class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="tx">Angelplätze</span></button>
+  <button type="button" class="tabbtn tab-action" id="quickCatchBtn" onclick="quickAddCatch()" aria-label="Fang eintragen"><span class="action-orb"><svg class="uiicon"><use href="#i-fish"/></svg><span class="action-plus">+</span></span><span class="tx">Fang</span></button>
+  <button type="button" class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5V20.5M12 8h4M12 12h4"/></svg></span><span class="tx">Fangbuch</span></button>
+  <button type="button" class="tabbtn" id="tabStats" onclick="showStats()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-4"/></svg></span><span class="tx">Statistik</span></button>
 </nav>
 
 <footer>
@@ -558,13 +580,13 @@
 <script src="js/core.js?v=59"></script>
 <script src="js/pwa.js?v=61"></script>
 <script src="js/cloud.js?v=61"></script>
-<script src="js/onboarding.js?v=59"></script>
-<script src="js/data-services.js?v=60"></script>
-<script src="js/logbook.js?v=59"></script>
-<script src="js/map.js?v=61"></script>
-<script src="js/charts-bite.js?v=60"></script>
-<script src="js/places.js?v=62"></script>
-<script src="js/baits.js?v=59"></script>
+<script src="js/onboarding.js?v=60"></script>
+<script src="js/data-services.js?v=61"></script>
+<script src="js/logbook.js?v=60"></script>
+<script src="js/map.js?v=62"></script>
+<script src="js/charts-bite.js?v=61"></script>
+<script src="js/places.js?v=65"></script>
+<script src="js/baits.js?v=61"></script>
 <script src="js/stats.js?v=59"></script>
 <script src="js/main.js?v=60"></script>
 </body>

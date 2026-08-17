@@ -7,10 +7,10 @@
  */
 /* ===================== Kurzanleitung beim ersten Login ===================== */
 const ONBOARDING_STEPS=[
-  {kind:"places",label:"Angelplätze & Bissanzeige",title:"Deine Gewässer auf einen Blick! Bissanzeige mit echten Wasserdaten!",text:"Lege Angelplätze an. Wähle eine Messstation und lass dir eine Bissprognose geben. Anhand echter Wasserdaten: Pegel, Temperatur, Sauerstoffsättigung."},
-  {kind:"catch",label:"Fangbuch",title:"Dokumentiere alle Fänge! Lerne dein Gewässer kennen.",text:"Speichere deine Fänge an deinen Plätzen. Die Wetter- und Wasserbedingungen werden mitgespeichert. So lernst du und die App mit dir!"},
-  {kind:"report",label:"Fangmeldung",title:"Vom Angeltag zur Fangmeldung.",text:"Erzeuge eine Fangmeldung aus deinen Fangbüchern!"},
-  {kind:"conditions",label:"Statistik",title:"Analysiere deinen Erfolg!",text:"Schau dir deine besten Fänge und Orte an, welche Fische du am häufigsten geangelt hast und vieles mehr in der Statistik."}
+  {kind:"places",label:"Angelplätze",title:"Deine Gewässer im Blick",text:"Speichere deine Plätze auf der Karte. PetriKlar bündelt dort Wetter, Wasserwerte und Bedingungen."},
+  {kind:"catch",label:"Schneller Fangeintrag",title:"Ein Tipp genügt",text:"Die blaue Fang-Taste ist immer erreichbar. Wetter- und Wasserbedingungen werden automatisch mitgespeichert."},
+  {kind:"report",label:"Fangbuch",title:"Alles sauber dokumentiert",text:"Fänge, Angeltage, Köder und Fangmeldungen findest du gebündelt im Fangbuch."},
+  {kind:"conditions",label:"Statistik",title:"Erkenne deine Muster",text:"Vergleiche Plätze, Köder und persönliche Bestleistungen, ohne deine Daten aus der Hand zu geben."}
 ];
 let ONBOARDING_STEP=0, ONBOARDING_OPENED=false, ONBOARDING_TIMER=null;
 function onboardingVisual(step){

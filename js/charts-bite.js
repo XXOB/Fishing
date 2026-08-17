@@ -10,15 +10,15 @@ let CHART=null, CHART_KEY=null, CHART_RANGE="24h";
 const HIST={};
 const CHART_DEFS={
   pegel:      {title:"Pegelstand",     unit:"cm",   color:"#38bdf8", src:"pegel"},
-  durchfluss: {title:"Durchfluss",     unit:"m³/s", color:"#2dd4bf", src:"durchfluss"},
+  durchfluss: {title:"Durchfluss",     unit:"m³/s", color:"#64d2ff", src:"durchfluss"},
   airTemp:    {title:"Lufttemperatur", unit:"°C",   color:"#fbbf24", src:"wx:temperature_2m"},
-  wind:       {title:"Wind",           unit:"km/h", color:"#2dd4bf", src:"wx:wind_speed_10m"},
+  wind:       {title:"Wind",           unit:"km/h", color:"#5e5ce6", src:"wx:wind_speed_10m"},
   rain:       {title:"Niederschlag",   unit:"mm/h", color:"#38bdf8", src:"wx:precipitation"},
   press:      {title:"Luftdruck",      unit:"hPa",  color:"#fbbf24", src:"wx:pressure_msl"},
   cloud:      {title:"Bewölkung",      unit:"%",    color:"#8ea2be", src:"wx:cloud_cover"}
 };
 const WQ_UNIT={"Wassertemperatur":"°C","Sauerstoff":"mg/l","O₂-Sättigung":"%","Trübung":"TE","Schwebstoff":"g/m³"};
-const WQ_COLOR={"Wassertemperatur":"#fbbf24","Sauerstoff":"#3b82f6","O₂-Sättigung":"#4ade80","Trübung":"#8ea2be","Schwebstoff":"#8a5a2b"};
+const WQ_COLOR={"Wassertemperatur":"#ff9f0a","Sauerstoff":"#0a84ff","O₂-Sättigung":"#64d2ff","Trübung":"#8e8e93","Schwebstoff":"#ac8e68"};
 function defFor(key){
   if(CHART_DEFS[key]) return CHART_DEFS[key];
   if(key.indexOf("wq:")===0){ const l=key.slice(3); return {title:l, unit:WQ_UNIT[l]||"", color:WQ_COLOR[l]||"#38bdf8", src:key}; }
