@@ -48,3 +48,5 @@ $$;
 revoke all on function public.delete_own_account() from public, anon;
 grant execute on function public.delete_own_account() to authenticated;
 
+-- Neue oder geänderte RPC-Funktionen unmittelbar für die Data API sichtbar machen.
+notify pgrst, 'reload schema';
