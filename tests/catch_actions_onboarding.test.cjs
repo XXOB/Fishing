@@ -7,7 +7,7 @@ const path=require("node:path");
 const root=path.resolve(__dirname,"..");
 const moduleFiles=["core.js","cloud.js","onboarding.js","data-services.js","logbook.js","map.js","charts-bite.js","places.js","baits.js","stats.js","main.js"];
 const app=moduleFiles.map(name=>fs.readFileSync(path.join(root,"js",name),"utf8")).join("\n");
-const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const html=fs.readFileSync(path.join(root,"app.html"),"utf8");
 const css=fs.readFileSync(path.join(root,"styles.css"),"utf8");
 
 test("Fangaktionen verwenden sichere data-Attribute",()=>{

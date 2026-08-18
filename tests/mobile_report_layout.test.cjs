@@ -5,7 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 
 const root=path.resolve(__dirname,"..");
-const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const html=fs.readFileSync(path.join(root,"app.html"),"utf8");
 const css=fs.readFileSync(path.join(root,"styles.css"),"utf8");
 
 test("PDF-Feld ist mobil nutzbar und begrenzt",()=>{

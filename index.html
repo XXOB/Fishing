@@ -1,610 +1,167 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PetriKlar</title>
-<meta name="description" content="PetriKlar – Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.">
-<meta name="theme-color" content="#000000">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PetriKlar">
-<meta name="format-detection" content="telephone=no">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=74">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071018">
+  <meta name="description" content="PetriKlar verbindet deine Angelplätze, Fangbücher und Fangstatistiken mit aktuellen Wetter-, Pegel- und Wasserdaten.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="PetriKlar – Dein Gewässer. Deine Daten. Deine Fänge.">
+  <meta property="og:description" content="Angelplätze verwalten, Bedingungen verstehen, Fänge dokumentieren und Fangmeldungen erstellen.">
+  <meta property="og:url" content="https://www.petriklar.com/">
+  <meta property="og:image" content="https://www.petriklar.com/assets/icons/petriklar-512.png">
+  <link rel="canonical" href="https://www.petriklar.com/">
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="landing.css?v=1">
+  <title>PetriKlar – Angelplätze, Fangbuch & Live-Wasserdaten</title>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"WebApplication",
+    "name":"PetriKlar",
+    "url":"https://www.petriklar.com/",
+    "applicationCategory":"LifestyleApplication",
+    "operatingSystem":"Web",
+    "description":"Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern."
+  }
+  </script>
 </head>
-<body class="auth-locked">
-<svg class="icon-sprite" aria-hidden="true" focusable="false">
-  <symbol id="i-fish" viewBox="0 0 24 24"><path d="M3 12c2-3 5-4.5 8.5-4.5S17 9.5 17 12s-2 4.5-5.5 4.5S5 15 3 12Z"/><path d="M17 12l4-2.5v5z"/><circle cx="7.5" cy="11" r=".9"/></symbol>
-  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
-  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9h17M8 3v3M16 3v3"/></symbol>
-  <symbol id="i-book" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5V20.5M12 8h4M12 12h4"/></symbol>
-  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M3.5 5.5c3-.8 5.8-.3 8.5 1.4v13c-2.7-1.7-5.5-2.2-8.5-1.4Z"/><path d="M20.5 5.5c-3-.8-5.8-.3-8.5 1.4v13c2.7-1.7 5.5-2.2 8.5-1.4Z"/></symbol>
-  <symbol id="i-hook" viewBox="0 0 24 24"><path d="M15 3v9a4 4 0 1 1-8 0"/><path d="M13 4.5 15 3l2 1.5"/><circle cx="7" cy="12.4" r="1"/></symbol>
-  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-4"/></symbol>
-  <symbol id="i-line-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/></symbol>
-  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M11 3a9 9 0 1 0 9 9h-9Z"/><path d="M14 3.6A9 9 0 0 1 20.4 10H14Z"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M18.5 9A7 7 0 1 0 19 15"/></symbol>
-  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></symbol>
-  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.9 9.9 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.4 3.1M6.4 6.4A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6a9.4 9.4 0 0 0 4.1-.9"/><path d="M10.1 10.1a2.7 2.7 0 0 0 3.8 3.8"/></symbol>
-  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-edit" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10-10a2.1 2.1 0 0 0-3-3l-10 10Z"/><path d="m13.8 7.4 2.8 2.8"/></symbol>
-  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
-  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-9 9"/><path d="M18 13v6H5V6h6"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></symbol>
-  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></symbol>
-  <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></symbol>
-  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
-  <symbol id="i-ruler" viewBox="0 0 24 24"><path d="m4 17 13-13 3 3-13 13Z"/><path d="m13 8 3 3M10 11l2 2M7 14l3 3"/></symbol>
-  <symbol id="i-waves" viewBox="0 0 24 24"><path d="M3 8c2 0 2 1.5 4 1.5S9 8 11 8s2 1.5 4 1.5S17 8 19 8s2 1.5 2 1.5"/><path d="M3 14c2 0 2 1.5 4 1.5S9 14 11 14s2 1.5 4 1.5S17 14 19 14s2 1.5 2 1.5"/></symbol>
-  <symbol id="i-thermometer" viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0Z"/><path d="M12 7v9"/></symbol>
-  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8h11c3 0 3-4 0-4-1.3 0-2.2.7-2.5 1.5"/><path d="M3 12h16c3 0 3 4 0 4-1.3 0-2.2-.7-2.5-1.5M3 16h8"/></symbol>
-  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 16h10a4 4 0 0 0 .5-8A6 6 0 0 0 6.2 9.5 3.3 3.3 0 0 0 7 16Z"/><path d="m8 19-1 2M13 19l-1 2M18 19l-1 2"/></symbol>
-  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M6.5 18h11a4.5 4.5 0 0 0 .5-9A6.5 6.5 0 0 0 5.8 10.5 3.8 3.8 0 0 0 6.5 18Z"/></symbol>
-  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></symbol>
-  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M4 18h16M6 14a6 6 0 0 1 12 0M12 3v3M4.5 8.5 7 11M19.5 8.5 17 11"/></symbol>
-  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 14 4-5"/><path d="M7 18h10"/></symbol>
-  <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 11a6 6 0 0 1-12 0c0-4.7 6-11 6-11Z"/></symbol>
-  <symbol id="i-oxygen" viewBox="0 0 24 24"><circle cx="10" cy="12" r="5"/><path d="M17 9h3l-3 6h3"/></symbol>
-  <symbol id="i-turbidity" viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 11a6 6 0 0 1-12 0c0-4.7 6-11 6-11Z"/><path d="M8 13h8M9 16h6"/></symbol>
-  <symbol id="i-pressure" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 12 16 8M7 16h10"/></symbol>
-  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M9 5v14M15 5v14"/></symbol>
-  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 20h16"/></symbol>
-  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></symbol>
-  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="5" cy="6" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="5" cy="18" r="1"/></symbol>
-  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
-  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
-  <symbol id="i-trend-up" viewBox="0 0 24 24"><path d="m5 16 5-5 4 4 5-7"/><path d="M14 8h5v5"/></symbol>
-  <symbol id="i-trend-down" viewBox="0 0 24 24"><path d="m5 8 5 5 4-4 5 7"/><path d="M14 16h5v-5"/></symbol>
-  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
-  <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4Z"/><path d="M12 9v5M12 17h.01"/></symbol>
-  <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
-  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 13v4M8 20h8M10 17h4"/></symbol>
-  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v17M5 6h14M8 6 4 13h8ZM16 6l-4 7h8ZM8 21h8"/></symbol>
-  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 11V6a1.5 1.5 0 0 1 3 0v5-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v6-3a1.5 1.5 0 0 1 3 0v5c0 4-3 7-7 7h-1c-2.5 0-4-1.5-5-3l-3-4a1.7 1.7 0 0 1 2.5-2.2Z"/></symbol>
-  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></symbol>
-  <symbol id="i-cloud-sync" viewBox="0 0 24 24"><path d="M6.5 18h11a4.5 4.5 0 0 0 .5-9A6.5 6.5 0 0 0 5.8 10.5 3.8 3.8 0 0 0 6.5 18Z"/><path d="m9 13 2-2 2 2M11 11v5M17 15l-2 2-2-2M15 17v-5"/></symbol>
-  <symbol id="i-install" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M12 6v8M8.5 10.5 12 14l3.5-3.5M10 18h4"/></symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/></symbol>
-  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></symbol>
-</svg>
-<header>
-  <div class="brand">
-    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-3 5-4.5 8.5-4.5S17 9.5 17 12s-2 4.5-5.5 4.5S5 15 3 12Z"/><path d="M17 12l4-2.5v5z"/><circle cx="7.5" cy="11" r=".9"/></svg></div>
-    <div>
-      <h1>PetriKlar</h1>
-      <div class="sub">Angelplätze, Fangbücher und Live-Bedingungen an deinen Gewässern.</div>
-    </div>
-  </div>
-  <div class="account-area">
-    <span id="cloudStatus" class="cloud-status" role="status" aria-live="polite"></span>
-    <button type="button" id="accountBtn" class="account-btn" onclick="openAuthModal()" aria-label="Konto öffnen" title="Konto öffnen"><svg class="uiicon"><use href="#i-user"/></svg></button>
-  </div>
-</header>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="PetriKlar Startseite">
+      <img src="assets/icons/petriklar-192.png" alt="" width="44" height="44">
+      <span>PetriKlar</span>
+    </a>
+    <nav aria-label="Hauptnavigation">
+      <a href="#funktionen">Funktionen</a>
+      <a href="#ablauf">So geht’s</a>
+      <a href="#vertrauen">Datenschutz</a>
+    </nav>
+    <a class="header-cta" href="app.html">Zur App</a>
+  </header>
 
-<div id="networkBanner" class="network-banner" role="status" style="display:none"></div>
-<div id="appUpdateBanner" class="app-update-banner" role="status" style="display:none">
-  <span>Eine neue PetriKlar-Version ist verfügbar.</span>
-  <button type="button" onclick="location.reload()">Jetzt aktualisieren</button>
-</div>
-
-<input type="file" id="importFile" accept=".csv,text/csv,.json,application/json" style="display:none" onchange="importCatchFile(event)">
-
-<div id="authModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeAuthModal()">
-  <div class="cmbox auth-box">
-    <div class="cmhead"><span>PetriKlar-Konto</span><button class="cmx" onclick="closeAuthModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div id="authLoggedOut">
-      <div class="auth-brand">
-        <div class="auth-brand-logo"><svg class="uiicon"><use href="#i-fish"/></svg></div>
-        <h1>PetriKlar</h1>
-        <p>Deine Angelplätze. Dein Fangbuch.</p>
-      </div>
-      <div id="authNetworkStatus" class="auth-network-status" role="status"></div>
-      <div id="accountDeletedStatus" class="auth-message" role="status" aria-live="polite" style="display:none"></div>
-      <div id="authSignInPanel">
-        <p class="auth-intro">Melde dich an, um PetriKlar zu verwenden. Angelplätze, Fänge, Köder und Trips werden ausschließlich in deinem geschützten Cloud-Konto gespeichert.</p>
-        <div class="fbfield"><label for="authEmail">E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
-        <div class="fbfield" style="margin-top:10px"><label for="authPassword">Passwort</label><div class="password-input"><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Passwort"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
-        <div class="auth-actions">
-          <button type="button" class="btn-primary" onclick="authSignIn()">Anmelden</button>
-          <button type="button" class="backbtn" onclick="authSignUp()">Konto erstellen</button>
-          <button type="button" id="authResetBtn" class="auth-link" onclick="authResetPassword()">Passwort vergessen</button>
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> Für Angler, die ihr Gewässer verstehen wollen</div>
+        <h1>Dein Gewässer.<br><strong>Deine Daten.</strong><br>Deine Fänge.</h1>
+        <p class="hero-lead">PetriKlar bringt Angelplätze, Fangbuch und aktuelle Bedingungen zusammen. Damit du weniger suchst, besser dokumentierst und aus jedem Angeltag lernst.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="app.html">Jetzt PetriKlar starten <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a class="button secondary" href="#funktionen">Funktionen ansehen</a>
         </div>
-        <div id="authResetStatus" class="auth-message auth-reset-status" role="status" aria-live="polite" style="display:none"></div>
+        <p class="hero-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11c0 5-3.5 8-8 9-4.5-1-8-4-8-9V5l8-3 8 3v6Z"/><path d="m9 11 2 2 4-4"/></svg> Persönliches Fangbuch im geschützten Benutzerkonto</p>
       </div>
-      <div id="authSignUpPanel" style="display:none">
-        <h2>Konto erstellen</h2>
-        <p class="auth-intro">Erstelle dein persönliches PetriKlar-Konto.</p>
-        <div class="fbfield"><label for="signUpEmail">E-Mail-Adresse</label><input id="signUpEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
-        <div class="fbfield" style="margin-top:10px"><label for="signUpPassword">Passwort erstellen</label><div class="password-input"><input id="signUpPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mindestens 8 Zeichen"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('signUpPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
-        <div class="fbfield" style="margin-top:10px"><label for="signUpPasswordConfirm">Passwort bestätigen</label><div class="password-input"><input id="signUpPasswordConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Passwort erneut eingeben" onkeydown="if(event.key==='Enter'){event.preventDefault();authCreateAccount();}"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('signUpPasswordConfirm',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
-        <div class="auth-actions">
-          <button type="button" class="btn-primary" onclick="authCreateAccount()">Konto erstellen</button>
-          <button type="button" class="backbtn" onclick="showAuthSignInForm()">Zurück zur Anmeldung</button>
-        </div>
-        <p class="auth-legal-links">Mit der Kontoerstellung bestätigst du, die <a href="legal/datenschutz.html" target="_blank">Datenschutzinformationen</a> gelesen zu haben. <a href="legal/impressum.html" target="_blank">Impressum</a></p>
-      </div>
-    </div>
-    <div id="authLoggedIn" style="display:none">
-      <div class="account-card"><svg class="uiicon"><use href="#i-user"/></svg><div><small>Angemeldet als</small><strong id="authUserEmail">–</strong></div></div>
-      <div class="auth-actions">
-        <button type="button" class="btn-primary" onclick="manualCloudSync()"><svg class="uiicon"><use href="#i-cloud-sync"/></svg> Jetzt synchronisieren</button>
-        <button type="button" class="backbtn" onclick="openOnboarding(true)"><svg class="uiicon"><use href="#i-book-open"/></svg> Kurzanleitung ansehen</button>
-        <button type="button" class="backbtn" onclick="openInstallHelp()"><svg class="uiicon"><use href="#i-install"/></svg> PetriKlar installieren</button>
-        <button type="button" class="dangerbtn" onclick="openDeleteAccountModal()"><svg class="uiicon"><use href="#i-trash"/></svg> Konto und Daten löschen</button>
-        <button type="button" class="backbtn" onclick="authSignOut()">Abmelden</button>
-      </div>
-    </div>
-    <div id="authRecovery" style="display:none">
-      <p class="auth-intro">Lege jetzt ein neues Passwort fest.</p>
-      <div class="fbfield"><label for="authNewPassword">Neues Passwort</label><div class="password-input"><input id="authNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mindestens 8 Zeichen"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('authNewPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
-      <div class="auth-actions"><button type="button" class="btn-primary" onclick="authUpdatePassword()">Passwort speichern</button></div>
-    </div>
-    <div id="authMessage" class="auth-message" style="display:none"></div>
-  </div>
-</div>
 
-<div id="installHelpModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeInstallHelp()" role="dialog" aria-modal="true" aria-labelledby="installHelpTitle">
-  <div class="cmbox install-box">
-    <div class="cmhead"><span id="installHelpTitle">PetriKlar installieren</span><button class="cmx" onclick="closeInstallHelp()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div id="installHelpText" class="install-instructions"></div>
-    <div class="fbactions">
-      <button type="button" id="installNowBtn" class="btn-primary" onclick="installPetriKlar()"><svg class="uiicon"><use href="#i-install"/></svg> Installieren</button>
-      <button type="button" class="backbtn" onclick="closeInstallHelp()">Später</button>
-    </div>
-  </div>
-</div>
-
-<div id="deleteAccountModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeDeleteAccountModal()" role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
-  <div class="cmbox delete-account-box">
-    <div class="cmhead"><span id="deleteAccountTitle">Konto endgültig löschen</span><button class="cmx" onclick="closeDeleteAccountModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <p class="auth-intro">Alle Angelplätze, Fänge, Köder, Berichtsangaben und dein PetriKlar-Konto werden unwiderruflich gelöscht. Lade vorher bei Bedarf deine Fangbücher herunter.</p>
-    <div class="fbfield"><label>Zur Bestätigung <strong>LÖSCHEN</strong> eingeben</label><input id="deleteAccountConfirm" autocomplete="off" placeholder="LÖSCHEN"></div>
-    <div id="deleteAccountMessage" class="auth-message" style="display:none"></div>
-    <div class="fbactions">
-      <button type="button" class="dangerbtn" onclick="confirmDeleteAccount()"><svg class="uiicon"><use href="#i-trash"/></svg> Konto endgültig löschen</button>
-      <button type="button" class="backbtn" onclick="closeDeleteAccountModal()">Abbrechen</button>
-    </div>
-  </div>
-</div>
-
-<div id="onboardingModal" class="cmodal onboarding-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
-  <div class="cmbox onboarding-box">
-    <div class="onboarding-top"><span id="onboardingCount">1 / 4</span><button type="button" class="onboarding-skip" onclick="skipOnboarding()">Überspringen</button></div>
-    <div id="onboardingVisual" class="onboarding-visual tour-places" aria-hidden="true"></div>
-    <div id="onboardingLabel" class="onboarding-label">Angelplätze</div>
-    <h2 id="onboardingTitle">Deine Gewässer auf einen Blick</h2>
-    <p id="onboardingText">Lege Angelplätze direkt auf der Karte an.</p>
-    <div id="onboardingDots" class="onboarding-dots" aria-hidden="true"></div>
-    <div class="onboarding-actions">
-      <button type="button" id="onboardingBack" class="backbtn" onclick="onboardingBack()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Zurück</button>
-      <button type="button" id="onboardingNext" class="btn-primary" onclick="onboardingNext()"><svg class="uiicon"><use href="#i-chevron-right"/></svg> Weiter</button>
-    </div>
-  </div>
-</div>
-
-<div id="activeTripBanner" class="active-trip-banner" style="display:none"></div>
-
-<div id="startView">
-  <div class="pagelabel">Übersicht</div>
-  <h2 class="pagetitle">Bereit fürs Wasser?</h2>
-  <p class="pagedesc">Öffne einen deiner häufigsten Angelplätze oder starte direkt einen Trip.</p>
-  <div id="favoriteList" class="favorite-list"></div>
-  <button type="button" class="btn-primary start-trip-btn" onclick="openTripStart()"><svg class="uiicon"><use href="#i-calendar"/></svg> Trip starten</button>
-</div>
-
-<div id="fbIndexView" style="display:none">
-  <div class="pagelabel">Fangbuch</div>
-  <h2 class="pagetitle">Deine Fänge</h2>
-  <p class="pagedesc">Alle Einträge, übersichtlich nach Angelplatz sortiert.</p>
-  <details class="utility-disclosure">
-    <summary><span><svg class="uiicon"><use href="#i-list"/></svg> Export &amp; Daten</span><svg class="uiicon utility-chevron"><use href="#i-chevron-down"/></svg></summary>
-    <div class="fbio">
-      <button type="button" class="fbtool" onclick="exportCSV('all')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
-      <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
-      <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('all')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
-    </div>
-  </details>
-  <div id="fbIndexList" class="spotlist"></div>
-  <button type="button" class="library-link" onclick="showBaitList()">
-    <span class="library-icon"><svg class="uiicon"><use href="#i-hook"/></svg></span>
-    <span class="library-copy"><strong>Köderbibliothek</strong><small>Köder, Varianten und Fangzahlen verwalten</small></span>
-    <svg class="uiicon library-chevron"><use href="#i-chevron-right"/></svg>
-  </button>
-</div>
-
-<div id="catchListView" style="display:none">
-  <button type="button" class="back-link" onclick="showFangbuchList()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Fangbuch</button>
-  <div class="catch-list-heading">
-    <div class="sect" id="catchListTitle">Fangbuch</div>
-    <label class="catch-sort"><span>Anzeige</span><select id="catchSortMode" onchange="setCatchSortMode(this.value)">
-      <option value="chrono">Chronologisch</option>
-      <option value="fish-first">Fänge zuerst</option>
-      <option value="fish-only">Nur Fänge</option>
-    </select></label>
-  </div>
-  <button type="button" class="navbtn" onclick="addCatchFromList()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eintragen</button>
-  <details class="utility-disclosure compact">
-    <summary><span><svg class="uiicon"><use href="#i-list"/></svg> Export &amp; Daten</span><svg class="uiicon utility-chevron"><use href="#i-chevron-down"/></svg></summary>
-    <div class="fbio">
-      <button type="button" class="fbtool" onclick="exportCSV('view')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
-      <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
-      <button type="button" class="fbtool report-tool" onclick="openCatchReportModal('view')"><svg class="uiicon"><use href="#i-book-open"/></svg> Meldeformular PDF</button>
-    </div>
-  </details>
-  <div id="catchList"></div>
-</div>
-
-<div id="baitView" style="display:none">
-  <button type="button" class="back-link" onclick="showFangbuchList()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Fangbuch</button>
-  <div class="pagelabel">Köder</div>
-  <h2 class="pagetitle">Deine Köder</h2>
-  <p class="pagedesc">Organisiere Köder und Varianten. Fangzahlen zeigen, was für dich funktioniert.</p>
-  <div class="baitadd">
-    <input id="baitCatInput" list="baitBaseList" placeholder="Neuer Köder, z. B. Gummifisch" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory();}">
-    <select id="baitCatGroup">
-      <option value="kunst">Kunstköder</option>
-      <option value="natur">Naturköder</option>
-    </select>
-    <button onclick="addCategory()">+ Köder</button>
-  </div>
-  <div class="fbnote bait-help">Öffne eine Gruppe und wähle einen Köder, um Größe oder Farbe zu ergänzen.</div>
-  <div id="baitList" class="spotlist"></div>
-  <datalist id="baitBaseList">
-    <option>Tauwurm</option><option>Rotwurm</option><option>Made</option><option>Mais</option>
-    <option>Boilie</option><option>Brot</option><option>Käse</option><option>Köderfisch</option>
-    <option>Gummifisch</option><option>Wobbler</option><option>Spinner</option><option>Blinker</option>
-    <option>Twister</option><option>Fliege</option>
-  </datalist>
-</div>
-
-<div id="homeView" style="display:none">
-  <div class="pagelabel">Angelplätze</div>
-  <h2 class="pagetitle">Deine Plätze</h2>
-  <p class="pagedesc">Wähle einen Platz für Live-Bedingungen oder lege einen neuen direkt auf der Karte an.</p>
-  <div id="spotList" class="spotlist"></div>
-  <div id="homeMapHost" class="maphost home-map-host"></div>
-</div>
-
-<div id="spotView" style="display:none">
-<button type="button" class="back-link" onclick="showHome()"><svg class="uiicon"><use href="#i-arrow-left"/></svg> Angelplätze</button>
-<div class="datatop">
-  <div class="updated" id="updated">lädt …</div>
-  <button class="refresh" onclick="loadAll()"><svg class="uiicon"><use href="#i-refresh"/></svg> Aktualisieren</button>
-</div>
-<div class="stabar">
-  <div class="spot-title-only">
-    <span>Angelplatz</span>
-    <strong id="spotTitle">–</strong>
-  </div>
-</div>
-
-<div class="cond" id="cond">
-  <div class="dot lg-amber" id="condDot">…</div>
-  <div>
-    <div class="lvl" id="condLvl">Bedingungen werden ausgewertet …</div>
-    <div class="why" id="condWhy">Pegel, Luftdruck-Tendenz, Wind &amp; Niederschlag werden geladen.</div>
-  </div>
-</div>
-
-<button type="button" class="secttoggle" id="biteBtn" onclick="toggleBite()"><svg class="uiicon"><use href="#i-target"/></svg> Beißwetter anzeigen</button>
-<div id="biteBox" style="display:none"></div>
-
-<div class="sect" id="pegelSect">Fluss · Messstation Mainz (PEGELONLINE)</div>
-<div class="grid" id="pegelGrid">
-  <div class="tile clickable" id="tilePegel" onclick="openChart('pegel')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-ruler"/></svg></span> Pegelstand</div>
-    <div class="val" id="pegelVal">–</div>
-    <svg class="spark" id="pegelSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
-    <div class="meta" id="pegelMeta">–</div>
-  </div>
-  <div class="tile clickable" onclick="openChart('durchfluss')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-waves"/></svg></span> Durchfluss</div>
-    <div class="val" id="qVal">–</div>
-    <svg class="spark" id="qSpark" preserveAspectRatio="none" viewBox="0 0 100 34"></svg>
-    <div class="meta" id="qMeta">–</div>
-  </div>
-</div>
-
-<div class="sect" id="qSect">Wasserqualität · nächste Gütestation</div>
-<div class="grid" id="quality"></div>
-<div id="qStamp" style="font-size:11.5px;color:var(--muted2);margin:9px 4px 0"></div>
-
-<div class="sect">Wetter (Open-Meteo / DWD)</div>
-<div class="grid">
-  <div class="tile" id="waterTempTile" style="display:none">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-thermometer"/></svg></span> Wassertemp. (Modell)</div>
-    <div class="val" id="waterTempVal">–</div>
-    <div class="meta" id="waterTempMeta">Open-Meteo Modell</div>
-  </div>
-  <div class="tile clickable" onclick="openChart('airTemp')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-thermometer"/></svg></span> Lufttemperatur</div>
-    <div class="val" id="airVal">–</div>
-    <div class="meta" id="airMeta">gefühlt –</div>
-  </div>
-  <div class="tile clickable" onclick="openChart('wind')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-wind"/></svg></span> Wind</div>
-    <div class="val" id="windVal">–</div>
-    <div class="meta" id="windMeta">Böen –</div>
-  </div>
-  <div class="tile clickable" onclick="openChart('rain')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-rain"/></svg></span> Niederschlag</div>
-    <div class="val" id="rainVal">–</div>
-    <div class="meta" id="rainMeta">heute –</div>
-  </div>
-  <div class="tile clickable" onclick="openChart('press')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-pressure"/></svg></span> Luftdruck</div>
-    <div class="val" id="pressVal">–</div>
-    <div class="meta" id="pressMeta">Tendenz –</div>
-  </div>
-  <div class="tile clickable" onclick="openChart('cloud')">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-cloud"/></svg></span> Himmel</div>
-    <div class="val" id="skyVal" style="font-size:22px">–</div>
-    <div class="meta" id="skyMeta">Bewölkung – · Feuchte –</div>
-  </div>
-  <div class="tile">
-    <div class="lbl"><span class="ico"><svg class="uiicon"><use href="#i-sunrise"/></svg></span> Sonne</div>
-    <div class="val" id="sunVal" style="font-size:20px">–</div>
-    <div class="meta" id="sunMeta">Auf – · Unter –</div>
-  </div>
-</div>
-
-<button type="button" class="secttoggle" id="fangbuchBtn" onclick="toggleFangbuch()"><svg class="uiicon"><use href="#i-book"/></svg> Fangbuch anzeigen</button>
-<div id="fangbuchBox" style="display:none">
-<div class="sect" style="margin-top:10px">Fänge</div>
-<div class="fbtoolbar">
-  <span id="fbCount" class="fbnote">0 Fänge gespeichert</span>
-  <div class="fbtools">
-    <button type="button" class="fbtool" id="tblBtn" onclick="toggleTable()"><svg class="uiicon"><use href="#i-table"/></svg> Tabelle anzeigen</button>
-    <button type="button" class="fbtool" onclick="exportCSV('spot')"><svg class="uiicon"><use href="#i-download"/></svg> Download</button>
-    <button type="button" class="fbtool" onclick="openCatchUpload()"><svg class="uiicon"><use href="#i-upload"/></svg> Upload</button>
-  </div>
-</div>
-<div id="fbTable" style="display:none"></div>
-<div id="fbList" style="display:block"></div>
-
-<div class="fangbook-entry-actions">
-  <button type="button" class="fbsave" id="catchFormToggle" onclick="toggleCatchForm()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang eintragen</button>
-  <button type="button" class="fbblank" id="fbBlankBtn" onclick="showBlankRating()"><svg class="uiicon"><use href="#i-ban"/></svg> Angeltag ohne Fang</button>
-</div>
-
-<div id="blankRatingPanel" class="inline-rating-panel" style="display:none">
-  <div class="rating-heading">Wie war dein Angeltag?</div>
-  <div class="smiley-actions" aria-label="Angeltag bewerten">
-    <button type="button" class="rating-choice" onclick="saveBlankWithRating('schlecht')" aria-label="Schlecht">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8 16c1.6-2.2 6.4-2.2 8 0"/></svg><span>Schlecht</span>
-    </button>
-    <button type="button" class="rating-choice" onclick="saveBlankWithRating('mittel')" aria-label="Mittel">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8.5 15h7"/></svg><span>Mittel</span>
-    </button>
-    <button type="button" class="rating-choice" onclick="saveBlankWithRating('gut')" aria-label="Gut">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8 14c1.6 2.2 6.4 2.2 8 0"/></svg><span>Gut</span>
-    </button>
-  </div>
-</div>
-
-<div id="catchFormPanel" class="catch-form-panel" style="display:none">
-  <div class="sect" style="margin-top:10px">Neuen Fang eintragen</div>
-  <div class="fbcard">
-    <div class="fbnote" id="f_ort_label" style="margin:0 0 12px 2px"></div>
-    <div class="fbrow">
-      <div class="fbfield"><label>Fischart</label><input id="f_art" list="artliste" placeholder="z. B. Hecht" oninput="showFishRules()" onchange="showFishRules()"></div>
-      <div class="fbfield"><label>Größe (cm)</label><input id="f_groesse" type="number" min="0" step="1" inputmode="numeric"></div>
-      <div class="fbfield"><label>Gewicht (kg, optional)</label><input id="f_gewicht" type="number" min="0" step="0.1" inputmode="decimal"></div>
-      <div class="fbfield"><label>Fangstatus</label><select id="f_fangstatus"><option value="">— keine Angabe —</option><option value="entnommen">Entnommen</option><option value="abgegangen">Abgegangen</option></select></div>
-    </div>
-    <div id="fishRules" class="rulehint" style="display:none"></div>
-    <div class="fbrow">
-      <div class="fbfield"><label>Köder</label><select id="f_koeder_base" onchange="onKoederBaseChange()"></select></div>
-      <div class="fbfield" id="f_var_field" style="display:none"><label>Variante</label><select id="f_koeder_var"></select></div>
-    </div>
-    <div class="fbrow">
-      <div class="fbfield"><label>Datum</label><input id="f_datum" type="date"></div>
-      <div class="fbfield"><label>Uhrzeit</label><input id="f_zeit" type="time"></div>
-    </div>
-    <div class="fbrow">
-      <div class="fbfield fbwide"><label>Standort</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button type="button" class="fbbtn" id="gpsBtn" onclick="captureGps()" style="flex:1;min-width:150px"><svg class="uiicon"><use href="#i-pin"/></svg> Handy-Standort</button>
-          <button type="button" class="fbbtn" onclick="markOnMap()" style="flex:1;min-width:150px"><svg class="uiicon"><use href="#i-map"/></svg> Auf Karte markieren</button>
+      <div class="hero-demo" aria-label="Beispiel einer PetriKlar-Gewässeransicht">
+        <div class="demo-glow"></div>
+        <div class="app-window">
+          <div class="window-head">
+            <div class="mini-brand"><img src="assets/icons/petriklar-192.png" alt="" width="32" height="32"><span>PetriKlar</span></div>
+            <div class="account-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21c.7-4.3 3-6.5 7-6.5s6.3 2.2 7 6.5"/></svg></div>
+          </div>
+          <div class="demo-label">DEIN ANGELPLATZ</div>
+          <div class="spot-card">
+            <div class="spot-top">
+              <div class="pin green"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+              <div><strong>Rhein · Vereinsstrecke</strong><span>Pegel und Wassergüte verbunden</span></div>
+              <span class="condition good">Gut</span>
+            </div>
+            <div class="bite-card">
+              <div class="bite-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m12 4 1.4 5.1L18 12l-4.6 2.9L12 20l-1.4-5.1L6 12l4.6-2.9L12 4Z"/></svg></div>
+              <div><span>Aktuelles Bisswetter</span><strong>Gute Bedingungen</strong><small>Stabiler Pegel · leichter Wind</small></div>
+            </div>
+            <div class="sensor-grid">
+              <div><span>Wasser</span><strong>18,4 °C</strong><small>Temperatur</small></div>
+              <div><span>Sauerstoff</span><strong>9,1 mg/l</strong><small>Messstation</small></div>
+              <div><span>Pegel</span><strong>stabil</strong><small>letzte 24 h</small></div>
+            </div>
+          </div>
+          <div class="demo-tabs" aria-hidden="true">
+            <span class="active"><svg viewBox="0 0 24 24"><path d="M4 20V9l8-6 8 6v11h-6v-6h-4v6H4Z"/></svg></span>
+            <span><svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span>
+            <span><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="fbrow">
-      <div class="fbfield fbwide"><label>Notiz</label><input id="f_notiz" placeholder="Beobachtungen, Stelle, Uhrzeit des Bisses …"></div>
-    </div>
-    <div id="gpsInfo" class="fbnote">Kein Standort gewählt – nutze die Handy-Ortung oder „Auf Karte markieren".</div>
-    <div class="fbactions">
-      <button type="button" class="fbsave" id="fbSaveBtn" onclick="saveCatch()"><svg class="uiicon"><use href="#i-fish"/></svg> Fang speichern</button>
-      <button type="button" class="backbtn" id="fbEditCancel" style="display:none" onclick="cancelCatchEdit()">Bearbeiten abbrechen</button>
-      <span class="fbnote">Bedingungen (Wetter, Wasser, Mond) werden immer mitgespeichert.</span>
-    </div>
-  </div>
-  <datalist id="artliste">
-    <option>Hecht</option><option>Zander</option><option>Barsch</option><option>Rapfen</option>
-    <option>Wels</option><option>Aal</option><option>Karpfen</option><option>Brasse</option>
-    <option>Rotauge</option><option>Döbel</option><option>Barbe</option><option>Nase</option>
-    <option>Forelle</option><option>Schleie</option><option>Güster</option><option>Kaulbarsch</option>
-  </datalist>
-</div>
-</div>
-<div id="spotMapHost" class="maphost spot-map-host"></div>
-</div><!-- /spotView -->
+    </section>
 
-<div id="mapCard" style="display:none">
-<div class="sect">Karte · Angelplätze &amp; Stationen</div>
-<div class="mapcard">
-  <div class="mapmeta">
-    <details class="map-legend">
-      <summary><svg class="uiicon"><use href="#i-list"/></svg> Legende</summary>
-      <div class="pos">Kuchen-Symbole zeigen Messstationen: grau Pegel, rot Temperatur, blau Sauerstoff, braun Trübung. Blaue Punkte sind Fänge, gelb markiert den gewählten Fangort.</div>
-    </details>
-    <div class="btns">
-      <button onclick="toggleStationsLayer()" id="layStations"><svg class="uiicon"><use href="#i-gauge"/></svg> Stationen</button>
-      <button onclick="toggleStationMode()" id="layMode" style="display:none">alle</button>
-      <button onclick="toggleSpotsLayer()" id="laySpots"><svg class="uiicon"><use href="#i-pin"/></svg> Angelplätze</button>
-    </div>
-  </div>
-  <div id="markHint" style="display:none;padding:10px 14px;font-size:13px;background:rgba(56,189,248,.14);color:var(--water);border-bottom:1px solid var(--line)"></div>
-  <div class="mapstage">
-    <div id="map"></div>
-    <button type="button" id="mapAddSpot" class="map-add-spot" onclick="newSpotOnMap()"><svg class="uiicon"><use href="#i-plus"/></svg> Angelplatz anlegen</button>
-  </div>
-</div>
-</div><!-- /mapCard -->
+    <section class="trust-strip" aria-label="Vorteile">
+      <div><svg viewBox="0 0 24 24"><path d="M4 18c4-1 4-11 8-11s4 10 8 9"/><circle cx="4" cy="18" r="1.5"/><circle cx="20" cy="16" r="1.5"/></svg><span>Aktuelle Messwerte</span></div>
+      <div><svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg><span>Digitales Fangbuch</span></div>
+      <div><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg><span>Persönliche Statistik</span></div>
+      <div><svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg><span>Fangmeldung als PDF</span></div>
+    </section>
 
-<div id="statsView" style="display:none">
-  <div class="pagelabel">Statistik</div>
-  <h2 class="pagetitle">Deine Entwicklung</h2>
-  <p class="pagedesc">Erkenne erfolgreiche Plätze, Köder und persönliche Bestleistungen.</p>
-  <div id="statsBody"></div>
-  <button type="button" class="secttoggle" onclick="toggleFishPie()"><svg class="uiicon"><use href="#i-pie"/></svg> Fische nach Anteil</button>
-  <div id="fishPieBox" style="display:none"></div>
-</div>
-
-<nav class="tabbar" id="tabbar" aria-label="Hauptnavigation">
-  <button type="button" class="tabbtn" id="tabStart" onclick="showStart()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5M9 20v-6h6v6"/></svg></span><span class="tx">Übersicht</span></button>
-  <button type="button" class="tabbtn" id="tabPlaces" onclick="showHome()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="tx">Angelplätze</span></button>
-  <button type="button" class="tabbtn tab-action" id="quickCatchBtn" onclick="quickAddCatch()" aria-label="Fang eintragen"><span class="action-orb"><svg class="uiicon"><use href="#i-fish"/></svg><span class="action-plus">+</span></span><span class="tx">Fang</span></button>
-  <button type="button" class="tabbtn" id="tabFb" onclick="showFangbuchList()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5V20.5M12 8h4M12 12h4"/></svg></span><span class="tx">Fangbuch</span></button>
-  <button type="button" class="tabbtn" id="tabStats" onclick="showStats()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-4"/></svg></span><span class="tx">Statistik</span></button>
-</nav>
-
-<footer>
-  <div id="dataSourcesFooter" style="display:none"><strong>Datenquellen:</strong>
-    Pegel &amp; Durchfluss: <a href="https://pegelonline.wsv.de" target="_blank" rel="noopener">PEGELONLINE (WSV)</a> ·
-    Wetter: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo (DWD)</a> ·
-    Wasserqualität: amtliche Landes-, Bundes- und Nachbarland-Messnetze; Quelle und Messzeit stehen an der jeweiligen Station.
-  </div>
-  <div style="margin-top:6px">Ungeprüfte Rohdaten – ohne Gewähr für Aktualität, Richtigkeit und Vollständigkeit. Die Angel-Ampel ist eine grobe Faustregel, keine Fangprognose. Petri Heil!</div>
-  <div style="margin-top:6px">Deine Angelplätze und Fangbuchdaten werden geschützt in deinem PetriKlar-Konto gespeichert. Mit Download und Upload kannst du zusätzlich eine eigene CSV-Sicherung verwalten.</div>
-  <nav class="footer-links" aria-label="Rechtliches und Hilfe">
-    <a href="legal/impressum.html">Impressum</a>
-    <a href="legal/datenschutz.html">Datenschutz</a>
-    <a href="legal/support.html">Hilfe &amp; Kontakt</a>
-    <a href="legal/konto-loeschen.html">Konto löschen</a>
-    <a href="installieren.html">App installieren</a>
-  </nav>
-</footer>
-
-<div id="stationModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeStationPicker()">
-  <div class="cmbox">
-    <div class="cmhead"><span id="cmTitle">Messstation wählen</span><button class="cmx" onclick="closeStationPicker()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="fbnote" style="margin-bottom:10px">Nächste Messstationen mit Gewässer und Entfernung. Wähle die passende oder „Keine Messstation“.</div>
-    <div id="stPickList" class="stpicklist"></div>
-  </div>
-</div>
-
-<div id="tripStartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripStart()">
-  <div class="cmbox">
-    <div class="cmhead"><span>Trip starten</span><button class="cmx" onclick="closeTripStart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="fbfield"><label>Angelplatz</label><select id="tripSpotSelect"></select></div>
-    <div class="fbactions" style="margin-top:14px">
-      <button class="btn-primary" onclick="confirmTripStart()"><svg class="uiicon"><use href="#i-calendar"/></svg> Starten</button>
-      <button class="backbtn" onclick="closeTripStart()">Abbrechen</button>
-    </div>
-  </div>
-</div>
-
-<div id="tripEndModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeTripEnd()">
-  <div class="cmbox">
-    <div class="cmhead"><span>Trip beenden</span><button class="cmx trip-close" onclick="closeTripEnd()" aria-label="Abbrechen und weiter angeln" title="Abbrechen und weiter angeln"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="rating-heading trip-rating-heading">Bewerte Deinen Trip</div>
-    <div class="smiley-actions trip-smileys" aria-label="Trip bewerten und beenden">
-      <button type="button" class="rating-choice" onclick="rateAndEndTrip('schlecht')" aria-label="Schlecht">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8 16c1.6-2.2 6.4-2.2 8 0"/></svg><span>Schlecht</span>
-      </button>
-      <button type="button" class="rating-choice" onclick="rateAndEndTrip('mittel')" aria-label="Mittel">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8.5 15h7"/></svg><span>Mittel</span>
-      </button>
-      <button type="button" class="rating-choice" onclick="rateAndEndTrip('gut')" aria-label="Gut">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/><path d="M8 14c1.6 2.2 6.4 2.2 8 0"/></svg><span>Gut</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<div id="catchReportModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeCatchReportModal()">
-  <div class="cmbox report-box">
-    <div class="cmhead"><span>Fangmeldung als PDF</span><button class="cmx" onclick="closeCatchReportModal()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <p class="auth-intro">PetriKlar erstellt eine übersichtliche Fangstatistik zur manuellen Übermittlung. Prüfe vorher, ob der Empfänger dieses Formular akzeptiert.</p>
-    <div class="report-grid">
-      <div class="fbfield report-wide">
-        <label for="reportWaterName">Gewässer / Abschnitt / Los <span class="required-mark" aria-hidden="true">*</span></label>
-        <input id="reportWaterName" required minlength="2" maxlength="120" aria-describedby="reportWaterHint reportWaterError" placeholder="z. B. Donau, Los 3 – Vereinsstrecke Musterstadt" oninput="validateReportWaterName(false)">
-        <small id="reportWaterHint" class="field-hint">Freie Berichtsangabe; z. B. „Donau, Los 3 – Vereinsstrecke Musterstadt“ oder „Baggersee Nord – Südwestufer“. 2–120 Zeichen. Die Angelplätze werden dadurch nicht umbenannt.</small>
-        <small id="reportWaterError" class="field-error" role="alert" style="display:none"></small>
+    <section id="funktionen" class="section features">
+      <div class="section-head">
+        <div class="eyebrow"><span></span> Alles an einem Ort</div>
+        <h2>Mehr wissen.<br>Einfacher angeln.</h2>
+        <p>PetriKlar verbindet Informationen, die sonst über Karten, Portale, Notizen und Tabellen verteilt sind.</p>
       </div>
-      <div class="fbfield report-wide"><label>Angelplätze für diese Meldung</label>
-        <div class="report-select-actions"><button type="button" onclick="setAllReportSpots(true)">Alle auswählen</button><button type="button" onclick="setAllReportSpots(false)">Auswahl löschen</button></div>
-        <div id="reportSpotChoices" class="report-spot-choices"></div>
+      <div class="feature-grid">
+        <article class="feature feature-wide water-feature">
+          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 2S5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13Z"/><path d="M9 16c.7 1.7 1.7 2.5 3 2.5"/></svg></div>
+          <div><span class="feature-kicker">LIVE-BEDINGUNGEN</span><h3>Sieh, was im Wasser passiert.</h3><p>Pegel, Wassertemperatur, Sauerstoff und weitere verfügbare Messwerte werden passend zu deinem Angelplatz dargestellt. Dazu kommen Wetter und Verlaufskurven.</p></div>
+          <div class="water-lines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></div>
+          <span class="feature-kicker">FANGBUCH</span><h3>Dokumentiere, was zählt.</h3><p>Fisch, Größe, Gewicht, Köder, Zeit und Ort. Wetter- und Wasserbedingungen werden zum Angeltag mitgespeichert.</p>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div>
+          <span class="feature-kicker">AUSWERTUNG</span><h3>Lerne dein Gewässer kennen.</h3><p>Erkenne erfolgreiche Plätze, Köder und Bedingungen. Behalte persönliche Bestleistungen und deine Entwicklung im Blick.</p>
+        </article>
+
+        <article class="feature feature-wide report-feature">
+          <div class="report-copy">
+            <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg></div>
+            <span class="feature-kicker">FANGMELDUNG</span><h3>Vom Angeltag zum fertigen PDF.</h3><p>Fasse mehrere Angelplätze einer Gewässerstrecke zusammen und erzeuge eine übersichtliche Fangmeldung zur manuellen Abgabe.</p>
+          </div>
+          <div class="report-sheet" aria-hidden="true"><b>FANGMELDUNG</b><span></span><span></span><span></span><div><i></i><i></i><i></i></div><span></span><span></span></div>
+        </article>
       </div>
-      <div class="fbfield"><label>Kalenderjahr</label><select id="reportYear"></select></div>
-      <div class="fbfield"><label>Name des Anglers</label><input id="reportAnglerName" autocomplete="name" placeholder="Vor- und Nachname"></div>
-      <div class="fbfield"><label>Erlaubnis-/Mitgliedsnummer</label><input id="reportPermitNumber" placeholder="optional"></div>
-      <div class="fbfield report-wide"><label>Empfänger / Gewässerbewirtschafter</label><input id="reportRecipient" placeholder="Verein, Pächter oder Behörde"></div>
-    </div>
-    <div id="reportInfo" class="fbnote report-info"></div>
-    <div class="fbactions" style="margin-top:16px">
-      <button type="button" class="btn-primary" onclick="generateCatchReportPDF()"><svg class="uiicon"><use href="#i-download"/></svg> PDF erstellen</button>
-      <button type="button" class="backbtn" onclick="closeCatchReportModal()">Abbrechen</button>
-    </div>
-  </div>
-</div>
+    </section>
 
-<div id="chartModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeChart()">
-  <div class="cmbox">
-    <div class="cmhead"><span id="chartTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="cmtabs"><button id="cmt24" onclick="setChartRange('24h')">24 Stunden</button><button id="cmt7" onclick="setChartRange('7d')">7 Tage</button></div>
-    <div class="cmcanvas"><canvas id="cmChart"></canvas></div>
-    <div id="cmMeta" class="fbnote"></div>
-  </div>
-</div>
+    <section id="ablauf" class="section steps-section">
+      <div class="section-head centered">
+        <div class="eyebrow"><span></span> Direkt loslegen</div>
+        <h2>Drei Schritte zu deinem<br>digitalen Angelalltag.</h2>
+      </div>
+      <div class="steps">
+        <article><span class="step-number">01</span><div class="step-icon"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Angelplatz anlegen</h3><p>Markiere deinen Platz auf der Karte und verbinde eine passende Messstation.</p></article>
+        <article><span class="step-number">02</span><div class="step-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div><h3>Bedingungen prüfen</h3><p>Sieh Wetter, Wasserwerte und die aktuelle Einschätzung für deinen Platz.</p></article>
+        <article><span class="step-number">03</span><div class="step-icon"><svg viewBox="0 0 24 24"><path d="M3 12c2-3 5-4.5 8.5-4.5S17 9.5 17 12s-2 4.5-5.5 4.5S5 15 3 12Z"/><path d="M17 12l4-2.5v5z"/><circle cx="7.5" cy="11" r=".9"/></svg></div><h3>Angeltag speichern</h3><p>Dokumentiere Fang oder fanglosen Tag und baue deine persönliche Statistik auf.</p></article>
+      </div>
+    </section>
 
-<div id="addSpotModal" class="cmodal" style="display:none" onclick="if(event.target===this)closeAddSpot()">
-  <div class="cmbox">
-    <div class="cmhead"><span>Angelplatz hinzufügen</span><button class="cmx" onclick="closeAddSpot()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
-    <div class="fbfield"><label>Name</label><input id="as_name" placeholder="z. B. Buhne bei Bodenheim"></div>
-    <div class="fbfield" style="margin-top:10px"><label>Gewässertyp</label>
-      <select id="as_typ" onchange="asTypeChange()">
-        <option value="fluss">Fluss</option>
-        <option value="see">See</option>
-        <option value="meer">Meer</option>
-      </select>
-    </div>
-    <div class="fbfield" id="as_gwrow" style="margin-top:10px;display:none"><label>Gewässername</label><input id="as_gw" placeholder="z. B. Bodensee"></div>
-    <div class="fbnote" id="as_hint" style="margin-top:10px">Für Flüsse kannst du danach eine passende Messstation wählen – oder keine Messstation verwenden.</div>
-    <div class="fbactions" style="margin-top:14px">
-      <button class="btn-primary" onclick="confirmAddSpot()">Weiter</button>
-      <button class="backbtn" onclick="closeAddSpot()">Abbrechen</button>
-    </div>
-  </div>
-</div>
+    <section id="vertrauen" class="section privacy-section">
+      <div class="privacy-card">
+        <div class="privacy-icon"><svg viewBox="0 0 24 24"><path d="M20 11c0 5-3.5 8-8 9-4.5-1-8-4-8-9V5l8-3 8 3v6Z"/><path d="m9 11 2 2 4-4"/></svg></div>
+        <div><div class="eyebrow"><span></span> Deine Daten gehören dir</div><h2>Persönlich. Geschützt.<br>Ohne Werbetracking.</h2><p>Deine Angelplätze und Fangbuchdaten liegen in deinem geschützten Benutzerkonto. PetriKlar setzt derzeit keine Werbe- oder Analyse-Cookies ein. Fangmelde-PDFs werden in deinem Browser erzeugt und nicht automatisch versendet.</p><a href="legal/datenschutz.html">Datenschutzinformationen ansehen <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></a></div>
+      </div>
+    </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-<script src="fish_rules.js?v=41"></script>
-<script src="report_utils.js?v=59"></script>
-<!-- PetriKlar-Module: Reihenfolge siehe docs/ARCHITEKTUR.md -->
-<script src="js/core.js?v=59"></script>
-<script src="js/pwa.js?v=63"></script>
-<script src="js/cloud.js?v=79"></script>
-<script src="js/onboarding.js?v=60"></script>
-<script src="js/data-services.js?v=61"></script>
-<script src="js/logbook.js?v=60"></script>
-<script src="js/map.js?v=63"></script>
-<script src="js/charts-bite.js?v=61"></script>
-<script src="js/places.js?v=65"></script>
-<script src="js/baits.js?v=61"></script>
-<script src="js/stats.js?v=59"></script>
-<script src="js/main.js?v=60"></script>
+    <section class="final-cta">
+      <div class="cta-rings" aria-hidden="true"></div>
+      <img src="assets/icons/petriklar-192.png" alt="" width="72" height="72">
+      <h2>Bereit für den nächsten Angeltag?</h2>
+      <p>Lege deinen ersten Angelplatz an und bring Klarheit in deine Fangdaten.</p>
+      <a class="button primary" href="app.html">PetriKlar jetzt starten <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand footer-brand" href="./"><img src="assets/icons/petriklar-192.png" alt="" width="38" height="38"><span>PetriKlar</span></a>
+    <p>Angelplätze, Fangbücher und Live-Bedingungen an deinen Gewässern.</p>
+    <div class="footer-links"><a href="legal/impressum.html">Impressum</a><a href="legal/datenschutz.html">Datenschutz</a><a href="legal/support.html">Support</a><a href="legal/konto-loeschen.html">Konto löschen</a></div>
+    <small>© <span id="year"></span> PetriKlar · Messwerte ohne Gewähr auf Aktualität und Vollständigkeit.</small>
+  </footer>
+  <script>document.getElementById("year").textContent=new Date().getFullYear();</script>
 </body>
 </html>

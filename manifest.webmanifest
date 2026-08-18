@@ -5,7 +5,7 @@
   "description": "Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.",
   "lang": "de-DE",
   "dir": "ltr",
-  "start_url": "./",
+  "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],

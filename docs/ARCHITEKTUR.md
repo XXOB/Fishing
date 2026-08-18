@@ -10,7 +10,9 @@ PetriKlar bleibt eine direkt auf GitHub Pages lauffähige Vanilla-JavaScript-App
 
 ```text
 Fishing/
-├─ index.html                    # Seitenstruktur und geordnete Script-Einbindung
+├─ index.html                    # öffentliche Landingpage
+├─ landing.css                  # responsive Gestaltung der Landingpage
+├─ app.html                     # App-Struktur und geordnete Script-Einbindung
 ├─ styles.css                   # gemeinsame Gestaltung und responsive Regeln
 ├─ app.js                       # Kompatibilitätshinweis; wird nicht mehr geladen
 ├─ manifest.webmanifest         # PWA-Metadaten und App-Icons
@@ -50,7 +52,8 @@ Fishing/
 
 ```mermaid
 flowchart TB
-    U["Angler im Browser"] --> HTML["index.html + styles.css"]
+    U["Angler im Browser"] --> LANDING["index.html + landing.css\nöffentliche Landingpage"]
+    LANDING --> HTML["app.html + styles.css"]
 
     subgraph UI["Browser-App"]
       CORE["core.js\nLaufzeitkern"]
@@ -103,7 +106,7 @@ flowchart TB
 
 ## Ladeprinzip
 
-Die Dateien sind weiterhin klassische Browser-Skripte. Dadurch bleiben bestehende `onclick`-Handler und GitHub Pages kompatibel. Es gibt keinen Build-Schritt. Die Reihenfolge in `index.html` ist verbindlich:
+Die Dateien sind weiterhin klassische Browser-Skripte. Dadurch bleiben bestehende `onclick`-Handler und GitHub Pages kompatibel. Es gibt keinen Build-Schritt. Die Reihenfolge in `app.html` ist verbindlich:
 
 1. externe Bibliotheken und Datendateien,
 2. `core.js`,
@@ -184,6 +187,6 @@ Der Architekturtest kontrolliert zusätzlich:
 
 1. In der Verantwortungstabelle das zuständige Modul wählen.
 2. Nur dieses Modul und den dazugehörigen Test ändern.
-3. Bei sichtbaren Änderungen die Cache-Version des betroffenen Scripts in `index.html` erhöhen.
+3. Bei sichtbaren App-Änderungen die Cache-Version des betroffenen Scripts in `app.html` erhöhen.
 4. Syntax- und Gesamttests ausführen.
 5. Erst danach committen und veröffentlichen.
