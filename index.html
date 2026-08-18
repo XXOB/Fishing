@@ -109,8 +109,9 @@
       <div class="auth-actions">
         <button type="button" class="btn-primary" onclick="authSignIn()">Anmelden</button>
         <button type="button" class="backbtn" onclick="authSignUp()">Konto erstellen</button>
-        <button type="button" class="auth-link" onclick="authResetPassword()">Passwort vergessen</button>
+        <button type="button" id="authResetBtn" class="auth-link" onclick="authResetPassword()">Passwort vergessen</button>
       </div>
+      <div id="authResetStatus" class="auth-message auth-reset-status" role="status" aria-live="polite" style="display:none"></div>
       <p class="auth-legal-links">Mit der Kontoerstellung bestätigst du, die <a href="legal/datenschutz.html" target="_blank">Datenschutzinformationen</a> gelesen zu haben. <a href="legal/impressum.html" target="_blank">Impressum</a></p>
     </div>
     <div id="authLoggedIn" style="display:none">
@@ -579,7 +580,7 @@
 <!-- PetriKlar-Module: Reihenfolge siehe docs/ARCHITEKTUR.md -->
 <script src="js/core.js?v=59"></script>
 <script src="js/pwa.js?v=62"></script>
-<script src="js/cloud.js?v=75"></script>
+<script src="js/cloud.js?v=76"></script>
 <script src="js/onboarding.js?v=60"></script>
 <script src="js/data-services.js?v=61"></script>
 <script src="js/logbook.js?v=60"></script>

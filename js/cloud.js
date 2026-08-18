@@ -90,6 +90,11 @@ function authMessage(text,isError){
   const el=$("authMessage"); if(!el) return;
   el.textContent=text||""; el.style.display=text?"block":"none"; el.className="auth-message"+(isError?" error":"");
 }
+function authResetMessage(text,isError){
+  const el=$("authResetStatus"); if(!el){ authMessage(text,isError); return; }
+  el.textContent=text||""; el.style.display=text?"block":"none";
+  el.className="auth-message auth-reset-status"+(isError?" error":"");
+}
 function renderAccountUI(){
   const b=$("accountBtn");
   if(b){
@@ -218,10 +223,17 @@ async function authSignUp(){
   if(error) authMessage(error.message,true); else if(data&&data.session) authMessage("Konto erstellt und angemeldet."); else authMessage("Konto erstellt. Bitte bestätige die E-Mail über den Link in deinem Postfach.");
 }
 async function authResetPassword(){
-  if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
-  const email=$("authEmail")?$("authEmail").value.trim():""; if(!email){ authMessage("Bitte zuerst deine E-Mail-Adresse eingeben.",true); return; }
+  if(!SUPA){ authResetMessage("Die Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
+  const email=$("authEmail")?$("authEmail").value.trim():"";
+  if(!email){ authResetMessage("Bitte zuerst deine E-Mail-Adresse eingeben.",true); return; }
+  const button=$("authResetBtn"); if(button) button.disabled=true;
+  authResetMessage("E-Mail wird versendet …",false);
   const {error}=await SUPA.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
-  authMessage(error?error.message:"E-Mail zum Zurücksetzen des Passworts wurde versendet.",!!error);
+  if(button) button.disabled=false;
+  if(error){
+    const rate=/rate limit/i.test(error.message||"");
+    authResetMessage(rate?"Zu viele E-Mails in kurzer Zeit. Bitte warte etwas und versuche es später erneut.":"Die E-Mail konnte nicht versendet werden. Bitte versuche es später erneut.",true);
+  } else authResetMessage("E-Mail versendet. Bitte prüfe dein Postfach und gegebenenfalls den Spam-Ordner.",false);
 }
 async function authUpdatePassword(){
   if(!SUPA){ authMessage("Cloud-Verbindung ist nicht verfügbar.",true); return; }
