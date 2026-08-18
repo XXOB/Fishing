@@ -15,7 +15,7 @@
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=73">
+<link rel="stylesheet" href="styles.css?v=74">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -30,6 +30,8 @@
   <symbol id="i-pie" viewBox="0 0 24 24"><path d="M11 3a9 9 0 1 0 9 9h-9Z"/><path d="M14 3.6A9 9 0 0 1 20.4 10H14Z"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M18.5 9A7 7 0 1 0 19 15"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.9 9.9 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.4 3.1M6.4 6.4A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6a9.4 9.4 0 0 0 4.1-.9"/><path d="M10.1 10.1a2.7 2.7 0 0 0 3.8 3.8"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10-10a2.1 2.1 0 0 0-3-3l-10 10Z"/><path d="m13.8 7.4 2.8 2.8"/></symbol>
   <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
@@ -105,7 +107,7 @@
       <p class="auth-intro">Melde dich an, um PetriKlar zu verwenden. Angelplätze, Fänge, Köder und Trips werden ausschließlich in deinem geschützten Cloud-Konto gespeichert.</p>
       <div id="authNetworkStatus" class="auth-network-status" role="status"></div>
       <div class="fbfield"><label>E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
-      <div class="fbfield" style="margin-top:10px"><label>Passwort</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Mindestens 8 Zeichen"></div>
+      <div class="fbfield" style="margin-top:10px"><label for="authPassword">Passwort</label><div class="password-input"><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Mindestens 8 Zeichen"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
       <div class="auth-actions">
         <button type="button" class="btn-primary" onclick="authSignIn()">Anmelden</button>
         <button type="button" class="backbtn" onclick="authSignUp()">Konto erstellen</button>
@@ -126,7 +128,7 @@
     </div>
     <div id="authRecovery" style="display:none">
       <p class="auth-intro">Lege jetzt ein neues Passwort fest.</p>
-      <div class="fbfield"><label>Neues Passwort</label><input id="authNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mindestens 8 Zeichen"></div>
+      <div class="fbfield"><label for="authNewPassword">Neues Passwort</label><div class="password-input"><input id="authNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mindestens 8 Zeichen"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('authNewPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
       <div class="auth-actions"><button type="button" class="btn-primary" onclick="authUpdatePassword()">Passwort speichern</button></div>
     </div>
     <div id="authMessage" class="auth-message" style="display:none"></div>
@@ -580,7 +582,7 @@
 <!-- PetriKlar-Module: Reihenfolge siehe docs/ARCHITEKTUR.md -->
 <script src="js/core.js?v=59"></script>
 <script src="js/pwa.js?v=62"></script>
-<script src="js/cloud.js?v=76"></script>
+<script src="js/cloud.js?v=77"></script>
 <script src="js/onboarding.js?v=60"></script>
 <script src="js/data-services.js?v=61"></script>
 <script src="js/logbook.js?v=60"></script>

@@ -208,7 +208,17 @@ async function initCloud(){
     const {data}=await SUPA.auth.getSession(); await handleCloudSession(data&&data.session);
   }catch(e){ CLOUD_READY=false; setCloudStatus("Cloud nicht verfügbar","error"); authMessage("Die Cloud-Verbindung ist nicht verfügbar.",true); }
 }
-function authCredentials(){ return {email:($("authEmail")?$("authEmail").value.trim():""),password:($("authPassword")?$("authPassword").value:"")}; }
+function togglePasswordVisibility(inputId,button){
+  const input=$(inputId); if(!input||!button) return;
+  const show=input.type==="password";
+  input.type=show?"text":"password";
+  const label=show?"Passwort ausblenden":"Passwort anzeigen";
+  button.setAttribute("aria-label",label);
+  button.setAttribute("title",label);
+  button.setAttribute("aria-pressed",show?"true":"false");
+  const use=button.querySelector("use"); if(use) use.setAttribute("href",show?"#i-eye-off":"#i-eye");
+}
+function authCredentials(){ return {email:$("authEmail")?$("authEmail").value.trim():"",password:$("authPassword")?$("authPassword").value:""}; }
 async function authSignIn(){
   if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
   const c=authCredentials(); if(!c.email||!c.password){ authMessage("Bitte E-Mail-Adresse und Passwort eingeben.",true); return; }
