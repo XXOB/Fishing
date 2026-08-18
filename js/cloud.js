@@ -237,18 +237,44 @@ function togglePasswordVisibility(inputId,button){
   const use=button.querySelector("use"); if(use) use.setAttribute("href",show?"#i-eye-off":"#i-eye");
 }
 function authCredentials(){ return {email:$("authEmail")?$("authEmail").value.trim():"",password:$("authPassword")?$("authPassword").value:""}; }
+function showAuthSignInForm(){
+  const signIn=$("authSignInPanel"), signUp=$("authSignUpPanel");
+  if(signIn) signIn.style.display="block";
+  if(signUp) signUp.style.display="none";
+  authMessage("");
+  const email=$("authEmail"); if(email) setTimeout(()=>email.focus(),30);
+}
 async function authSignIn(){
   if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
   const c=authCredentials(); if(!c.email||!c.password){ authMessage("Bitte E-Mail-Adresse und Passwort eingeben.",true); return; }
   authMessage("Anmeldung läuft …"); const {error}=await SUPA.auth.signInWithPassword(c);
   if(error) authMessage(error.message,true); else authMessage("Angemeldet. Deine Daten werden geladen.");
 }
-async function authSignUp(){
+function authSignUp(){
+  const signIn=$("authSignInPanel"), signUp=$("authSignUpPanel"), loginEmail=$("authEmail"), email=$("signUpEmail");
+  if(signIn) signIn.style.display="none";
+  if(signUp) signUp.style.display="block";
+  if(email&&loginEmail&&!email.value) email.value=loginEmail.value.trim();
+  authMessage("");
+  if(email) setTimeout(()=>email.focus(),30);
+}
+async function authCreateAccount(){
   if(!SUPA){ authMessage("Cloud-Verbindung wird noch geladen. Bitte kurz warten.",true); return; }
-  const c=authCredentials(); if(!c.email||c.password.length<8){ authMessage("Bitte eine gültige E-Mail-Adresse und mindestens 8 Zeichen als Passwort eingeben.",true); return; }
+  const emailInput=$("signUpEmail");
+  const email=emailInput?emailInput.value.trim():"";
+  const password=$("signUpPassword")?$("signUpPassword").value:"";
+  const confirmation=$("signUpPasswordConfirm")?$("signUpPasswordConfirm").value:"";
+  if(!email||!emailInput.checkValidity()||password.length<8){ authMessage("Bitte eine gültige E-Mail-Adresse und mindestens 8 Zeichen als Passwort eingeben.",true); return; }
+  if(password!==confirmation){ authMessage("Die beiden Passwörter stimmen nicht überein.",true); return; }
   authMessage("Konto wird erstellt …");
-  const redirectTo=location.origin+location.pathname, {data,error}=await SUPA.auth.signUp({email:c.email,password:c.password,options:{emailRedirectTo:redirectTo}});
-  if(error) authMessage(error.message,true); else if(data&&data.session) authMessage("Konto erstellt und angemeldet."); else authMessage("Konto erstellt. Bitte bestätige die E-Mail über den Link in deinem Postfach.");
+  const redirectTo=location.origin+location.pathname, {data,error}=await SUPA.auth.signUp({email,password,options:{emailRedirectTo:redirectTo}});
+  if(error) authMessage(error.message,true);
+  else if(data&&data.session) authMessage("Konto erstellt und angemeldet.");
+  else{
+    showAuthSignInForm();
+    const loginEmail=$("authEmail"); if(loginEmail) loginEmail.value=email;
+    authMessage("Konto erstellt. Bitte bestätige die E-Mail über den Link in deinem Postfach.");
+  }
 }
 async function authResetPassword(){
   if(!SUPA){ authResetMessage("Die Verbindung wird noch geladen. Bitte kurz warten.",true); return; }

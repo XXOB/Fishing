@@ -104,18 +104,31 @@
         <h1>PetriKlar</h1>
         <p>Deine Angelplätze. Dein Fangbuch.</p>
       </div>
-      <p class="auth-intro">Melde dich an, um PetriKlar zu verwenden. Angelplätze, Fänge, Köder und Trips werden ausschließlich in deinem geschützten Cloud-Konto gespeichert.</p>
       <div id="authNetworkStatus" class="auth-network-status" role="status"></div>
       <div id="accountDeletedStatus" class="auth-message" role="status" aria-live="polite" style="display:none"></div>
-      <div class="fbfield"><label>E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
-      <div class="fbfield" style="margin-top:10px"><label for="authPassword">Passwort</label><div class="password-input"><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Mindestens 8 Zeichen"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
-      <div class="auth-actions">
-        <button type="button" class="btn-primary" onclick="authSignIn()">Anmelden</button>
-        <button type="button" class="backbtn" onclick="authSignUp()">Konto erstellen</button>
-        <button type="button" id="authResetBtn" class="auth-link" onclick="authResetPassword()">Passwort vergessen</button>
+      <div id="authSignInPanel">
+        <p class="auth-intro">Melde dich an, um PetriKlar zu verwenden. Angelplätze, Fänge, Köder und Trips werden ausschließlich in deinem geschützten Cloud-Konto gespeichert.</p>
+        <div class="fbfield"><label for="authEmail">E-Mail-Adresse</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
+        <div class="fbfield" style="margin-top:10px"><label for="authPassword">Passwort</label><div class="password-input"><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Passwort"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
+        <div class="auth-actions">
+          <button type="button" class="btn-primary" onclick="authSignIn()">Anmelden</button>
+          <button type="button" class="backbtn" onclick="authSignUp()">Konto erstellen</button>
+          <button type="button" id="authResetBtn" class="auth-link" onclick="authResetPassword()">Passwort vergessen</button>
+        </div>
+        <div id="authResetStatus" class="auth-message auth-reset-status" role="status" aria-live="polite" style="display:none"></div>
       </div>
-      <div id="authResetStatus" class="auth-message auth-reset-status" role="status" aria-live="polite" style="display:none"></div>
-      <p class="auth-legal-links">Mit der Kontoerstellung bestätigst du, die <a href="legal/datenschutz.html" target="_blank">Datenschutzinformationen</a> gelesen zu haben. <a href="legal/impressum.html" target="_blank">Impressum</a></p>
+      <div id="authSignUpPanel" style="display:none">
+        <h2>Konto erstellen</h2>
+        <p class="auth-intro">Erstelle dein persönliches PetriKlar-Konto.</p>
+        <div class="fbfield"><label for="signUpEmail">E-Mail-Adresse</label><input id="signUpEmail" type="email" autocomplete="email" placeholder="name@beispiel.de"></div>
+        <div class="fbfield" style="margin-top:10px"><label for="signUpPassword">Passwort erstellen</label><div class="password-input"><input id="signUpPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mindestens 8 Zeichen"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('signUpPassword',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
+        <div class="fbfield" style="margin-top:10px"><label for="signUpPasswordConfirm">Passwort bestätigen</label><div class="password-input"><input id="signUpPasswordConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Passwort erneut eingeben" onkeydown="if(event.key==='Enter'){event.preventDefault();authCreateAccount();}"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('signUpPasswordConfirm',this)" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"><svg class="uiicon"><use href="#i-eye"/></svg></button></div></div>
+        <div class="auth-actions">
+          <button type="button" class="btn-primary" onclick="authCreateAccount()">Konto erstellen</button>
+          <button type="button" class="backbtn" onclick="showAuthSignInForm()">Zurück zur Anmeldung</button>
+        </div>
+        <p class="auth-legal-links">Mit der Kontoerstellung bestätigst du, die <a href="legal/datenschutz.html" target="_blank">Datenschutzinformationen</a> gelesen zu haben. <a href="legal/impressum.html" target="_blank">Impressum</a></p>
+      </div>
     </div>
     <div id="authLoggedIn" style="display:none">
       <div class="account-card"><svg class="uiicon"><use href="#i-user"/></svg><div><small>Angemeldet als</small><strong id="authUserEmail">–</strong></div></div>
@@ -583,7 +596,7 @@
 <!-- PetriKlar-Module: Reihenfolge siehe docs/ARCHITEKTUR.md -->
 <script src="js/core.js?v=59"></script>
 <script src="js/pwa.js?v=63"></script>
-<script src="js/cloud.js?v=78"></script>
+<script src="js/cloud.js?v=79"></script>
 <script src="js/onboarding.js?v=60"></script>
 <script src="js/data-services.js?v=61"></script>
 <script src="js/logbook.js?v=60"></script>

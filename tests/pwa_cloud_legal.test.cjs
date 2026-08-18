@@ -24,12 +24,23 @@ test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("index.html");
-  assert.match(sw,/petriklar-shell-v78/);
+  assert.match(sw,/petriklar-shell-v79/);
   assert.match(sw,/self\.skipWaiting\(\)/);
   assert.match(pwa,/service-worker\.js\?v=78/);
   assert.match(pwa,/updateViaCache:"none"/);
   assert.match(html,/styles\.css\?v=74/);
   assert.match(html,/js\/pwa\.js\?v=63/);
+});
+
+test("Kontoerstellung hat eine eigene Maske mit Passwortbestätigung",()=>{
+  const html=read("index.html"), cloud=read("js/cloud.js");
+  assert.match(html,/id="authSignUpPanel"/);
+  assert.match(html,/id="signUpEmail"/);
+  assert.match(html,/id="signUpPassword"/);
+  assert.match(html,/id="signUpPasswordConfirm"/);
+  assert.match(html,/togglePasswordVisibility\('signUpPasswordConfirm'/);
+  assert.match(cloud,/function authCreateAccount\(\)/);
+  assert.match(cloud,/password!==confirmation/);
 });
 
 test("Index bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
