@@ -193,11 +193,14 @@ async function initCloud(){
        liegen weiterhin ausschließlich in Supabase. Auto-Refresh hält die Sitzung
        aktiv, solange keine serverseitige Inaktivitäts- oder Zeitbegrenzung greift. */
     SUPA=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.localStorage,autoRefreshToken:true,detectSessionInUrl:true}});
-    const {data}=await SUPA.auth.getSession(); await handleCloudSession(data&&data.session);
+    /* Direkt nach createClient abonnieren: Beim Oeffnen eines Passwort-Reset-Links
+       kann PASSWORD_RECOVERY bereits waehrend der Initialisierung ausgeloest werden.
+       Ein vorheriges getSession() wuerde dieses einmalige Ereignis verpassen. */
     SUPA.auth.onAuthStateChange((event,session)=>{
       if(event==="PASSWORD_RECOVERY"){ AUTH_RECOVERY=true; setTimeout(()=>handleCloudSession(session),0); }
       else setTimeout(()=>handleCloudSession(session),0);
     });
+    const {data}=await SUPA.auth.getSession(); await handleCloudSession(data&&data.session);
   }catch(e){ CLOUD_READY=false; setCloudStatus("Cloud nicht verfügbar","error"); authMessage("Die Cloud-Verbindung ist nicht verfügbar.",true); }
 }
 function authCredentials(){ return {email:($("authEmail")?$("authEmail").value.trim():""),password:($("authPassword")?$("authPassword").value:"")}; }
