@@ -24,12 +24,12 @@ test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("index.html");
-  assert.match(sw,/petriklar-shell-v73/);
+  assert.match(sw,/petriklar-shell-v78/);
   assert.match(sw,/self\.skipWaiting\(\)/);
-  assert.match(pwa,/service-worker\.js\?v=73/);
+  assert.match(pwa,/service-worker\.js\?v=78/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=72/);
-  assert.match(html,/js\/pwa\.js\?v=62/);
+  assert.match(html,/styles\.css\?v=74/);
+  assert.match(html,/js\/pwa\.js\?v=63/);
 });
 
 test("Index bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
@@ -59,6 +59,11 @@ test("Cloud-State bleibt bis zum erfolgreichen Laden gesperrt",()=>{
   assert.match(cloud,/CLOUD_DATA_LOADED=false/);
   assert.match(cloud,/if\(loaded\) await startAppAfterLogin\(\)/);
   assert.match(cloud,/rpc\("delete_own_account"\)/);
+  assert.match(cloud,/functions\.invoke\("delete-account"/);
+  const edge=read("supabase/functions/delete-account/index.ts");
+  assert.match(edge,/auth\.admin\.deleteUser/);
+  assert.match(edge,/Dein PetriKlar-Konto wurde gelöscht/);
+  assert.match(edge,/SMTP_PASS/);
   const sql=read("supabase/migrations/20260816_phase1_cloud.sql");
   assert.match(sql,/enable row level security/i);
   assert.match(sql,/function public\.delete_own_account/i);

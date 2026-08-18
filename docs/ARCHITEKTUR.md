@@ -1,6 +1,6 @@
 # PetriKlar – Architektur
 
-Stand: 16. August 2026 · Browser-App ohne Build-Schritt
+Stand: 18. August 2026 · Browser-App ohne Build-Schritt
 
 ## Ziel
 
@@ -17,7 +17,9 @@ Fishing/
 ├─ service-worker.js            # App-Hülle, Updates und sichere Cache-Grenzen
 ├─ offline.html                 # Offline-Hinweis ohne persönliche Daten
 ├─ legal/                       # Impressum, Datenschutz, Support, Kontolöschung
-├─ supabase/                    # RLS- und Kontolöschungs-Migration
+├─ supabase/                    # RLS, Migrationen und Serverfunktionen
+│  └─ functions/
+│     └─ delete-account/       # sichere Kontolöschung + Bestätigungs-E-Mail
 ├─ report_utils.js              # reine, separat testbare PDF-Berichtslogik
 ├─ fish_rules.js                # Schonmaße und Schonzeiten
 ├─ js/
@@ -78,6 +80,9 @@ flowchart TB
     CORE --> STATS
 
     CLOUD <--> SUPA["Supabase Auth + app_state"]
+    CLOUD --> DELETE["Edge Function delete-account"]
+    DELETE --> SUPA
+    DELETE --> SMTP["netcup SMTP\nLöschbestätigung"]
     PWA --> SW["Service Worker\nstatische App-Hülle"]
     DATA <--> LIVE["Pegel-, Wetter- und Güte-APIs"]
     DATA --> MAP
@@ -113,6 +118,7 @@ Die Dateien sind weiterhin klassische Browser-Skripte. Dadurch bleiben bestehend
 | Änderung | Primäre Datei |
 |---|---|
 | Login, Konto, Supabase-Speicherung | `js/cloud.js` |
+| Serverseitige Kontolöschung und Löschbestätigung | `supabase/functions/delete-account/index.ts` |
 | Installation, Offline-Hinweis, Service-Worker-Updates | `js/pwa.js` und `service-worker.js` |
 | Impressum, Datenschutz, Support | `legal/` und `legal/legal-config.js` |
 | Texte oder Ablauf der ersten Einführung | `js/onboarding.js` |

@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 wasserwerte_csv/
+supabase/.env
+supabase/.env.*
+supabase/functions/.env
+supabase/functions/.env.*

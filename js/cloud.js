@@ -11,6 +11,8 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
 let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
 let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", CLOUD_DATA_LOADED=false, CLOUD_RECONNECTING=false, APP_STARTED=false;
 let APP_STATE={version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
+const ACCOUNT_DELETED_NOTICE_KEY="petriklar_account_deleted_notice_v1";
+let ACCOUNT_DELETE_IN_PROGRESS=false;
 
 function emptyAppState(){
   return {version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
@@ -113,6 +115,22 @@ function renderAccountUI(){
   if(!CLOUD_USER) setCloudStatus("Anmeldung erforderlich","");
   else if(!CLOUD_DATA_LOADED) setCloudStatus(navigator.onLine?"Lade Cloud-Daten …":"Offline – Cloud-Daten gesperrt",navigator.onLine?"syncing":"error");
 }
+function showDeletedAccountConfirmation(){
+  const el=$("accountDeletedStatus"); if(!el) return;
+  /* signOut löst vor dem Reload noch ein Session-Ereignis aus. Die Meldung darf
+     erst auf dem anschließend frisch geladenen Anmeldebildschirm verbraucht werden. */
+  if(ACCOUNT_DELETE_IN_PROGRESS) return;
+  let result="";
+  try{
+    result=sessionStorage.getItem(ACCOUNT_DELETED_NOTICE_KEY)||"";
+    if(result) sessionStorage.removeItem(ACCOUNT_DELETED_NOTICE_KEY);
+  }catch(e){}
+  if(!result) return;
+  el.textContent=result==="email_sent"
+    ?"Dein PetriKlar-Konto und deine gespeicherten Daten wurden erfolgreich gelöscht. Eine Bestätigung wurde an deine E-Mail-Adresse gesendet. Schade, dass du gehst."
+    :"Dein PetriKlar-Konto und deine gespeicherten Daten wurden erfolgreich gelöscht. Die Bestätigungs-E-Mail konnte leider nicht versendet werden.";
+  el.style.display="block";
+}
 function openAuthModal(){
   authMessage(""); renderAccountUI();
   if(!CLOUD_USER){ const e=$("authEmail"); if(e) setTimeout(()=>e.focus(),30); return; }
@@ -181,7 +199,7 @@ async function handleCloudSession(session){
   if(CLOUD_USER){
     const loaded=await pullCloudState(); renderAccountUI();
     if(loaded) await startAppAfterLogin();
-  } else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; CLOUD_DATA_LOADED=false; ONBOARDING_OPENED=false; renderAccountUI(); }
+  } else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; CLOUD_DATA_LOADED=false; ONBOARDING_OPENED=false; renderAccountUI(); showDeletedAccountConfirmation(); }
 }
 async function resumeCloudAfterReconnect(){
   if(CLOUD_RECONNECTING||!SUPA||!CLOUD_USER||CLOUD_DATA_LOADED||!navigator.onLine) return;
@@ -274,11 +292,27 @@ async function confirmDeleteAccount(){
   if(value!=="LÖSCHEN"){ deleteAccountMessage("Bitte gib exakt LÖSCHEN ein.",true); if(input) input.focus(); return; }
   if(!SUPA||!CLOUD_USER){ deleteAccountMessage("Du bist nicht angemeldet.",true); return; }
   deleteAccountMessage("Konto und Daten werden gelöscht …",false);
-  const {error}=await SUPA.rpc("delete_own_account");
-  if(error){
-    deleteAccountMessage("Automatische Löschung nicht möglich: "+error.message+" Bitte nutze alternativ datenschutz@petriklar.com.",true);
-    return;
+  let deleted=false, emailSent=false, deleteError=null;
+  try{
+    const result=await SUPA.functions.invoke("delete-account",{body:{confirm:"LÖSCHEN"}});
+    if(!result.error&&result.data&&result.data.deleted){
+      deleted=true; emailSent=!!result.data.emailSent;
+    }else deleteError=result.error||new Error((result.data&&result.data.error)||"Löschdienst nicht erreichbar");
+  }catch(e){ deleteError=e; }
+  /* Übergangssicherung: Solange die Edge Function noch nicht bereitsteht, bleibt
+     die bisherige Datenlöschung funktionsfähig. In diesem Fall kann jedoch keine
+     automatische Bestätigungs-E-Mail verschickt werden. */
+  if(!deleted){
+    const fallback=await SUPA.rpc("delete_own_account");
+    if(!fallback.error) deleted=true;
+    else{
+      const reason=(deleteError&&deleteError.message)||fallback.error.message||"Unbekannter Fehler";
+      deleteAccountMessage("Automatische Löschung nicht möglich: "+reason+" Bitte nutze alternativ datenschutz@petriklar.com.",true);
+      return;
+    }
   }
+  try{ sessionStorage.setItem(ACCOUNT_DELETED_NOTICE_KEY,emailSent?"email_sent":"email_failed"); }catch(e){}
+  ACCOUNT_DELETE_IN_PROGRESS=true;
   clearLegacyState(); CLOUD_USER=null; CLOUD_DATA_LOADED=false; CLOUD_DIRTY=false; APP_STATE=emptyAppState();
   try{ await SUPA.auth.signOut({scope:"local"}); }catch(e){}
   closeDeleteAccountModal(); location.reload();
