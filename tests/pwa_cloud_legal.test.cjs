@@ -25,9 +25,9 @@ test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v80/);
+  assert.match(sw,/petriklar-shell-v81/);
   assert.match(sw,/self\.skipWaiting\(\)/);
-  assert.match(pwa,/service-worker\.js\?v=80/);
+  assert.match(pwa,/service-worker\.js\?v=81/);
   assert.match(pwa,/updateViaCache:"none"/);
   assert.match(html,/styles\.css\?v=74/);
   assert.match(html,/js\/pwa\.js\?v=64/);
@@ -37,9 +37,11 @@ test("Öffentliche Startseite führt in die getrennte PetriKlar-App",()=>{
   const landing=read("index.html"), app=read("app.html"), sw=read("service-worker.js");
   assert.match(landing,/PetriKlar – Angelplätze, Fangbuch & Live-Wasserdaten/);
   assert.match(landing,/href="app\.html"/);
-  assert.match(landing,/href="landing\.css\?v=1"/);
+  assert.match(landing,/href="landing\.css\?v=2"/);
+  assert.match(landing,/id="sensornetz"/);
+  assert.match(landing,/Ein Sensornetzwerk/);
   assert.match(sw,/"\.\/app\.html"/);
-  assert.match(sw,/"\.\/landing\.css\?v=1"/);
+  assert.match(sw,/"\.\/landing\.css\?v=2"/);
   assert.match(app,/name="robots" content="noindex,nofollow"/);
   assert.match(read("robots.txt"),/Sitemap: https:\/\/www\.petriklar\.com\/sitemap\.xml/);
   assert.match(read("sitemap.xml"),/<loc>https:\/\/www\.petriklar\.com\/<\/loc>/);
