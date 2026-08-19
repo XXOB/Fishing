@@ -24,6 +24,7 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -37,6 +38,7 @@ jobs:
           python-version: "3.12"
  
       - name: Playwright + Chromium installieren
+        timeout-minutes: 10
         run: |
           python -m pip install --upgrade pip
           python -m pip install playwright
