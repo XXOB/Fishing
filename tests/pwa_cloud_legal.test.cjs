@@ -23,6 +23,18 @@ test("Service Worker cached keine persönlichen Supabase-Antworten",()=>{
   assert.match(sw,/if\(isPrivateBackend\(url\)\) return/);
 });
 
+test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
+  const water=read(".github/workflows/wasserwerte.yml");
+  const deploy=read(".github/workflows/deploy-pages.yml");
+  assert.doesNotMatch(water,/\n\s+push:/);
+  assert.match(water,/timeout-minutes: 10[\s\S]*playwright install --with-deps chromium/i);
+  assert.match(water,/Wasserwerte abrufen[\s\S]*timeout-minutes: 25/);
+  assert.match(water,/group: wasserwerte[\s\S]*cancel-in-progress: true/);
+  assert.match(deploy,/\n\s+push:/);
+  assert.doesNotMatch(deploy,/fetch_wasserwerte\.py/);
+  assert.match(deploy,/group: pages[\s\S]*queue: max/);
+});
+
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
   assert.match(sw,/petriklar-shell-v81/);
