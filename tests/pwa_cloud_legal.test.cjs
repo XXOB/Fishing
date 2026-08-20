@@ -37,11 +37,11 @@ test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v83/);
+  assert.match(sw,/petriklar-shell-v84/);
   assert.match(sw,/self\.skipWaiting\(\)/);
-  assert.match(pwa,/service-worker\.js\?v=83/);
+  assert.match(pwa,/service-worker\.js\?v=84/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=76/);
+  assert.match(html,/styles\.css\?v=77/);
   assert.match(html,/js\/pwa\.js\?v=65/);
 });
 
@@ -94,12 +94,11 @@ test("Apple Passwortmanager erkennt das Anmeldeformular",()=>{
   assert.match(cloud,/function resetViewportAfterAuth\(\)/);
 });
 
-test("Fisch und Theme-Schalter stehen im Login symmetrisch",()=>{
-  const css=read("styles.css");
+test("Login zeigt keinen Fisch und hält den Theme-Schalter rechts",()=>{
+  const html=read("app.html"), css=read("styles.css");
+  assert.doesNotMatch(html,/class="auth-brand-logo"/);
   assert.match(css,/\.auth-locked #authModal \.auth-box\{position:relative\}/);
-  assert.match(css,/\.auth-locked #authModal \.auth-brand-logo,\.auth-locked #authModal \.auth-theme-toggle\{position:absolute;top:1rem;width:3rem;height:3rem/);
-  assert.match(css,/\.auth-locked #authModal \.auth-brand-logo\{left:1rem;right:auto/);
-  assert.match(css,/\.auth-locked #authModal \.auth-theme-toggle\{right:1rem\}/);
+  assert.match(css,/\.auth-locked #authModal \.auth-theme-toggle\{right:1rem;top:1rem;width:3rem;height:3rem\}/);
 });
 
 test("App bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
