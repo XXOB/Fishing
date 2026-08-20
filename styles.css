@@ -1432,6 +1432,16 @@ header{padding-right:7.15rem}
 .theme-toggle[aria-pressed="true"]{border-color:rgba(100,210,255,.32);background:rgba(10,132,255,.14);color:var(--water)}
 .auth-theme-toggle{position:absolute;right:1rem;top:1rem;z-index:4}
 
+/* Symmetric login controls: brand left, appearance right, on one baseline. */
+.auth-locked #authModal .auth-box{position:relative}
+.auth-locked #authModal .auth-brand{position:static}
+.auth-locked #authModal .auth-brand-logo,.auth-locked #authModal .auth-theme-toggle{position:absolute;top:1rem;width:3rem;height:3rem;margin:0;z-index:4}
+.auth-locked #authModal .auth-brand-logo{left:1rem;right:auto;border:1px solid rgba(255,255,255,.18)}
+.auth-locked #authModal .auth-theme-toggle{right:1rem}
+.auth-locked #authModal #authLoggedOut{padding-top:5.75rem}
+.auth-locked #authModal .fbfield input{font-size:16px}
+body:not(.auth-locked) .auth-theme-toggle{display:none}
+
 /* Light mode follows the system until the user toggles an explicit preference. */
 html[data-theme="light"]{
   color-scheme:light;background:#f3f6fa;
@@ -1457,4 +1467,5 @@ html[data-theme="light"] .auth-brand-logo{color:#fff}html[data-theme="light"] .a
 html[data-theme="light"] .exact-location-field{background:#f5f7fa}html[data-theme="light"] .catch-spot-prompt{background:rgba(10,132,255,.08)}
 
 @media (hover:hover) and (pointer:fine){.theme-toggle:hover{background:rgba(72,72,74,.88)}html[data-theme="light"] .theme-toggle:hover,html[data-theme="light"] .account-btn:hover,html[data-theme="light"] .backbtn:hover,html[data-theme="light"] .fbtool:hover,html[data-theme="light"] .fbbtn:hover{background:#e5ebf2;border-color:rgba(8,120,220,.2)}html[data-theme="light"] .spotopen:hover,html[data-theme="light"] .library-link:hover{background:#f4f7fa}}
-@media(max-width:520px){header{padding-right:6.8rem}.exact-location-actions{grid-template-columns:1fr}.catch-spot-prompt{grid-template-columns:2.5rem minmax(0,1fr) 2.25rem;padding:.75rem}.auth-theme-toggle{right:.75rem;top:.75rem}}
+@media(max-width:700px){.auth-locked #authModal #authLoggedOut{padding-top:1.5rem}}
+@media(max-width:520px){header{padding-right:6.8rem}.exact-location-actions{grid-template-columns:1fr}.catch-spot-prompt{grid-template-columns:2.5rem minmax(0,1fr) 2.25rem;padding:.75rem}.auth-locked #authModal .auth-brand-logo,.auth-locked #authModal .auth-theme-toggle{top:.75rem;width:2.75rem;height:2.75rem}.auth-locked #authModal .auth-brand-logo{left:.75rem}.auth-locked #authModal .auth-theme-toggle{right:.75rem}}

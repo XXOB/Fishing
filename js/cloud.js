@@ -197,9 +197,18 @@ async function handleCloudSession(session){
   if(!sameUser) CLOUD_DATA_LOADED=false;
   CLOUD_USER=nextUser; CLOUD_READY=true; renderAccountUI();
   if(CLOUD_USER){
+    resetViewportAfterAuth();
     const loaded=await pullCloudState(); renderAccountUI();
-    if(loaded) await startAppAfterLogin();
+    if(loaded){ resetViewportAfterAuth(); await startAppAfterLogin(); }
   } else { APP_STATE=emptyAppState(); CLOUD_DIRTY=false; CLOUD_DATA_LOADED=false; ONBOARDING_OPENED=false; renderAccountUI(); showDeletedAccountConfirmation(); }
+}
+function resetViewportAfterAuth(){
+  const active=document.activeElement;
+  if(active&&/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)&&typeof active.blur==="function") active.blur();
+  const reset=()=>window.scrollTo({top:0,left:0,behavior:"auto"});
+  reset();
+  if(typeof requestAnimationFrame==="function") requestAnimationFrame(reset);
+  setTimeout(reset,120);
 }
 async function resumeCloudAfterReconnect(){
   if(CLOUD_RECONNECTING||!SUPA||!CLOUD_USER||CLOUD_DATA_LOADED||!navigator.onLine) return;

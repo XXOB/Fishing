@@ -37,11 +37,11 @@ test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v82/);
+  assert.match(sw,/petriklar-shell-v83/);
   assert.match(sw,/self\.skipWaiting\(\)/);
-  assert.match(pwa,/service-worker\.js\?v=82/);
+  assert.match(pwa,/service-worker\.js\?v=83/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=75/);
+  assert.match(html,/styles\.css\?v=76/);
   assert.match(html,/js\/pwa\.js\?v=65/);
 });
 
@@ -85,11 +85,21 @@ test("Kontoerstellung hat eine eigene Maske mit Passwortbestätigung",()=>{
 });
 
 test("Apple Passwortmanager erkennt das Anmeldeformular",()=>{
-  const html=read("app.html");
+  const html=read("app.html"), css=read("styles.css"), cloud=read("js/cloud.js");
   assert.match(html,/<form id="authSignInPanel"[^>]*autocomplete="on"/);
   assert.match(html,/id="authEmail" name="username" type="email" autocomplete="username"/);
   assert.match(html,/id="authPassword" name="password" type="password" autocomplete="current-password"/);
   assert.match(html,/<button type="submit" class="btn-primary">Anmelden<\/button>/);
+  assert.match(css,/\.auth-locked #authModal \.fbfield input\{font-size:16px\}/);
+  assert.match(cloud,/function resetViewportAfterAuth\(\)/);
+});
+
+test("Fisch und Theme-Schalter stehen im Login symmetrisch",()=>{
+  const css=read("styles.css");
+  assert.match(css,/\.auth-locked #authModal \.auth-box\{position:relative\}/);
+  assert.match(css,/\.auth-locked #authModal \.auth-brand-logo,\.auth-locked #authModal \.auth-theme-toggle\{position:absolute;top:1rem;width:3rem;height:3rem/);
+  assert.match(css,/\.auth-locked #authModal \.auth-brand-logo\{left:1rem;right:auto/);
+  assert.match(css,/\.auth-locked #authModal \.auth-theme-toggle\{right:1rem\}/);
 });
 
 test("App bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
