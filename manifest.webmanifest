@@ -2,7 +2,7 @@
   "id": "./",
   "name": "PetriKlar",
   "short_name": "PetriKlar",
-  "description": "Angelplätze, Fangbuch, Fangmeldungen und Live-Bedingungen an deinen Gewässern.",
+  "description": "PetriKlar ist die Angel-App mit digitalem Fangbuch, Angelplätzen, Statistiken und verfügbaren amtlichen Wasser- und Pegeldaten.",
   "lang": "de-DE",
   "dir": "ltr",
   "start_url": "./app.html",
