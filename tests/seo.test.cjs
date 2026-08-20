@@ -52,8 +52,8 @@ test("indexierbare Seiten haben eindeutige SEO-Grunddaten",()=>{
 test("Startseite beschreibt die Angel-App sichtbar und strukturiert konsistent",()=>{
   const html=read("index.html");
   const visible=html.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/<style[\s\S]*?<\/style>/gi,"");
-  assert.match(visible,/<h1>[\s\S]*Angel-App/i);
-  assert.match(visible,/Angel-App kostenlos starten/i);
+  assert.match(visible,/<h1>[\s\S]*digitales[\s\S]*Fangbuch/i);
+  assert.match(visible,/Kostenlos öffnen/i);
   assert.match(visible,/Kostenlos im Browser/i);
   assert.match(visible,/href="ratgeber\/"/);
   assert.match(visible,/href="installieren\.html"/);
@@ -63,7 +63,7 @@ test("Startseite beschreibt die Angel-App sichtbar und strukturiert konsistent",
   assert.equal(website.url,"https://www.petriklar.com/");
   assert.equal(app.offers.price,"0");
   assert.equal(app.offers.priceCurrency,"EUR");
-  assert.match(app.description,/Angel-App/i);
+  assert.match(app.description,/Fänge und Angeltage/i);
   assert.ok(app.featureList.includes("Digitales Fangbuch"));
 });
 
@@ -73,20 +73,18 @@ test("Ratgeber-Artikel liefern vollständige Article- und Breadcrumb-Daten",()=>
     const article=nodes.find(node=>node["@type"]==="BlogPosting");
     const breadcrumbs=nodes.find(node=>node["@type"]==="BreadcrumbList");
     assert.ok(article,`${file}: BlogPosting`);
-    const imageUrl=typeof article.image==="string"?article.image:article.image.url;
-    assert.ok(imageUrl.startsWith("https://www.petriklar.com/assets/images/"));
     assert.equal(article.publisher.name,"PetriKlar");
     assert.match(article.dateModified,/^2026-08-20$/);
     assert.ok(breadcrumbs.itemListElement.length>=3,`${file}: Breadcrumbs`);
   }
 });
 
-test("Sitemap enthaelt nur kanonische Suchseiten samt Bildsignalen",()=>{
+test("Sitemap enthaelt nur kanonische Suchseiten",()=>{
   const sitemap=read("sitemap.xml");
   const locations=[...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match=>match[1]);
   assert.deepEqual(locations,publicPages.map(([,canonical])=>canonical));
   assert.doesNotMatch(sitemap,/https:\/\/petriklar\.com\//);
-  assert.equal((sitemap.match(/<image:image>/g)||[]).length,4);
+  assert.doesNotMatch(sitemap,/<image:image>/);
   assert.match(read("robots.txt"),/Sitemap: https:\/\/www\.petriklar\.com\/sitemap\.xml/);
 });
 
@@ -95,10 +93,11 @@ test("Hilfs-, App- und Entwurfsseiten bleiben aus dem Suchindex",()=>{
   for(const file of noIndexPages) assert.match(read(file),/<meta name="robots" content="noindex,(?:no)?follow"/i,`${file}: noindex`);
 });
 
-test("SEO-Bilder sind gross genug und auf den Suchseiten verknuepft",()=>{
-  const images=["assets/images/angel-app-digitales-fangbuch.jpg","assets/images/beissverhalten-fische-angel-app.jpg"];
-  for(const file of images) assert.ok(fs.statSync(path.join(root,file)).size>100_000,`${file}: hochwertige Bilddatei`);
-  assert.match(read("index.html"),/width="1200" height="630" loading="lazy"/);
-  assert.match(read("ratgeber/angel-app-digitales-fangbuch.html"),/angel-app-digitales-fangbuch\.jpg/);
-  assert.match(read("ratgeber/beissverhalten-der-fische.html"),/beissverhalten-fische-angel-app\.jpg/);
+test("Oeffentliche Inhalte enthalten keine redaktionellen Bildverweise",()=>{
+  assert.equal(fs.existsSync(path.join(root,"assets/images")),false,"Ordner mit generierten Inhaltsbildern ist entfernt");
+  for(const [file] of publicPages){
+    const html=read(file);
+    assert.doesNotMatch(html,/assets\/images\//,`${file}: keine Inhaltsbilder`);
+    assert.doesNotMatch(html,/<meta (?:property|name)="(?:og|twitter):image/i,`${file}: keine Social-Bilder`);
+  }
 });

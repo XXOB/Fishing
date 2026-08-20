@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.petriklar.com/</loc>
     <lastmod>2026-08-20</lastmod>
-    <image:image>
-      <image:loc>https://www.petriklar.com/assets/images/angel-app-digitales-fangbuch.jpg</image:loc>
-      <image:caption>PetriKlar Angel-App mit digitalem Fangbuch und Wasserdaten</image:caption>
-    </image:image>
   </url>
   <url>
     <loc>https://www.petriklar.com/installieren.html</loc>
     <lastmod>2026-08-20</lastmod>
-    <image:image>
-      <image:loc>https://www.petriklar.com/assets/images/angel-app-digitales-fangbuch.jpg</image:loc>
-      <image:caption>Angel-App auf dem Smartphone eines Anglers</image:caption>
-    </image:image>
   </url>
   <url>
     <loc>https://www.petriklar.com/ratgeber/</loc>
@@ -23,17 +15,9 @@
   <url>
     <loc>https://www.petriklar.com/ratgeber/angel-app-digitales-fangbuch.html</loc>
     <lastmod>2026-08-20</lastmod>
-    <image:image>
-      <image:loc>https://www.petriklar.com/assets/images/angel-app-digitales-fangbuch.jpg</image:loc>
-      <image:caption>Angel-App mit digitalem Fangbuch am Wasser</image:caption>
-    </image:image>
   </url>
   <url>
     <loc>https://www.petriklar.com/ratgeber/beissverhalten-der-fische.html</loc>
     <lastmod>2026-08-20</lastmod>
-    <image:image>
-      <image:loc>https://www.petriklar.com/assets/images/beissverhalten-fische-angel-app.jpg</image:loc>
-      <image:caption>Einflüsse von Wetter und Wasser auf das Beißverhalten der Fische</image:caption>
-    </image:image>
   </url>
 </urlset>
