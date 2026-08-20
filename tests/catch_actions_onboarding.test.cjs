@@ -43,6 +43,23 @@ test("Die Hauptnavigation priorisiert den schnellen Fangeintrag",()=>{
   assert.match(app,/if\(trip\)\{ tripAddCatch\(\); return; \}/);
 });
 
+test("Ohne Trip wird vor dem Fang der Angelplatz bewusst gewählt",()=>{
+  assert.match(html,/id="catchSpotPrompt"/);
+  assert.match(app,/function showFangbuchList\(mode\)/);
+  assert.match(app,/CATCH_SPOT_PICK_MODE=mode==="pick"/);
+  assert.match(app,/function chooseCatchSpot\(id\)/);
+  assert.match(app,/showFangbuchList\("pick"\)/);
+  assert.doesNotMatch(app,/const preferred=activeSpot\(\)\|\|spots\.find/);
+});
+
+test("Ein Fang kann optional einen genauen GPS- oder Kartenort speichern",()=>{
+  assert.match(html,/Genauer Fangort/);
+  assert.match(html,/onclick="captureGps\(\)"/);
+  assert.match(html,/onclick="markOnMap\(\)"/);
+  assert.match(app,/function captureGps\(\)/);
+  assert.match(app,/gps: CURRENT_GPS/);
+});
+
 test("Angelplatz-Aktionen verwenden Favorit, Bearbeiten und Papierkorb",()=>{
   assert.match(html,/id="i-star"/);
   assert.match(app,/uiIcon\('star'\)/);

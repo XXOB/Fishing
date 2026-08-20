@@ -1413,3 +1413,48 @@ footer{max-width:56rem;margin:2.5rem auto 1rem}
 .password-toggle .uiicon{width:1.25rem;height:1.25rem}
 .password-toggle:hover,.password-toggle:focus-visible{background:rgba(118,118,128,.2);color:var(--text);outline:none}
 .password-toggle:focus-visible{box-shadow:0 0 0 2px var(--water)}
+
+/* Explicit catch-location choice and optional precise position */
+.catch-spot-prompt{grid-template-columns:2.75rem minmax(0,1fr) 2.5rem;align-items:center;gap:.8rem;margin:0 0 1rem;padding:.85rem;border:1px solid rgba(100,210,255,.28);border-radius:1rem;background:rgba(10,132,255,.1)}
+.catch-spot-prompt-icon{width:2.75rem;height:2.75rem;display:flex;align-items:center;justify-content:center;border-radius:.82rem;background:rgba(10,132,255,.18);color:var(--water)}
+.catch-spot-prompt-icon .uiicon{width:1.35rem;height:1.35rem}.catch-spot-prompt>span:nth-child(2){display:flex;flex-direction:column;gap:.15rem}.catch-spot-prompt strong{font-size:.92rem}.catch-spot-prompt small{color:var(--muted);font-size:.75rem;line-height:1.4}
+.catch-spot-prompt button{width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:.72rem;background:transparent;color:var(--muted);cursor:pointer}.catch-spot-prompt button:active{transform:scale(.94)}
+.catch-spot-choice{border-color:rgba(100,210,255,.24)}.catch-spot-choice .spotopen{min-height:4.5rem}.catch-spot-choice .spotopen>.uiicon{color:var(--water)}
+#fbIndexView.is-picking .utility-disclosure,#fbIndexView.is-picking .library-link{display:none}
+.exact-location-field{margin-top:.15rem;padding:.9rem;border:1px solid var(--line);border-radius:.9rem;background:rgba(118,118,128,.08)}
+.exact-location-field label{display:flex;align-items:center;gap:.45rem;color:var(--text)}.exact-location-field label span{padding:.18rem .4rem;border-radius:999px;background:rgba(118,118,128,.18);color:var(--muted);font-size:.58rem;letter-spacing:.04em}
+.exact-location-field>p{margin:0 0 .75rem;color:var(--muted);font-size:.75rem;line-height:1.45}.exact-location-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}.exact-location-actions .fbbtn{min-height:3rem;justify-content:center}
+
+/* Shared theme control */
+header{padding-right:7.15rem}
+.account-area{align-items:center;gap:.45rem}.theme-toggle{flex:0 0 auto;width:2.75rem;height:2.75rem;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid rgba(255,255,255,.13);border-radius:.84rem;background:rgba(58,58,60,.72);color:var(--text);font:700 1.35rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;transition:transform 100ms var(--ease-out),background-color 180ms ease,border-color 180ms ease}
+.theme-toggle:active{transform:scale(.94)}.theme-toggle:focus-visible{outline:3px solid rgba(100,210,255,.42);outline-offset:3px}
+.theme-toggle[aria-pressed="true"]{border-color:rgba(100,210,255,.32);background:rgba(10,132,255,.14);color:var(--water)}
+.auth-theme-toggle{position:absolute;right:1rem;top:1rem;z-index:4}
+
+/* Light mode follows the system until the user toggles an explicit preference. */
+html[data-theme="light"]{
+  color-scheme:light;background:#f3f6fa;
+  --bg:#f3f6fa;--bg2:#e9eef4;--card:#fff;--card2:#eef2f7;
+  --line:rgba(24,45,66,.14);--text:#102132;--muted:#5f7080;--muted2:#788897;
+  --water:#0878dc;--teal:#0878dc;--primary:#0878dc;--primary2:#0878dc;
+  --amber:#a66a00;--red:#c9332a;--green:#16883b;--shadow:0 14px 42px rgba(37,63,85,.1);
+}
+html[data-theme="light"] body{color:var(--text);background:radial-gradient(60rem 38rem at 5% -8%,rgba(10,132,255,.1),transparent 62%),radial-gradient(48rem 32rem at 100% 8%,rgba(100,210,255,.1),transparent 68%),#f3f6fa fixed}
+html[data-theme="light"] header{border-color:var(--line);background:rgba(255,255,255,.76);box-shadow:0 14px 40px rgba(37,63,85,.1),inset 0 1px #fff}
+html[data-theme="light"] .theme-toggle,html[data-theme="light"] .account-btn{border-color:var(--line);background:rgba(255,255,255,.9);color:#26394b;box-shadow:0 4px 16px rgba(37,63,85,.08)}
+html[data-theme="light"] .spotrow,html[data-theme="light"] .emptycard,html[data-theme="light"] .mapcard,html[data-theme="light"] .fbcard,html[data-theme="light"] .fbitem,html[data-theme="light"] .tile,html[data-theme="light"] .qtile,html[data-theme="light"] .statcard,html[data-theme="light"] .biteitem,html[data-theme="light"] .baitcat,html[data-theme="light"] .stabar,html[data-theme="light"] .cond,html[data-theme="light"] .blankgroup,html[data-theme="light"] .favorite-card,html[data-theme="light"] .library-link,html[data-theme="light"] .utility-disclosure,html[data-theme="light"] .baitadd,html[data-theme="light"] .catch-sort{border-color:var(--line);background:#fff;box-shadow:inset 0 1px #fff}
+html[data-theme="light"] .backbtn,html[data-theme="light"] .fbtool,html[data-theme="light"] .fbbtn,html[data-theme="light"] .refresh,html[data-theme="light"] .homebtns button,html[data-theme="light"] .stabar button{border-color:var(--line);background:#eef2f7;color:var(--text)}
+html[data-theme="light"] .fbfield input,html[data-theme="light"] .fbfield select,html[data-theme="light"] .baitadd input,html[data-theme="light"] .baitadd select,html[data-theme="light"] .baitvaradd input,html[data-theme="light"] .stabar input,html[data-theme="light"] .stabar select,html[data-theme="light"] .catch-sort select{border-color:var(--line);background:#f1f4f8;color:var(--text)}
+html[data-theme="light"] select{color-scheme:light!important;color:var(--text)!important;background-color:#f1f4f8!important}html[data-theme="light"] select option,html[data-theme="light"] select optgroup{color:var(--text)!important;background:#fff!important}
+html[data-theme="light"] .mapmeta{background:rgba(255,255,255,.82)}html[data-theme="light"] .mapmeta .btns{background:rgba(118,118,128,.12)}html[data-theme="light"] .mapmeta button.active{color:#0878dc;background:rgba(10,132,255,.12)}
+html[data-theme="light"] .tabbar{border-color:var(--line);background:rgba(255,255,255,.82);box-shadow:0 20px 60px rgba(37,63,85,.18),inset 0 1px #fff}html[data-theme="light"] .tab-action .action-plus{border-color:#fff}
+html[data-theme="light"] .cmodal{background:rgba(35,48,61,.35)}html[data-theme="light"] .cmbox{border-color:var(--line);background:rgba(255,255,255,.96);box-shadow:0 34px 100px rgba(37,63,85,.24),inset 0 1px #fff}
+html[data-theme="light"] .auth-locked{background:#f3f6fa}html[data-theme="light"] .auth-locked #authModal{background:radial-gradient(48rem 34rem at 16% 12%,rgba(10,132,255,.14),transparent 66%),radial-gradient(42rem 30rem at 95% 92%,rgba(100,210,255,.1),transparent 72%),#f3f6fa}
+html[data-theme="light"] .auth-locked #authModal .auth-box{border-color:var(--line);background:rgba(255,255,255,.9);box-shadow:0 36px 110px rgba(37,63,85,.22),inset 0 1px #fff}
+html[data-theme="light"] .auth-locked #authModal .auth-box::before{color:rgba(16,33,50,.76);border-color:var(--line);background:radial-gradient(circle at 28% 20%,rgba(255,255,255,.9) 0 2px,transparent 3px),linear-gradient(166deg,transparent 0 47%,rgba(10,132,255,.16) 47.2% 48%,transparent 48.2%),radial-gradient(ellipse at 65% 116%,rgba(100,210,255,.22),transparent 55%),linear-gradient(180deg,#dff1ff,#edf5fb 52%,#e4ebf2)}
+html[data-theme="light"] .auth-brand-logo{color:#fff}html[data-theme="light"] .auth-actions .backbtn{background:#eef2f7}
+html[data-theme="light"] .exact-location-field{background:#f5f7fa}html[data-theme="light"] .catch-spot-prompt{background:rgba(10,132,255,.08)}
+
+@media (hover:hover) and (pointer:fine){.theme-toggle:hover{background:rgba(72,72,74,.88)}html[data-theme="light"] .theme-toggle:hover,html[data-theme="light"] .account-btn:hover,html[data-theme="light"] .backbtn:hover,html[data-theme="light"] .fbtool:hover,html[data-theme="light"] .fbbtn:hover{background:#e5ebf2;border-color:rgba(8,120,220,.2)}html[data-theme="light"] .spotopen:hover,html[data-theme="light"] .library-link:hover{background:#f4f7fa}}
+@media(max-width:520px){header{padding-right:6.8rem}.exact-location-actions{grid-template-columns:1fr}.catch-spot-prompt{grid-template-columns:2.5rem minmax(0,1fr) 2.25rem;padding:.75rem}.auth-theme-toggle{right:.75rem;top:.75rem}}

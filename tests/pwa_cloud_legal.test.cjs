@@ -37,26 +37,40 @@ test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v81/);
+  assert.match(sw,/petriklar-shell-v82/);
   assert.match(sw,/self\.skipWaiting\(\)/);
-  assert.match(pwa,/service-worker\.js\?v=81/);
+  assert.match(pwa,/service-worker\.js\?v=82/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=74/);
-  assert.match(html,/js\/pwa\.js\?v=64/);
+  assert.match(html,/styles\.css\?v=75/);
+  assert.match(html,/js\/pwa\.js\?v=65/);
 });
 
 test("Öffentliche Startseite führt in die getrennte PetriKlar-App",()=>{
   const landing=read("index.html"), app=read("app.html"), sw=read("service-worker.js");
   assert.match(landing,/PetriKlar – Angelplätze, Fangbuch & Live-Wasserdaten/);
   assert.match(landing,/href="app\.html"/);
-  assert.match(landing,/href="landing\.css\?v=2"/);
+  assert.match(landing,/href="landing\.css\?v=3"/);
   assert.match(landing,/id="sensornetz"/);
   assert.match(landing,/Ein Sensornetzwerk/);
   assert.match(sw,/"\.\/app\.html"/);
-  assert.match(sw,/"\.\/landing\.css\?v=2"/);
+  assert.match(sw,/"\.\/landing\.css\?v=3"/);
   assert.match(app,/name="robots" content="noindex,nofollow"/);
   assert.match(read("robots.txt"),/Sitemap: https:\/\/www\.petriklar\.com\/sitemap\.xml/);
   assert.match(read("sitemap.xml"),/<loc>https:\/\/www\.petriklar\.com\/<\/loc>/);
+});
+
+test("System- und manueller Light Mode gelten auf Startseite und App",()=>{
+  const landing=read("index.html"), app=read("app.html"), theme=read("theme.js"), landingCss=read("landing.css"), appCss=read("styles.css"), sw=read("service-worker.js");
+  assert.match(landing,/theme\.js\?v=1/);
+  assert.match(app,/theme\.js\?v=1/);
+  assert.match(landing,/data-theme-toggle/);
+  assert.match(app,/data-theme-toggle/);
+  assert.match(theme,/prefers-color-scheme: light/);
+  assert.match(theme,/petriklar_theme_v1/);
+  assert.match(landingCss,/html\[data-theme="light"\]/);
+  assert.match(appCss,/html\[data-theme="light"\]/);
+  assert.match(sw,/"\.\/theme\.js\?v=1"/);
+  assert.doesNotMatch(landingCss,/\.app-window\{[^}]*transform:rotate/);
 });
 
 test("Kontoerstellung hat eine eigene Maske mit Passwortbestätigung",()=>{
@@ -68,6 +82,14 @@ test("Kontoerstellung hat eine eigene Maske mit Passwortbestätigung",()=>{
   assert.match(html,/togglePasswordVisibility\('signUpPasswordConfirm'/);
   assert.match(cloud,/function authCreateAccount\(\)/);
   assert.match(cloud,/password!==confirmation/);
+});
+
+test("Apple Passwortmanager erkennt das Anmeldeformular",()=>{
+  const html=read("app.html");
+  assert.match(html,/<form id="authSignInPanel"[^>]*autocomplete="on"/);
+  assert.match(html,/id="authEmail" name="username" type="email" autocomplete="username"/);
+  assert.match(html,/id="authPassword" name="password" type="password" autocomplete="current-password"/);
+  assert.match(html,/<button type="submit" class="btn-primary">Anmelden<\/button>/);
 });
 
 test("App bindet PWA, Rechtstexte und Kontolöschung ein",()=>{
