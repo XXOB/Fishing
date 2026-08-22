@@ -1459,6 +1459,27 @@ html[data-theme="light"] .chart-explain{background:rgba(10,132,255,.07)}
 html[data-theme="light"] .biteprofile{background:#f4f7fa}
 @media(max-width:520px){.biteprofile>div{grid-template-columns:1fr;gap:1px}.cmcanvas{height:240px}}
 
+/* Persönliche Zielfische im Beißindex */
+.targetfishsetup{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:12px 13px;border:1px solid var(--line);border-radius:13px;background:rgba(118,118,128,.08)}
+.targetfishsetup strong{display:block;font-size:14px;color:var(--text)}
+.targetfishsetup small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+.targetfishedit{flex:none;min-height:38px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--water);font-weight:700;cursor:pointer}
+.targetfishpicker{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 11px;padding:11px;border:1px solid var(--line);border-radius:13px;background:rgba(118,118,128,.06)}
+.targetfishchoice{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card2);color:var(--muted);cursor:pointer}
+.targetfishchoice span{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid currentColor;border-radius:50%;font-size:12px;font-weight:800}
+.targetfishchoice.active{border-color:rgba(10,132,255,.55);background:rgba(10,132,255,.15);color:var(--water)}
+.targetfishlist{display:grid;gap:0}
+.targetfishempty{margin-bottom:9px;padding:13px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px;line-height:1.45}
+.biteothers{margin-top:10px;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:rgba(118,118,128,.05)}
+.biteothers>summary{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:10px 13px;color:var(--text);font-size:14px;font-weight:750;cursor:pointer;list-style:none}
+.biteothers>summary::-webkit-details-marker{display:none}.biteothers>summary::after{content:"⌄";color:var(--muted);margin-left:8px}.biteothers[open]>summary::after{transform:rotate(180deg)}
+.biteothers>summary span{margin-left:auto;padding:2px 7px;border-radius:999px;background:rgba(118,118,128,.16);color:var(--muted);font-size:11px}
+.biteothersbody{padding:0 8px 2px}.biteothersbody .biteitem:last-child{margin-bottom:6px}
+html[data-theme="light"] .targetfishsetup,html[data-theme="light"] .targetfishpicker,html[data-theme="light"] .biteothers{background:#f4f7fa}
+html[data-theme="light"] .targetfishedit,html[data-theme="light"] .targetfishchoice{background:#eef2f7;color:var(--text)}
+html[data-theme="light"] .targetfishchoice.active{background:rgba(10,132,255,.1);color:#0878dc}
+@media(max-width:520px){.targetfishsetup{align-items:flex-start;flex-direction:column}.targetfishedit{width:100%}.targetfishchoice{flex:1 1 calc(50% - 7px);justify-content:flex-start}}
+
 @media (hover:hover) and (pointer:fine){.theme-toggle:hover{background:rgba(72,72,74,.88)}html[data-theme="light"] .theme-toggle:hover,html[data-theme="light"] .account-btn:hover,html[data-theme="light"] .backbtn:hover,html[data-theme="light"] .fbtool:hover,html[data-theme="light"] .fbbtn:hover{background:#e5ebf2;border-color:rgba(8,120,220,.2)}html[data-theme="light"] .spotopen:hover,html[data-theme="light"] .library-link:hover,html[data-theme="light"] .secttoggle:hover,html[data-theme="light"] .utility-disclosure summary:hover,html[data-theme="light"] .map-legend summary:hover{background:#f4f7fa}}
 @media(max-width:700px){.auth-locked #authModal #authLoggedOut{padding-top:1.5rem}}
 @media(max-width:520px){header{padding-right:6.8rem}.exact-location-actions{grid-template-columns:1fr}.catch-spot-prompt{grid-template-columns:2.5rem minmax(0,1fr) 2.25rem;padding:.75rem}.auth-locked #authModal .auth-theme-toggle{right:.75rem;top:.75rem;width:2.75rem;height:2.75rem}}

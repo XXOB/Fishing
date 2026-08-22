@@ -10,12 +10,12 @@ const SUPABASE_URL="https://mcekltbtndpzjahwypze.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_emw-cBuOXFMFgtpvKeqf9A_Rvko2T4P";
 let SUPA=null, CLOUD_USER=null, CLOUD_READY=false, CLOUD_APPLYING=false, CLOUD_TIMER=null, AUTH_RECOVERY=false;
 let CLOUD_DIRTY=false, CLOUD_LAST_REMOTE_AT="", CLOUD_DATA_LOADED=false, CLOUD_RECONNECTING=false, APP_STARTED=false;
-let APP_STATE={version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
+let APP_STATE={version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false,target_fish:[]}};
 const ACCOUNT_DELETED_NOTICE_KEY="petriklar_account_deleted_notice_v1";
 let ACCOUNT_DELETE_IN_PROGRESS=false;
 
 function emptyAppState(){
-  return {version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false}};
+  return {version:4,spots:[],catches:[],baits:[],baits_initialized:false,trips:[],active_trip:null,active_spot_id:null,report_prefs:{last_water_name:""},ui_prefs:{onboarding_done:false,target_fish:[]}};
 }
 /* Einmalige Übernahme aus älteren App-Versionen. Nach erfolgreichem
    Cloud-Upload werden sämtliche alten LocalStorage-Schlüssel gelöscht. */
@@ -62,7 +62,7 @@ function mergeLegacyState(remote,legacy){
     active_trip:legacy.active_trip||remote.active_trip||null,
     active_spot_id:legacy.active_spot_id!=null?legacy.active_spot_id:(remote.active_spot_id!=null?remote.active_spot_id:null),
     report_prefs:remote.report_prefs&&typeof remote.report_prefs==="object"?remote.report_prefs:{last_water_name:""},
-    ui_prefs:remote.ui_prefs&&typeof remote.ui_prefs==="object"?remote.ui_prefs:{onboarding_done:false}};
+    ui_prefs:remote.ui_prefs&&typeof remote.ui_prefs==="object"?remote.ui_prefs:{onboarding_done:false,target_fish:[]}};
 }
 function clearLegacyState(){ try{ LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 function setCloudStatus(text,state){
@@ -142,7 +142,7 @@ function cloudPayload(){
   return {version:4,spots:loadSpots(),catches:loadCatches(),baits:loadBaits(),baits_initialized:!!APP_STATE.baits_initialized,
     trips:loadTrips(),active_trip:activeTrip(),active_spot_id:getActiveSpotId(),
     report_prefs:APP_STATE.report_prefs&&typeof APP_STATE.report_prefs==="object"?APP_STATE.report_prefs:{last_water_name:""},
-    ui_prefs:APP_STATE.ui_prefs&&typeof APP_STATE.ui_prefs==="object"?APP_STATE.ui_prefs:{onboarding_done:false}};
+    ui_prefs:APP_STATE.ui_prefs&&typeof APP_STATE.ui_prefs==="object"?APP_STATE.ui_prefs:{onboarding_done:false,target_fish:[]}};
 }
 function applyCloudPayload(p){
   p=p||{}; CLOUD_APPLYING=true;
@@ -153,7 +153,7 @@ function applyCloudPayload(p){
       trips:Array.isArray(p.trips)?p.trips:[], active_trip:p.active_trip||null,
       active_spot_id:p.active_spot_id!=null?p.active_spot_id:null,
       report_prefs:p.report_prefs&&typeof p.report_prefs==="object"?p.report_prefs:{last_water_name:""},
-      ui_prefs:p.ui_prefs&&typeof p.ui_prefs==="object"?p.ui_prefs:{onboarding_done:false}};
+      ui_prefs:p.ui_prefs&&typeof p.ui_prefs==="object"?p.ui_prefs:{onboarding_done:false,target_fish:[]}};
     const valid=APP_STATE.spots.some(s=>String(s.id)===String(APP_STATE.active_spot_id));
     if(!valid) APP_STATE.active_spot_id=APP_STATE.spots[0]?APP_STATE.spots[0].id:null;
   } finally { CLOUD_APPLYING=false; }

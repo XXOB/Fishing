@@ -287,23 +287,52 @@ function fishProfileHtml(sp,ctx){
     '<div><b>7 Tage</b><span>'+esc(week.length?week.join(" · "):"Noch kein 7-Tage-Verlauf an dieser Messstation")+'</span></div>'+
     '<div><b>Modellwerte</b><span>Temperatur ideal '+sp.temp[0]+'–'+sp.temp[1]+' °C, Toleranz '+sp.tol[0]+'–'+sp.tol[1]+' °C · Sauerstoff günstig ab '+o[0]+' mg/l, niedrig unter '+o[1]+' mg/l, kritisch unter '+o[2]+' mg/l</span></div></div>';
 }
+const DEFAULT_TARGET_FISH=[];
+let TARGET_FISH_PICKER_OPEN=false;
+function targetFishNames(){
+  const prefs=APP_STATE&&APP_STATE.ui_prefs, saved=prefs&&Array.isArray(prefs.target_fish)?prefs.target_fish:DEFAULT_TARGET_FISH;
+  const valid=new Set(BITE.map(sp=>sp.name));
+  return saved.filter((name,i,a)=>valid.has(name)&&a.indexOf(name)===i);
+}
+function toggleTargetFishPicker(){ TARGET_FISH_PICKER_OPEN=!TARGET_FISH_PICKER_OPEN; renderBite(); }
+function toggleTargetFish(name){
+  const current=new Set(targetFishNames());
+  if(current.has(name)) current.delete(name); else current.add(name);
+  if(!APP_STATE.ui_prefs||typeof APP_STATE.ui_prefs!=="object") APP_STATE.ui_prefs={onboarding_done:false};
+  APP_STATE.ui_prefs.target_fish=BITE.filter(sp=>current.has(sp.name)).map(sp=>sp.name);
+  markCloudDirty(); renderBite();
+}
+function biteRow(sp,ctx,tag,col){
+  const r=evalBite(sp,ctx), rec=bestBaitForFish(sp.name);
+  const recHtml=rec?'<div class="biterec">'+uiIcon('hook')+' Bewährter Köder bei dir: <b>'+esc(rec.koeder)+
+    '</b> <small>('+rec.count+' von '+rec.total+' '+esc(sp.name)+'-Fängen)</small></div>':'';
+  return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
+    '<span class="bitedot bd-'+r.color+'"></span>'+sp.name+
+    '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' '+uiIcon('chevron-down')+'</span></button>'+
+    '<div class="bitereason"><div class="bitedayreason">'+esc(r.reason)+'</div>'+fishProfileHtml(sp,ctx)+recHtml+'</div></div>';
+}
 function renderBite(){
   const box=$("biteBox"); if(!box) return;
   const ctx=biteContext();
   const tag={green:"beißt gut",amber:"mittel",red:"eher nicht"};
   const col={green:"--green",amber:"--amber",red:"--red"};
-  const rows=BITE.map(sp=>{
-    const r=evalBite(sp,ctx);
-    const rec=bestBaitForFish(sp.name);
-    const recHtml = rec ? '<div class="biterec">'+uiIcon('hook')+' Bewährter Köder bei dir: <b>'+esc(rec.koeder)+
-      '</b> <small>('+rec.count+' von '+rec.total+' '+esc(sp.name)+'-Fängen)</small></div>' : '';
-    return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
-      '<span class="bitedot bd-'+r.color+'"></span>'+sp.name+
-      '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' '+uiIcon('chevron-down')+'</span></button>'+
-      '<div class="bitereason"><div class="bitedayreason">'+esc(r.reason)+'</div>'+fishProfileHtml(sp,ctx)+recHtml+'</div></div>';
+  const targets=targetFishNames(), selected=new Set(targets);
+  const targetRows=BITE.filter(sp=>selected.has(sp.name)).map(sp=>biteRow(sp,ctx,tag,col)).join("");
+  const others=BITE.filter(sp=>!selected.has(sp.name));
+  const choices=BITE.map(sp=>{
+    const on=selected.has(sp.name);
+    return '<button type="button" class="targetfishchoice'+(on?' active':'')+'" aria-pressed="'+on+'" onclick="toggleTargetFish(\''+sp.name+'\')">'+
+      '<span aria-hidden="true">'+(on?'✓':'+')+'</span>'+sp.name+'</button>';
   }).join("");
+  const picker='<div class="targetfishsetup"><div><strong>Wähle Deine Zielfische:</strong><small>Diese Fische werden immer direkt angezeigt.</small></div>'+
+    '<button type="button" class="targetfishedit" aria-expanded="'+TARGET_FISH_PICKER_OPEN+'" onclick="toggleTargetFishPicker()">'+
+    (TARGET_FISH_PICKER_OPEN?'Auswahl schließen':'Zielfische bearbeiten')+'</button></div>'+
+    '<div class="targetfishpicker" style="display:'+(TARGET_FISH_PICKER_OPEN?'flex':'none')+'">'+choices+'</div>';
+  const targetBlock=targetRows||'<div class="targetfishempty">Noch keine Zielfische gewählt. Über „Zielfische bearbeiten“ kannst du welche hinzufügen.</div>';
+  const otherBlock=others.length?'<details class="biteothers"><summary>Weitere Fische <span>'+others.length+'</span></summary><div class="biteothersbody">'+
+    others.map(sp=>biteRow(sp,ctx,tag,col)).join("")+'</div></details>':'';
   const warn = ctx.wt==null ? '<div class="fbnote" style="margin:0 4px 10px">Wassertemperatur noch nicht geladen – Einstufung vorläufig.</div>' : '';
-  box.innerHTML = warn + rows +
+  box.innerHTML = picker+warn+'<div class="targetfishlist">'+targetBlock+'</div>'+otherBlock+
     '<div class="fbnote" style="margin-top:8px">Evidenzgewichtete Faustregeln aus Fang-, Fütterungs- und Aktivitätsstudien – keine Fanggarantie. Persönliche Fänge ergänzen die Köderempfehlung.</div>';
 }
 function toggleBite(){

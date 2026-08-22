@@ -74,3 +74,11 @@ test("Tages- und Wochenbegründungen sowie Sauerstoffverlauf sind dokumentiert",
   assert.match(code,/wq:Sauerstoff/);
   assert.match(code,/CHART_EXPLANATIONS/);
 });
+
+test("Zielfische sind auswählbar und weitere Arten bleiben einklappbar",()=>{
+  assert.match(code,/DEFAULT_TARGET_FISH/);
+  assert.match(code,/function toggleTargetFish\(name\)/);
+  assert.match(code,/Wähle Deine Zielfische:/);
+  assert.match(code,/class="biteothers"/);
+  assert.match(code,/APP_STATE\.ui_prefs\.target_fish/);
+});

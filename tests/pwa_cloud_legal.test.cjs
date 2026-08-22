@@ -37,12 +37,12 @@ test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v89/);
+  assert.match(sw,/petriklar-shell-v90/);
   assert.match(sw,/self\.skipWaiting\(\)/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=79/);
-  assert.match(pwa,/service-worker\.js\?v=89/);
-  assert.match(html,/js\/pwa\.js\?v=65/);
+  assert.match(html,/styles\.css\?v=80/);
+  assert.match(pwa,/service-worker\.js\?v=90/);
+  assert.match(html,/js\/pwa\.js\?v=66/);
 });
 
 test("Öffentliche Startseite führt in die getrennte PetriKlar-App",()=>{
@@ -57,6 +57,12 @@ test("Öffentliche Startseite führt in die getrennte PetriKlar-App",()=>{
   assert.match(app,/name="robots" content="noindex,nofollow"/);
   assert.match(read("robots.txt"),/Sitemap: https:\/\/www\.petriklar\.com\/sitemap\.xml/);
   assert.match(read("sitemap.xml"),/<loc>https:\/\/www\.petriklar\.com\/<\/loc>/);
+});
+
+test("App-Ratgeber verwendet Text statt Fisch-Emoji",()=>{
+  const app=read("app.html");
+  assert.match(app,/Wetter und Wasserwerte verstehen/);
+  assert.doesNotMatch(app,/guide-link-icon[^>]*>🐟/);
 });
 
 test("System- und manueller Light Mode gelten auf Startseite und App",()=>{
