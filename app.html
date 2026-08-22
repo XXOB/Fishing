@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <script src="theme.js?v=1"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="styles.css?v=78">
+<link rel="stylesheet" href="styles.css?v=79">
 </head>
 <body class="auth-locked">
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -575,6 +575,7 @@
   <div class="cmbox">
     <div class="cmhead"><span id="chartTitle"></span><button class="cmx" onclick="closeChart()" aria-label="Schließen"><svg class="uiicon"><use href="#i-close"/></svg></button></div>
     <div class="cmtabs"><button id="cmt24" onclick="setChartRange('24h')">24 Stunden</button><button id="cmt7" onclick="setChartRange('7d')">7 Tage</button></div>
+    <div id="cmExplain" class="chart-explain"></div>
     <div class="cmcanvas"><canvas id="cmChart"></canvas></div>
     <div id="cmMeta" class="fbnote"></div>
   </div>
@@ -612,10 +613,10 @@
 <script src="js/pwa.js?v=65"></script>
 <script src="js/cloud.js?v=80"></script>
 <script src="js/onboarding.js?v=60"></script>
-<script src="js/data-services.js?v=61"></script>
+<script src="js/data-services.js?v=62"></script>
 <script src="js/logbook.js?v=60"></script>
 <script src="js/map.js?v=63"></script>
-<script src="js/charts-bite.js?v=61"></script>
+<script src="js/charts-bite.js?v=62"></script>
 <script src="js/places.js?v=66"></script>
 <script src="js/baits.js?v=61"></script>
 <script src="js/stats.js?v=59"></script>

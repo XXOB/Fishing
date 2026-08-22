@@ -37,11 +37,11 @@ test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v88/);
+  assert.match(sw,/petriklar-shell-v89/);
   assert.match(sw,/self\.skipWaiting\(\)/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=78/);
-  assert.match(pwa,/service-worker\.js\?v=88/);
+  assert.match(html,/styles\.css\?v=79/);
+  assert.match(pwa,/service-worker\.js\?v=89/);
   assert.match(html,/js\/pwa\.js\?v=65/);
 });
 

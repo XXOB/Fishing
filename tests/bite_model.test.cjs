@@ -55,3 +55,22 @@ test("Luftdruck bleibt nur ein schwacher Alt-Faktor",()=>{
   assert.match(code,/score\+=0\.25/);
   assert.doesNotMatch(code,/Luftdruck fällt \(kurbelt das Fressen an\)/);
 });
+
+test("typische Fluss- und Salmonidenarten sind enthalten",()=>{
+  ["Bachforelle","Regenbogenforelle","Äsche","Huchen","Nase","Barbe","Quappe"].forEach(name=>assert.ok(species(name),name));
+  assert.deepEqual(Array.from(species("Nase").temp),[12,18]);
+  assert.deepEqual(Array.from(species("Huchen").oxygen),[8,6.5,5]);
+});
+
+test("artspezifischer Sauerstoff belastet Salmoniden früher als Warmwasserfische",()=>{
+  const trout=context.evalBite(species("Bachforelle"),ctx({wt:12,oxygen:5.5,oxygenSat:null,lowLight:"twilight"}));
+  const carp=context.evalBite(species("Karpfen"),ctx({wt:22,oxygen:5.5,oxygenSat:null,lowLight:"twilight"}));
+  assert.ok(trout.score<carp.score);
+});
+
+test("Tages- und Wochenbegründungen sowie Sauerstoffverlauf sind dokumentiert",()=>{
+  assert.match(code,/function fishProfileHtml/);
+  assert.match(code,/7 Tage/);
+  assert.match(code,/wq:Sauerstoff/);
+  assert.match(code,/CHART_EXPLANATIONS/);
+});

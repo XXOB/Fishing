@@ -280,7 +280,7 @@ def build_items(best: dict):
 
 
 # --------------------------------------------------------------- Historie -----
-HIST_LABELS = {"Wassertemperatur", "O₂-Sättigung", "Trübung"}
+HIST_LABELS = {"Wassertemperatur", "Sauerstoff", "O₂-Sättigung", "Trübung"}
 HIST_DAYS = 8
 def build_history(rows):
     """Stündlicher Verlauf der letzten HIST_DAYS Tage je Messgroesse (für die Grafen)."""

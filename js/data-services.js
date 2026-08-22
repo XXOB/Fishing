@@ -232,7 +232,7 @@ function renderQuality(){
     const cls=classifyWQ(it.label, deNum(it.value));
     const badge = cls ? '<span class="pgbadge '+cls.c+'">'+cls.t+'</span>' : '';
     const stripe = cls ? stripeColor(cls.c) : "var(--water)";
-    const clk = (CHARTABLE[it.label] && (cur.history||{})[it.label]) ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
+    const clk = CHARTABLE[it.label] ? ' clickable" onclick="openChart(\'wq:'+it.label+'\')' : '';
     const ext=it.chart_url||it.source_url||"";
     const val=(it.value==null||it.value==="")
       ? (ext?'<a href="'+esc(ext)+'" target="_blank" rel="noopener">Aktuelles Diagramm öffnen '+uiIcon('external')+'</a>':'keine Zahlen-API')

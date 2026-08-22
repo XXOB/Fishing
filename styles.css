@@ -1448,6 +1448,17 @@ html[data-theme="light"] .auth-locked #authModal .auth-box::before{color:rgba(16
 html[data-theme="light"] .auth-actions .backbtn{background:#eef2f7}
 html[data-theme="light"] .exact-location-field{background:#f5f7fa}html[data-theme="light"] .catch-spot-prompt{background:rgba(10,132,255,.08)}
 
+/* Beißindex: verständliche Tages-/Wochen-Einordnung */
+.chart-explain{margin:0 0 12px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(10,132,255,.08);color:var(--muted);font-size:12.5px;line-height:1.45}
+.chart-explain strong{display:block;margin-bottom:3px;color:var(--text)}
+.chart-explain p{margin:0}
+.biteprofile{display:grid;gap:7px;margin-top:9px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(118,118,128,.09)}
+.biteprofile>div{display:grid;grid-template-columns:5rem 1fr;gap:8px}
+.biteprofile b,.bitedayreason{color:var(--text)}
+html[data-theme="light"] .chart-explain{background:rgba(10,132,255,.07)}
+html[data-theme="light"] .biteprofile{background:#f4f7fa}
+@media(max-width:520px){.biteprofile>div{grid-template-columns:1fr;gap:1px}.cmcanvas{height:240px}}
+
 @media (hover:hover) and (pointer:fine){.theme-toggle:hover{background:rgba(72,72,74,.88)}html[data-theme="light"] .theme-toggle:hover,html[data-theme="light"] .account-btn:hover,html[data-theme="light"] .backbtn:hover,html[data-theme="light"] .fbtool:hover,html[data-theme="light"] .fbbtn:hover{background:#e5ebf2;border-color:rgba(8,120,220,.2)}html[data-theme="light"] .spotopen:hover,html[data-theme="light"] .library-link:hover,html[data-theme="light"] .secttoggle:hover,html[data-theme="light"] .utility-disclosure summary:hover,html[data-theme="light"] .map-legend summary:hover{background:#f4f7fa}}
 @media(max-width:700px){.auth-locked #authModal #authLoggedOut{padding-top:1.5rem}}
 @media(max-width:520px){header{padding-right:6.8rem}.exact-location-actions{grid-template-columns:1fr}.catch-spot-prompt{grid-template-columns:2.5rem minmax(0,1fr) 2.25rem;padding:.75rem}.auth-locked #authModal .auth-theme-toggle{right:.75rem;top:.75rem;width:2.75rem;height:2.75rem}}

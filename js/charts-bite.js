@@ -19,6 +19,20 @@ const CHART_DEFS={
 };
 const WQ_UNIT={"Wassertemperatur":"°C","Sauerstoff":"mg/l","O₂-Sättigung":"%","Trübung":"TE","Schwebstoff":"g/m³"};
 const WQ_COLOR={"Wassertemperatur":"#ff9f0a","Sauerstoff":"#0a84ff","O₂-Sättigung":"#64d2ff","Trübung":"#8e8e93","Schwebstoff":"#ac8e68"};
+const CHART_EXPLANATIONS={
+  pegel:"Pegeländerungen können Standplätze, Strömung und Trübung verändern. Ein klarer artspezifischer Grenzwert existiert nicht; im Beißindex zählt nur ein deutlicher Anstieg bei Wels und Aal schwach positiv.",
+  durchfluss:"Der Durchfluss beschreibt die Wassermenge, nicht die lokale Strömung am Angelplatz. Veränderungen sind vor allem für strömungsliebende Arten relevant, werden mangels lokaler Fließgeschwindigkeit aber nicht direkt bepunktet.",
+  airTemp:"Die Lufttemperatur wirkt nur indirekt. Entscheidend ist die gemessene Wassertemperatur; deshalb fließt die Lufttemperatur nicht direkt in den Beißindex ein.",
+  wind:"Mäßiger Wind kann die Oberfläche kräuseln und Uferbereiche durchmischen. Im Modell erhält nur der Hecht einen kleinen Bonus; starke Böen werden nicht positiv bewertet.",
+  rain:"Regen wirkt über Pegel, Trübung und Temperatur. Der Niederschlagswert allein bekommt deshalb keinen pauschalen Bonus.",
+  press:"Luftdruck ist nur ein schwacher Begleitfaktor. Stabiler oder leicht fallender Druck wirkt minimal positiv, stark steigender minimal negativ.",
+  cloud:"Bewölkung dämpft das Licht. Das kann Dämmerungs- und Schwachlichtjäger begünstigen, ersetzt aber keine Wasserwerte.",
+  "wq:Wassertemperatur":"Die Wassertemperatur ist der stärkste Modellfaktor. Innerhalb des artspezifischen Aktivitätsfensters gibt es +2 Punkte, außerhalb der Toleranz −2 Punkte.",
+  "wq:Sauerstoff":"Gelöster Sauerstoff beeinflusst Aktivität und Futteraufnahme. Unter rund 5–6 mg/l nimmt die Futteraufnahme vieler Fische ab; Salmoniden und Äschen werden im Modell strenger bewertet.",
+  "wq:O₂-Sättigung":"Die Sättigung ergänzt mg/l, wenn kein Konzentrationswert vorliegt. Unter 65 % gilt der Wert als niedrig, unter 40 % als kritisch.",
+  "wq:Trübung":"Trübung verändert die Sichtweite. Sichtjäger werden bei starker Trübung abgewertet; Zander, Aal und Wels vertragen leichte bis mäßige Trübung besser.",
+  "wq:Schwebstoff":"Schwebstoff ist nicht immer direkt mit Trübung vergleichbar. Hohe Werte werden deshalb angezeigt, aber nicht als fester Beißindex-Grenzwert verwendet."
+};
 function defFor(key){
   if(CHART_DEFS[key]) return CHART_DEFS[key];
   if(key.indexOf("wq:")===0){ const l=key.slice(3); return {title:l, unit:WQ_UNIT[l]||"", color:WQ_COLOR[l]||"#38bdf8", src:key}; }
@@ -61,15 +75,32 @@ function openChart(key){
   setChartRange("24h");
 }
 function closeChart(){ $("chartModal").style.display="none"; if(CHART){ CHART.destroy(); CHART=null; } }
+function chartExplanation(def,range,pts){
+  const base=CHART_EXPLANATIONS[def.src]||"Der Verlauf hilft, kurzfristige Ausschläge von einem stabilen Trend zu unterscheiden.";
+  const period=range==="7d"
+    ? "Für die Woche zählt der Trend: mehrere Stunden oder Tage außerhalb eines günstigen Bereichs wiegen stärker als ein einzelner Ausreißer."
+    : "Für den Tag zeigt der Verlauf, ob der aktuelle Wert stabil ist oder sich gerade deutlich verändert.";
+  let fit="";
+  if(pts&&pts.length&&def.src==="wq:Wassertemperatur"){
+    const v=pts[pts.length-1].v, names=BITE.filter(sp=>v>=sp.temp[0]&&v<=sp.temp[1]).map(sp=>sp.name);
+    fit=names.length?" Aktuell liegt der Wert im Modellfenster für "+names.slice(0,6).join(", ")+(names.length>6?" und weitere":"")+".":" Aktuell liegt der Wert in keinem idealen Modellfenster.";
+  } else if(pts&&pts.length&&def.src==="wq:Sauerstoff"){
+    const v=pts[pts.length-1].v;
+    fit=v<3?" Der aktuelle Wert ist für alle Arten kritisch.":v<5.6?" Der aktuelle Wert kann Futteraufnahme und Aktivität bremsen.":" Der aktuelle Wert ist für die meisten Modellarten nicht begrenzend.";
+  }
+  return '<strong>Einordnung für '+(range==="7d"?'7 Tage':'24 Stunden')+'</strong><p>'+esc(base+" "+period+fit)+'</p>';
+}
 async function setChartRange(range){
   CHART_RANGE=range;
   $("cmt24").classList.toggle("active", range==="24h");
   $("cmt7").classList.toggle("active", range==="7d");
-  const def=defFor(CHART_KEY), meta=$("cmMeta");
+  const def=defFor(CHART_KEY), meta=$("cmMeta"), explain=$("cmExplain");
   meta.textContent="lädt …";
+  if(explain) explain.innerHTML=chartExplanation(def,range,null);
   let pts=null; try{ pts=await getSeries(def, range); }catch(e){ pts=null; }
+  if(explain) explain.innerHTML=chartExplanation(def,range,pts);
   if(!pts || !pts.length){
-    meta.textContent = (def.src.indexOf("wq:")===0) ? "Für diesen Wert liegt noch kein Verlauf vor (kommt nach dem nächsten Datenimport)." : "Keine Verlaufsdaten verfügbar.";
+    meta.textContent = (def.src.indexOf("wq:")===0) ? "Für diesen Wert liegt noch kein Verlauf vor. Die Einordnung oben gilt trotzdem für den aktuellen Messwert." : "Keine Verlaufsdaten verfügbar.";
     if(CHART){ CHART.destroy(); CHART=null; }
     return;
   }
@@ -97,14 +128,23 @@ function drawChart(labels, values, def){
    Direkte Fang-/Fütterungsbefunde wiegen stärker als Aktivität oder Wachstum. Die Regeln
    bleiben eine Faustregel und werden mit den persönlichen Fangdaten ergänzt. */
 const BITE = [
-  {name:"Zander",  temp:[12,23], tol:[10,27], light:"twi",      turbid:"moderate", oxygenSensitive:true},
-  {name:"Hecht",   temp:[6,18],  tol:[3,23],  light:"dusk",     turbid:"neutral",  wind:true, moonEdges:true},
-  {name:"Barsch",  temp:[10,23], tol:[5,27],  light:"day",      turbid:"clear"},
-  {name:"Rapfen",  temp:[16,27], tol:[12,30], light:"day",      turbid:"clear",    sun:true, weakTurbidity:true},
-  {name:"Wels",    temp:[20,28], tol:[15,31], light:"night",    turbid:"slightlike", risewater:true},
-  {name:"Aal",     temp:[16,26], tol:[11,29], light:"night",    turbid:"like",     risewater:true, dark:true},
-  {name:"Karpfen", temp:[18,28], tol:[10,32], light:"carp",     turbid:"neutral"},
-  {name:"Brasse",  temp:[14,25], tol:[8,29],  light:"flexible", turbid:"slightlike", weakTurbidity:true}
+  {name:"Zander",            temp:[12,23], tol:[10,27], light:"twi",      turbid:"moderate", oxygen:[6,5,3], oxygenWeight:1},
+  {name:"Hecht",             temp:[6,18],  tol:[3,23],  light:"dusk",     turbid:"neutral", oxygen:[5.6,4,3], oxygenWeight:.5, wind:true, moonEdges:true},
+  {name:"Barsch",            temp:[10,23], tol:[5,27],  light:"day",      turbid:"clear", oxygen:[6,5,3], oxygenWeight:.75},
+  {name:"Rapfen",            temp:[16,27], tol:[12,30], light:"day",      turbid:"clear", oxygen:[6,5,3], oxygenWeight:.75, sun:true, weakTurbidity:true},
+  {name:"Wels",              temp:[20,28], tol:[15,31], light:"night",    turbid:"slightlike", oxygen:[5,3.5,2.5], oxygenWeight:.35, risewater:true},
+  {name:"Aal",               temp:[16,26], tol:[11,29], light:"night",    turbid:"like", oxygen:[5,3.5,2.5], oxygenWeight:.35, risewater:true, dark:true},
+  {name:"Karpfen",           temp:[18,28], tol:[10,32], light:"carp",     turbid:"neutral", oxygen:[5.5,4,3], oxygenWeight:.4},
+  {name:"Brasse",            temp:[14,25], tol:[8,29],  light:"flexible", turbid:"slightlike", oxygen:[5.5,4,3], oxygenWeight:.4, weakTurbidity:true},
+  {name:"Bachforelle",       temp:[8,16],  tol:[4,20],  light:"low",      turbid:"clear", oxygen:[8,6,4], oxygenWeight:1.25},
+  {name:"Regenbogenforelle", temp:[10,18], tol:[4,21],  light:"low",      turbid:"clear", oxygen:[7.5,6,4], oxygenWeight:1.2},
+  {name:"Äsche",             temp:[8,16],  tol:[4,20],  light:"day",      turbid:"clear", oxygen:[8,6.5,4.5], oxygenWeight:1.25},
+  {name:"Huchen",            temp:[6,16],  tol:[3,22],  light:"twi",      turbid:"clear", oxygen:[8,6.5,5], oxygenWeight:1.25},
+  {name:"Nase",              temp:[12,18], tol:[4,24],  light:"day",      turbid:"clear", oxygen:[8,6,4], oxygenWeight:1},
+  {name:"Barbe",             temp:[18,25], tol:[5,28],  light:"low",      turbid:"slightlike", oxygen:[7,5.5,3.5], oxygenWeight:.8},
+  {name:"Döbel",             temp:[14,24], tol:[5,28],  light:"day",      turbid:"neutral", oxygen:[6,5,3], oxygenWeight:.5},
+  {name:"Schleie",           temp:[20,28], tol:[10,31], light:"carp",     turbid:"neutral", oxygen:[5,3.5,2.5], oxygenWeight:.35},
+  {name:"Quappe",            temp:[4,14],  tol:[1,18],  light:"night",    turbid:"slightlike", oxygen:[6.5,5,3.5], oxygenWeight:.75, dark:true}
 ];
 function qItem(label){
   const cur=wqCurrent(); const items=cur?cur.items:[];
@@ -175,7 +215,7 @@ function evalBite(sp, ctx){
     if(ll==="twilight"||ll==="night"){ score+=1; pros.push("Karpfen morgens, abends und nachts häufig fressen"); }
     else if(ll==="overcast"){ score+=0.5; pros.push("das gedämpfte Licht eine längere Fressphase begünstigt"); }
   } else if(sp.light==="flexible"){
-    if(ll==="twilight"){ score+=0.25; pros.push("Brassen auch in der Dämmerung aktiv sein können"); }
+    if(ll==="twilight"){ score+=0.25; pros.push(sp.name+" auch in der Dämmerung aktiv sein kann"); }
   }
   if(ctx.turb!=null){
     const tw=sp.weakTurbidity?0.5:1;
@@ -199,10 +239,12 @@ function evalBite(sp, ctx){
     const riseWeight=sp.name==="Wels"?0.75:0.5;
     score+=riseWeight; pros.push("der Pegel deutlich steigt und damit Aktivität auslösen kann");
   }
-  const oxygenCritical=(ctx.oxygenSat!=null&&ctx.oxygenSat<40)||(ctx.oxygen!=null&&ctx.oxygen<3);
-  const oxygenLow=(ctx.oxygenSat!=null&&ctx.oxygenSat<65)||(ctx.oxygen!=null&&ctx.oxygen<5);
+  const oxygen=sp.oxygen||[5.6,5,3], oxygenWeight=sp.oxygenWeight==null?.5:sp.oxygenWeight;
+  const oxygenCritical=(ctx.oxygenSat!=null&&ctx.oxygenSat<40)||(ctx.oxygen!=null&&ctx.oxygen<oxygen[2]);
+  const oxygenLow=(ctx.oxygenSat!=null&&ctx.oxygenSat<65)||(ctx.oxygen!=null&&ctx.oxygen<oxygen[1]);
   if(oxygenCritical){ score-=2.5; cons.push("sehr wenig Sauerstoff Aktivität und Futteraufnahme stark bremst"); }
-  else if(sp.oxygenSensitive&&oxygenLow){ score-=1; cons.push("niedriger Sauerstoff die Futteraufnahme von Zandern vermindern kann"); }
+  else if(oxygenLow){ score-=oxygenWeight; cons.push("der Sauerstoffwert für "+sp.name+" niedrig ist"); }
+  else if(ctx.oxygen!=null&&ctx.oxygen>=oxygen[0]&&oxygenWeight>=1){ score+=0.25; pros.push("genügend gelöster Sauerstoff vorhanden ist"); }
   if(ctx.ptrend!=null){
     // Luftdruck bleibt als schwacher Alt-Faktor erhalten; direkte Fütterungsbelege sind uneinheitlich.
     if(ctx.ptrend<=-1.5){ score+=0.25; pros.push("der Luftdruck leicht fällt"); }
@@ -223,6 +265,28 @@ function evalBite(sp, ctx){
   const lead = color==="green"?"Gut, weil ":color==="red"?"Schwierig, weil ":"Mittel – weil ";
   return { color, reason: lead+frag+".", score };
 }
+function biteHistoryStats(label,days){
+  const cur=wqCurrent(), hi=cur&&cur.history&&cur.history[label];
+  if(!hi||!hi.length) return null;
+  const cutoff=Date.now()-days*86400e3;
+  const vals=hi.map(p=>({t:new Date(p.t),v:+p.v})).filter(p=>!isNaN(p.t)&&isFinite(p.v)&&p.t.getTime()>=cutoff).map(p=>p.v);
+  if(!vals.length) return null;
+  return {min:Math.min(...vals),max:Math.max(...vals),avg:vals.reduce((a,b)=>a+b,0)/vals.length,n:vals.length};
+}
+function fishProfileHtml(sp,ctx){
+  const o=sp.oxygen||[5.6,5,3], tNow=ctx.wt==null?"kein Temperaturwert":
+    (ctx.wt>=sp.temp[0]&&ctx.wt<=sp.temp[1]?ctx.wt+" °C: ideal":ctx.wt<sp.tol[0]||ctx.wt>sp.tol[1]?ctx.wt+" °C: außerhalb der Toleranz":ctx.wt+" °C: nutzbar, aber nicht optimal");
+  let oNow="kein Sauerstoffwert";
+  if(ctx.oxygen!=null) oNow=ctx.oxygen+" mg/l: "+(ctx.oxygen<o[2]?"kritisch":ctx.oxygen<o[1]?"niedrig":ctx.oxygen>=o[0]?"günstig":"ausreichend");
+  else if(ctx.oxygenSat!=null) oNow=ctx.oxygenSat+" % Sättigung: "+(ctx.oxygenSat<40?"kritisch":ctx.oxygenSat<65?"niedrig":"ausreichend");
+  const ts=biteHistoryStats("Wassertemperatur",7), os=biteHistoryStats("Sauerstoff",7);
+  const week=[];
+  if(ts) week.push("Temperatur Ø "+fmt(ts.avg,1)+" °C ("+fmt(ts.min,1)+"–"+fmt(ts.max,1)+")");
+  if(os) week.push("Sauerstoff Ø "+fmt(os.avg,1)+" mg/l ("+fmt(os.min,1)+"–"+fmt(os.max,1)+")");
+  return '<div class="biteprofile"><div><b>Heute</b><span>'+esc(tNow)+' · '+esc(oNow)+'</span></div>'+
+    '<div><b>7 Tage</b><span>'+esc(week.length?week.join(" · "):"Noch kein 7-Tage-Verlauf an dieser Messstation")+'</span></div>'+
+    '<div><b>Modellwerte</b><span>Temperatur ideal '+sp.temp[0]+'–'+sp.temp[1]+' °C, Toleranz '+sp.tol[0]+'–'+sp.tol[1]+' °C · Sauerstoff günstig ab '+o[0]+' mg/l, niedrig unter '+o[1]+' mg/l, kritisch unter '+o[2]+' mg/l</span></div></div>';
+}
 function renderBite(){
   const box=$("biteBox"); if(!box) return;
   const ctx=biteContext();
@@ -236,7 +300,7 @@ function renderBite(){
     return '<div class="biteitem"><button class="bitehead" onclick="var e=this.nextElementSibling;e.style.display=(e.style.display===\'block\'?\'none\':\'block\')">'+
       '<span class="bitedot bd-'+r.color+'"></span>'+sp.name+
       '<span class="bitetag" style="color:var('+col[r.color]+')">'+tag[r.color]+' '+uiIcon('chevron-down')+'</span></button>'+
-      '<div class="bitereason">'+esc(r.reason)+recHtml+'</div></div>';
+      '<div class="bitereason"><div class="bitedayreason">'+esc(r.reason)+'</div>'+fishProfileHtml(sp,ctx)+recHtml+'</div></div>';
   }).join("");
   const warn = ctx.wt==null ? '<div class="fbnote" style="margin:0 4px 10px">Wassertemperatur noch nicht geladen – Einstufung vorläufig.</div>' : '';
   box.innerHTML = warn + rows +
