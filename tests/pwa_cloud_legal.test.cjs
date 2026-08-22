@@ -37,11 +37,11 @@ test("Schnelle Seitenveröffentlichung ist vom Sensorabruf getrennt",()=>{
 
 test("PWA-Aktualisierungen werden ohne alten Wartezustand aktiviert",()=>{
   const sw=read("service-worker.js"), pwa=read("js/pwa.js"), html=read("app.html");
-  assert.match(sw,/petriklar-shell-v87/);
+  assert.match(sw,/petriklar-shell-v88/);
   assert.match(sw,/self\.skipWaiting\(\)/);
-  assert.match(pwa,/service-worker\.js\?v=87/);
   assert.match(pwa,/updateViaCache:"none"/);
-  assert.match(html,/styles\.css\?v=77/);
+  assert.match(html,/styles\.css\?v=78/);
+  assert.match(pwa,/service-worker\.js\?v=88/);
   assert.match(html,/js\/pwa\.js\?v=65/);
 });
 
@@ -49,11 +49,11 @@ test("Öffentliche Startseite führt in die getrennte PetriKlar-App",()=>{
   const landing=read("index.html"), app=read("app.html"), sw=read("service-worker.js");
   assert.match(landing,/PetriKlar – Angel-App mit Fangbuch &amp; Live-Wasserdaten/);
   assert.match(landing,/href="app\.html"/);
-  assert.match(landing,/href="landing\.css\?v=6"/);
+  assert.match(landing,/href="landing\.css\?v=7"/);
   assert.match(landing,/id="sensornetz"/);
   assert.match(landing,/Messwerte passend/);
   assert.match(sw,/"\.\/app\.html"/);
-  assert.match(sw,/"\.\/landing\.css\?v=6"/);
+  assert.match(sw,/"\.\/landing\.css\?v=7"/);
   assert.match(app,/name="robots" content="noindex,nofollow"/);
   assert.match(read("robots.txt"),/Sitemap: https:\/\/www\.petriklar\.com\/sitemap\.xml/);
   assert.match(read("sitemap.xml"),/<loc>https:\/\/www\.petriklar\.com\/<\/loc>/);
@@ -69,6 +69,10 @@ test("System- und manueller Light Mode gelten auf Startseite und App",()=>{
   assert.match(theme,/petriklar_theme_v1/);
   assert.match(landingCss,/html\[data-theme="light"\]/);
   assert.match(appCss,/html\[data-theme="light"\]/);
+  assert.match(appCss,/html\[data-theme="light"\] \.secttoggle/);
+  assert.match(appCss,/html\[data-theme="light"\] \.inline-rating-panel/);
+  assert.match(appCss,/html\[data-theme="light"\] \.account-card/);
+  assert.match(landingCss,/@media\(max-width:900px\)[\s\S]*?\.site-header \.theme-toggle\{margin-left:auto\}[\s\S]*?\.header-cta\{margin-left:0\}/);
   assert.match(sw,/"\.\/theme\.js\?v=1"/);
   assert.doesNotMatch(landingCss,/\.app-window\{[^}]*transform:rotate/);
 });

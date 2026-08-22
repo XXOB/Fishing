@@ -1,16 +1,16 @@
 "use strict";
 
-const SHELL_CACHE="petriklar-shell-v87";
-const RUNTIME_CACHE="petriklar-runtime-v87";
+const SHELL_CACHE="petriklar-shell-v88";
+const RUNTIME_CACHE="petriklar-runtime-v88";
 const APP_SHELL=[
   "./",
   "./index.html",
-  "./landing.css?v=6",
+  "./landing.css?v=7",
   "./theme.js?v=1",
   "./app.html",
   "./robots.txt",
   "./sitemap.xml",
-  "./styles.css?v=77",
+  "./styles.css?v=78",
   "./manifest.webmanifest",
   "./offline.html",
   "./fish_rules.js?v=41",

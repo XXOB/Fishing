@@ -65,7 +65,7 @@ function showAppUpdate(registration){
 async function registerPetriKlarServiceWorker(){
   if(!("serviceWorker" in navigator) || !(location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")) return;
   try{
-    const registration=await navigator.serviceWorker.register("./service-worker.js?v=87",{scope:"./",updateViaCache:"none"});
+    const registration=await navigator.serviceWorker.register("./service-worker.js?v=88",{scope:"./",updateViaCache:"none"});
     await registration.update();
     if(registration.waiting) showAppUpdate(registration);
     registration.addEventListener("updatefound",()=>{
